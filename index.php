@@ -1,5 +1,9 @@
-
-<!DOCTYPE html>
+<?php
+$v = 0.95;
+/*
+	Move text to left hand bar?
+*/
+?><!DOCTYPE html>
 <html>
 	<head>
 		<title>X-Quest</title>
@@ -49,6 +53,10 @@ function Format(number, decimals, dec_point, thousands_sep) {
 Game = {};
 
 Game.Updates = [
+	[	'v0.95',
+		'August 3rd 2016',
+		'Added a high score list.'
+	],
 	[	'v0.9',
 		'September 12th 2014',
 		'Added a changelog.',
@@ -72,9 +80,10 @@ Game.Updates = [
 ];
 
 
+Game.CurrentTab = 1;
 Game.Active = false;
 Game.CHEAT = false;
-Game.Version = 0.9;
+Game.Version = <?=$v?>;
 Game.BaseSpeed = 120; //milliseconds
 Game.PositivePhrases = [
 	"Good Luck!", "Having fun yet?", "Have fun!", "Kill &#39;em", "You can do it!",
@@ -142,6 +151,11 @@ Game.Start = function() {
 	for (y = 0; y <= 20; y++) {
 		var Line = Game.GenerateLine();
 		Game.map[y] = Line;
+	}
+
+	/* If you're on the high score screen and a new game starts don't let it submit */
+	if (Game.CurrentTab == 6 || Game.CurrentTab == 7) {
+		ToggleTab('1');
 	}
 
 	/* Add a positive phrase in the text field */
@@ -557,7 +571,10 @@ Game.Over = function(DeathType) {
 		{y:10, text:"@Lines: "+Format(Game.Stats.Lines)+"@@@@@@@@@@@@@@@@@@@@@@@@"},
 		{y:9, text:"@Level: "+Format(Game.Level)+"@@@@@@@@@@@@@@@@@@@@@@@@"}
 	];
-	if (Game.isNewRecord()) Text.push({y:8, text:"@@High Score!@@@@@@@@@@@@@@@@@@@@@@@@@@@"});
+	if (Game.isNewRecord()) {
+		Text.push({y:8, text:"@@High Score!@@@@@@@@@@@@@@@@@@@@@@@@@@@"});
+		ToggleTab('6');
+	}
 
 	$("#GameWindow").html(Game.DisplayMap(Text));
 
@@ -719,6 +736,36 @@ Game.CreateChangelog = function() {
 	return Changelog;
 };
 
+Game.LoadHighScore = function() {
+	$.ajax({
+		method: "POST",
+		data: {
+			showHS: true
+		},
+		url: 'ajax.php',
+		success: function (data) {
+			$('#highScoreList').html(data);
+		}
+
+	});
+}
+
+Game.SendHighScore = function(data) {
+	$.ajax({
+		method: "POST",
+		data: {
+			score: Game.Stats.Score,
+			username: $('#username').val(),
+			stats: Game.Stats
+		},
+		url: 'ajax.php',
+		success: function(data) {
+			ToggleTab('7');
+			$('#HighScoreSubmit').html(data);
+		}
+	})
+}
+
 $(document).ready(function() {
 	Game.Load();
 
@@ -773,12 +820,18 @@ $(document).keydown(function(e) {
 
 
 function ToggleTab(tab){
-	for (i=0;i<=5;i++) {
+	for (i=0;i<=12;i++) {
 		$('[tab='+i+']').css('display', 'none');
 		$('[id='+i+']').attr('class', 'x');
 	}
 	$('[tab='+tab+']').css('display', 'inline-block');
 	$('[id='+tab+']').attr('class', 'selected');
+
+	if (tab == 3) {
+		Game.LoadHighScore();
+	}
+
+	Game.CurrentTab = tab;
 }
 	</script>
 	</head>
@@ -842,10 +895,10 @@ function ToggleTab(tab){
 		<audio id="Sound" src="" style="display:none;"></audio>
 	<div style="width:1200px;">
 		<div class="TabContainer">
-			<tab id="0" style="width:398px;"> X-Quest v0.9 </tab>
+			<tab id="0" style="width:398px;"> X-Quest v<?=$v?> </tab>
 			<tab id="1" class="selected">Instructions</tab>
 			<tab id="2">Options</tab>
-			<tab id="3">Achievements</tab>
+			<tab id="3">High Scores</tab>
 			<tab id="4">Statistics</tab>
 			<tab id="5">Changelog</tab>
 		</div>
@@ -903,7 +956,7 @@ function ToggleTab(tab){
 	P (Pellet): Score bonus.<br>
 	D (Distortion): Halves game speed for 25 turns<br>
 
-	<br>X-Quest v0.9 by <a href="http://tpkrpg.net/">B0sh</a> &copy; 2014
+	<br>X-Quest v<?=$v?> by <a href="http://tpkrpg.net/">B0sh</a> &copy; 2014-<?=date('Y')?>
 </div>
 <div class="TabWindow" tab="2">
 	<b>Sound:</b> <select id="sound" onchange="Game.UpdateSound($('#sound').val());">
@@ -923,12 +976,31 @@ function ToggleTab(tab){
 	<b>Game Speed:</b> <input type="text" value="120" size="2" id="speed" onchange="Game.UpdateSpeed($('#speed').val());" /> (ms)
 </div>
 <div class="TabWindow" tab="3">
-	Achievements have not been coded yet.
+	High Scores<br><br>
+
+	<div id="highScoreList">Loading...</div>
 </div>
 <div class="TabWindow" id="Statistics" tab="4">
 
 </div>
 <div class="TabWindow" tab="5" id="Changelog"style="overflow:scroll;overflow-x:hidden;height:350px;width:740px;">
+</div>
+<div class="TabWindow" tab="6" id="HighScoreEnter">
+
+	Congratulations on your HIGH SCORE!<br><br>
+
+	Would you like to submit it to the FUN-ONLY X-Quest High score list?<br><br>
+
+	<form method="POST">
+		<b>Nickname:</b> (Registering not enforced)<br>
+		<input type="text" value="" name="nickname" id="username" /><br>
+		<input type="submit" value="Send It Away" onclick="Game.SendHighScore(); return false;" />
+	</form>
+
+</div>
+<div class="TabWindow" tab="7" id="HighScoreSubmit">
+
+
 </div>
 
 		</div>
