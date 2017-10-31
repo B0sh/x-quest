@@ -1,5 +1,9 @@
-
-<!DOCTYPE html>
+<?php
+$v = 0.95;
+/*
+	Move text to left hand bar?
+*/
+?><!DOCTYPE html>
 <html>
 	<head>
 		<title>X-Quest</title>
@@ -49,6 +53,10 @@ function Format(number, decimals, dec_point, thousands_sep) {
 Game = {};
 
 Game.Updates = [
+	[	'v0.95',
+		'August 3rd 2016',
+		'Added a high score list.'
+	],
 	[	'v0.9',
 		'September 12th 2014',
 		'Added a changelog.',
@@ -72,9 +80,10 @@ Game.Updates = [
 ];
 
 
+Game.CurrentTab = 1;
 Game.Active = false;
 Game.CHEAT = false;
-Game.Version = 0.9;
+Game.Version = <?=$v?>;
 Game.BaseSpeed = 120; //milliseconds
 Game.PositivePhrases = [
 	"Good Luck!", "Having fun yet?", "Have fun!", "Kill &#39;em", "You can do it!",
@@ -85,9 +94,9 @@ Game.PositivePhrases = [
 
 /* Called each time a new game begins; sets game variables */
 Game.Start = function() {
-	if (Game.Active == true) 
+	if (Game.Active == true)
 		return false;
-	
+
 	Game.Active = true;
 	Game.Paused = false;
 	Game.Invincible = 0;
@@ -115,21 +124,21 @@ Game.Start = function() {
 			Normal: 0
 		}
 	};
-	
+
 	/* "Destroying" = Create empty objects */
 	Game.DestroyBullet('player');
 	Game.DestroySpaceship();
-	
+
 	/* Player spawns in the middle location */
 	var mid = Math.floor((Game.LineSize - 1) / 2);
 	Game.PlayerX = mid;
-	
+
 	for(var i = 0; i < Game.LineSize; i++) {
 		// if the location is one of the 3 middle columns then make a line there
 		if (Contains(i, mid-1, mid+1))
 			x = 1;
 		else x = 0;
-		
+
     	Game.LineLength.push(x*25);
     	Game.LineReset.push(x);
     	Game.LineEntered.push(x);
@@ -143,10 +152,15 @@ Game.Start = function() {
 		var Line = Game.GenerateLine();
 		Game.map[y] = Line;
 	}
-	
+
+	/* If you're on the high score screen and a new game starts don't let it submit */
+	if (Game.CurrentTab == 6 || Game.CurrentTab == 7) {
+		ToggleTab('1');
+	}
+
 	/* Add a positive phrase in the text field */
-	Game.AddText( Game.PositivePhrases[getRandomInt(0, (Game.PositivePhrases.length-1))] ); 
-			
+	Game.AddText( Game.PositivePhrases[getRandomInt(0, (Game.PositivePhrases.length-1))] );
+
 	/* Lets get this party started */
 	Game.CreateInterval(Game.BaseSpeed);
 	console.log('Game Started');
@@ -161,8 +175,8 @@ Game.GenerateLine = function () {
 		var x = getRandomInt(0,Game.LineSize-1);
 		Game.LineReset[x] = 1;
 		Game.LineLength[x] = getRandomInt(6, 22-Game.Level);
-	} 
-	
+	}
+
 	/* Generate tiles and manage lines */
 	for(i=0; i<Game.LineSize; i++) {
 		if (Game.LineLength[i] != 0) {
@@ -205,7 +219,7 @@ Game.AddLine = function() {
 	Game.map = newMap;
 	Game.map[20] = Game.GenerateLine();
 	Game.Stats.Lines+=1;
-	
+
 	return false;
 };
 
@@ -214,10 +228,10 @@ Game.DisplayMap = function(Text) {
 	var Map = "";
 	for (y = 20; y >= 0; y--) {
 		var Line = Game.map[y];
-		
+
 		if (y == Game.Bullet.y)
 			Line = setCharAt(Line, Game.Bullet.x, "^");
-		if (y == Game.Spaceship.Bullet.y) 
+		if (y == Game.Spaceship.Bullet.y)
 			Line = setCharAt(Line, Game.Spaceship.Bullet.x, "v");
 		if (y == 2)
 			Line = setCharAt(Line, Game.PlayerX, "X");
@@ -226,14 +240,14 @@ Game.DisplayMap = function(Text) {
 			Line = setCharAt(Line, Game.Spaceship.x+1, Game.Spaceship.display[1]);
 			Line = setCharAt(Line, Game.Spaceship.x+2, Game.Spaceship.display[2]);
 		}
-		
+
 		if (Text != false) {
 			for (i=0;i<Text.length;i++) {
 				if (Text[i].y == y)
 					Line = Text[i].text.substr(0,Game.LineSize);
 			}
 		}
-		
+
 		Map += "#"+replaceAll('`', Game.RoadTile, replaceAll('@', '&nbsp;', Line))+"#<br>";
 	}
 	return Map;
@@ -248,7 +262,7 @@ Game.CreateInterval = function(speed) {
 		Game.AddLine();
 		$("#GameWindow").html(Game.DisplayMap(false));
 		Game.Stats.Time += Game.CurrentSpeed;
-		
+
 		/* Create lines by the player for scoring purposes */
 		for(x=0; x<Game.LineSize; x++) {
 			if (Game.map[3].charAt(x) == '@')
@@ -256,7 +270,7 @@ Game.CreateInterval = function(speed) {
 			else if (Game.LineEntered[x] == 0)
 				Game.LineEntered[x] = 1;
 		}
-			
+
 		var Tile = Game.map[2].split('')[Game.PlayerX];
 		switch (Tile) {
 			case '|': break;
@@ -288,14 +302,14 @@ Game.CreateInterval = function(speed) {
 				Game.map[2] = setCharAt(Game.map[2], Game.PlayerX, "`");
 				Game.PlaySound('power.ogg');
 				break;
-			case '@': 
+			case '@':
 				if (Game.Invincible == 0) {
 					Game.Over('Normal');
 				}
 				break;
 		}
-		
-		
+
+
 		/* Bullet handling */
 		if (Game.Bullet.exists == true) {
 			Game.Bullet.y += 1;
@@ -303,7 +317,7 @@ Game.CreateInterval = function(speed) {
 				Game.DestroyBullet('player');
 
 			if (Game.Spaceship.exists == true &&
-				Game.Bullet.y == Game.Spaceship.y && 
+				Game.Bullet.y == Game.Spaceship.y &&
 				Contains(Game.Bullet.x, Game.Spaceship.x, Game.Spaceship.x+2)) {
 					Game.DestroyBullet('player');
 					Game.Stats.Score += 10;
@@ -319,11 +333,11 @@ Game.CreateInterval = function(speed) {
 					Game.Stats.ShotsDestroyed += 1;
 			}
 		}
-		
+
 		/* Spaceship handling */
 		if (Game.Spaceship.exists == true) {
 			if ((Game.Stats.Lines % 30) == 0) Game.Spaceship.y -= 1;
-			
+
 			/* Spaceship movement */
 			if (Game.Spaceship.move == false) {
 				Game.Spaceship.move = true;
@@ -337,18 +351,18 @@ Game.CreateInterval = function(speed) {
 						Game.Spaceship.direction *= -1;
 					}
 				}
-				
+
 				Game.Spaceship.move = false;
 				Game.Spaceship.x += Game.Spaceship.direction;
 			}
-			
+
 			/* Spaceship bullet handling */
 			if (Game.Spaceship.Bullet.exists == false && getRandomInt(1, 5) == 1 && Game.Spaceship.flyaway == false) {
 				Game.Spaceship.Bullet = {
 					exists: true,
 					x: Game.Spaceship.x,
 					y: Game.Spaceship.y
-				}	
+				}
 			} else {
 				Game.Spaceship.Bullet.y -= 1;
 				if (Game.Spaceship.Bullet.y == 0) Game.DestroyBullet('Spaceship');
@@ -357,12 +371,12 @@ Game.CreateInterval = function(speed) {
 					Game.Over('Spaceship');
 				}
 			}
-			
+
 			/* After 150 lines after the spaceship has spawned make it fly away (now) */
 			if ((Game.Spaceship.start+150 ) < Game.Stats.Lines) {
 				Game.Spaceship.flyaway = true;
 			}
-			
+
 			/* Destroy spaceship after it has flown off the screen */
 			if (Game.Spaceship.x == -3 || Game.Spaceship.x == (Game.LineSize+3)) {
 				Game.DestroySpaceship();
@@ -374,10 +388,10 @@ Game.CreateInterval = function(speed) {
 				Game.CreateSpaceship();
 			}
 		}
-		
+
 		$('#score').html(Format(Game.Stats.Score));
 		$('#lines').html(Format(Game.Stats.Lines));
-		
+
 		if (Game.isNewRecord() && Game.HighScore == false) {
 			Game.HighScore = true;
 			Game.AddText("<b>High Score!</b>");
@@ -393,7 +407,7 @@ Game.CreateInterval = function(speed) {
 			}
 			$('#GameWindow').append('<br><b>Distortion:</b> '+Game.Distortion);
 		}
-		
+
 		Game.ProcessText();
 	}, speed);
 };
@@ -425,7 +439,7 @@ Game.Move = function (direction){
 			case 'left':
 				Game.PlayerX -= 1;
 				if (Game.PlayerX < 0)
-					Game.Over('Wall');			
+					Game.Over('Wall');
 				break;
 		}
 		if (Game.LineEntered[Game.PlayerX] == 1) {
@@ -478,8 +492,8 @@ Game.CreateSpaceship = function() {
 	if (getRandomInt(0, 20) == 0) {
 		var disp = "^_~";
 	} else var disp = "<_>";
-	
-	
+
+
 	Game.Spaceship = {
 		exists: true,
 		move:false,
@@ -557,10 +571,13 @@ Game.Over = function(DeathType) {
 		{y:10, text:"@Lines: "+Format(Game.Stats.Lines)+"@@@@@@@@@@@@@@@@@@@@@@@@"},
 		{y:9, text:"@Level: "+Format(Game.Level)+"@@@@@@@@@@@@@@@@@@@@@@@@"}
 	];
-	if (Game.isNewRecord()) Text.push({y:8, text:"@@High Score!@@@@@@@@@@@@@@@@@@@@@@@@@@@"});
+	if (Game.isNewRecord()) {
+		Text.push({y:8, text:"@@High Score!@@@@@@@@@@@@@@@@@@@@@@@@@@@"});
+		ToggleTab('6');
+	}
 
 	$("#GameWindow").html(Game.DisplayMap(Text));
-	
+
 	if(Game.CHEAT == false) {
 		switch(DeathType) {
 			case 'Spaceship': Game.SaveFile.Totals.Deaths.Shot++; break;
@@ -576,7 +593,7 @@ Game.Over = function(DeathType) {
 		Game.SaveFile.Totals.Time += Game.Stats.Time;
 		Game.SaveFile.Totals.ShotsFired += Game.Stats.ShotsFired;
 		Game.SaveFile.Totals.ShotsDestroyed += Game.Stats.ShotsDestroyed;
-		
+
 		if (Game.isNewRecord()) {
 			Game.SaveFile.Record = {
 				Score: Game.Stats.Score,
@@ -585,12 +602,12 @@ Game.Over = function(DeathType) {
 			$('#high-score').html(Format(Game.SaveFile.Record.Score));
 			$('#high-lines').html(Format(Game.SaveFile.Record.Lines));
 		}
-		
+
 		$('#total-score').html(Format(Game.SaveFile.Totals.Score));
 		$('#total-lines').html(Format(Game.SaveFile.Totals.Lines));
-		
+
 		Game.Save();
-		
+
 		Game.UpdateStatistics();
 	}
 };
@@ -621,7 +638,7 @@ Game.CreateNewSaveFile = function() {
 		},
 		Record: Record,
 		Achievements: {
-			
+
 		}
 	};
 };
@@ -646,11 +663,11 @@ Game.Load = function() {
 	catch(err) {
 		if (err instanceof SecurityError)
 			alert("Browser security settings blocked access to local storage.");
-		else 
+		else
 			alert("Cannot access localStorage - browser may not support localStorage, or storage may be corrupt");
 		return false;
 	}
-	
+
 	/* If a save file does not exist, create a new one */
 	if (!SaveFile) {
 		Game.CreateNewSaveFile();
@@ -662,14 +679,14 @@ Game.Load = function() {
 		alert("Save file not loaded.");
 		return false;
 	}
-	
+
 	Game.SaveFile = JSON.parse(SaveFile);
-	
+
 	if (Game.SaveFile.Version < 0.9) {
 		Game.SaveFile.Totals.Time = Game.SaveFile.Totals.Lines * 0.12;
 		Game.SaveFile.Sound = 'y';
 	}
-	
+
 	console.log("Game Loaded");
 };
 
@@ -690,7 +707,7 @@ Game.UpdateStatistics = function() {
 	} else {
 		Time = Format(Time / 3600, 1) + " Hours";
 	}
-	
+
 	$('#Statistics').html(
 		'<b>Games Played:</b> '+Format(Game.SaveFile.Totals.GamesPlayed)+'<br>'+
 		'<b>Score:</b> '+Format(Game.SaveFile.Totals.Score)+'<br>'+
@@ -719,6 +736,36 @@ Game.CreateChangelog = function() {
 	return Changelog;
 };
 
+Game.LoadHighScore = function() {
+	$.ajax({
+		method: "POST",
+		data: {
+			showHS: true
+		},
+		url: 'ajax.php',
+		success: function (data) {
+			$('#highScoreList').html(data);
+		}
+
+	});
+}
+
+Game.SendHighScore = function(data) {
+	$.ajax({
+		method: "POST",
+		data: {
+			score: Game.Stats.Score,
+			username: $('#username').val(),
+			stats: Game.Stats
+		},
+		url: 'ajax.php',
+		success: function(data) {
+			ToggleTab('7');
+			$('#HighScoreSubmit').html(data);
+		}
+	})
+}
+
 $(document).ready(function() {
 	Game.Load();
 
@@ -727,27 +774,27 @@ $(document).ready(function() {
 	$('#high-lines').html(Format(Game.SaveFile.Record.Lines));
 	$('#total-score').html(Format(Game.SaveFile.Totals.Score));
 	$('#total-lines').html(Format(Game.SaveFile.Totals.Lines));
-	
+
 	/* Default to medium size */
 	Game.UpdateSize(15);
 	Game.DestroyBullet('player');
 	Game.DestroySpaceship();
-	
+
 	Game.map = [];
 	for(i=0;i<=20;i++) {
 		Game.map[i] = '@@@@@@@@@@@@@@@';
 	}
-	
+
 	$('#GameWindow').html(Game.DisplayMap([
 		{y:11,text:"@@Press@Space@@"},
 		{y:10,text:"@@@to@start.@@@"},
 		{y:2 ,text:"@@@@@@@@@@@@@@@"}
 	]));
-	
+
 	$('tab').click(function (e) {
 		ToggleTab($(this).attr('id'));
 	});
-	
+
 	Game.UpdateStatistics();
 	$("#Changelog").html(Game.CreateChangelog());
 });
@@ -759,7 +806,7 @@ $(document).keydown(function(e) {
 		case 37: case 65: Game.Move('left');         break; //Right arrow or "a"
 		case 39: case 68: Game.Move('right');        break; //Left arrow or "d"
 		case 38: case 87: Game.FireBullet('player'); break; //Up arrow or "w"
-		case 32: 
+		case 32:
 			if (Game.Active == false) {
 				Game.Start();//Spacebar to start
 			} else {
@@ -772,13 +819,19 @@ $(document).keydown(function(e) {
 });
 
 
-function ToggleTab(tab){ 
-	for (i=0;i<=5;i++) {
+function ToggleTab(tab){
+	for (i=0;i<=12;i++) {
 		$('[tab='+i+']').css('display', 'none');
 		$('[id='+i+']').attr('class', 'x');
 	}
 	$('[tab='+tab+']').css('display', 'inline-block');
 	$('[id='+tab+']').attr('class', 'selected');
+
+	if (tab == 3) {
+		Game.LoadHighScore();
+	}
+
+	Game.CurrentTab = tab;
 }
 	</script>
 	</head>
@@ -794,7 +847,7 @@ function ToggleTab(tab){
 		.c7 { color: brown; }
 		.c8 { color: black; }
 		.c9 { color: #0000FF; }
-		
+
 		body{
 			font-family:monospace;
 			font-size:1em;
@@ -804,7 +857,7 @@ function ToggleTab(tab){
 			float:left;
 			min-height:400px;
 		}
-		.header { 
+		.header {
 			font-size:20px;
 		}
 		.TabContainer tab {
@@ -824,7 +877,7 @@ function ToggleTab(tab){
 		   -moz-user-select: none;
 		   -ms-user-select: none;
 			user-select: none;
-			
+
 			border-right:1px solid black;
 			border-bottom:1px solid black;
 		}
@@ -842,15 +895,15 @@ function ToggleTab(tab){
 		<audio id="Sound" src="" style="display:none;"></audio>
 	<div style="width:1200px;">
 		<div class="TabContainer">
-			<tab id="0" style="width:398px;"> X-Quest v0.9 </tab>
+			<tab id="0" style="width:398px;"> X-Quest v<?=$v?> </tab>
 			<tab id="1" class="selected">Instructions</tab>
 			<tab id="2">Options</tab>
-			<tab id="3">Achievements</tab>
+			<tab id="3">High Scores</tab>
 			<tab id="4">Statistics</tab>
 			<tab id="5">Changelog</tab>
 		</div>
 	</div>
-	
+
 	<div id="container" style="width:1200px;text-align:center;">
 	<div id="outer_container">
 		<div class="Window" style="width:200px;">
@@ -867,7 +920,7 @@ function ToggleTab(tab){
 				<div style="width:120px;text-align:right;float:left">Level:&nbsp;</div>
 				<div style="width:80px;text-align:left;float:left" id="level">0</div>
 			</div><br><br><br><br>
-			
+
 			<b>High Score:</b><br>
 			<div style="width:200px;">
 				<div style="width:120px;text-align:right;float:left">Score:&nbsp;</div>
@@ -881,7 +934,7 @@ function ToggleTab(tab){
 		<div class="Window" style="margin-top:2px;" id="GameWindow">
 			X-Quest required JavaScript to be enabled.
 		</div>
-		
+
 		<div class="Window" id="GameInfo">
 <div class="TabWindow" tab="0">
 	Easter Egg?
@@ -896,39 +949,58 @@ function ToggleTab(tab){
 	Left and Right (or A and D) to move your character left and right.<br>
 	Up (or W) to shoot the spaceships (or spaceship bullets).<br>
 	Spacebar to start/reset the game.<br><br>
-	
+
 	Special Tiles:<br>
 	L (Level): Land on this tile to level up<br>
 	I (Invulnerable): Invincibility for 50 lines<br>
 	P (Pellet): Score bonus.<br>
 	D (Distortion): Halves game speed for 25 turns<br>
 
-	<br>X-Quest v0.9 by <a href="http://tpkrpg.net/">B0sh</a> &copy; 2014
+	<br>X-Quest v<?=$v?> by <a href="http://tpkrpg.net/">B0sh</a> &copy; 2014-<?=date('Y')?>
 </div>
 <div class="TabWindow" tab="2">
 	<b>Sound:</b> <select id="sound" onchange="Game.UpdateSound($('#sound').val());">
 		<option value="y"> Enabled </option>
 		<option value="n"> Disabled </option>
 	</select><br><br>
-	
+
 	<b>Board Size:</b> <select id="linesize" onchange="Game.UpdateSize($('#linesize').val());">
 		<option value="9"> Small </option>
 		<option value="15" selected> Medium </option>
 		<option value="21"> Long </option>
 		<option value="27"> Extra Long </option>
 	</select><br><br>
-	
+
 	For each of the below options, changing them will result in statistics (ex: high score) not being recorded. Refreshing will reset these.<br><br>
-	
-	<b>Game Speed:</b> <input type="text" value="120" size="2" id="speed" onchange="Game.UpdateSpeed($('#speed').val());" /> (ms)	
+
+	<b>Game Speed:</b> <input type="text" value="120" size="2" id="speed" onchange="Game.UpdateSpeed($('#speed').val());" /> (ms)
 </div>
 <div class="TabWindow" tab="3">
-	Achievements have not been coded yet.
+	High Scores<br><br>
+
+	<div id="highScoreList">Loading...</div>
 </div>
 <div class="TabWindow" id="Statistics" tab="4">
 
 </div>
 <div class="TabWindow" tab="5" id="Changelog"style="overflow:scroll;overflow-x:hidden;height:350px;width:740px;">
+</div>
+<div class="TabWindow" tab="6" id="HighScoreEnter">
+
+	Congratulations on your HIGH SCORE!<br><br>
+
+	Would you like to submit it to the FUN-ONLY X-Quest High score list?<br><br>
+
+	<form method="POST">
+		<b>Nickname:</b> (Registering not enforced)<br>
+		<input type="text" value="" name="nickname" id="username" /><br>
+		<input type="submit" value="Send It Away" onclick="Game.SendHighScore(); return false;" />
+	</form>
+
+</div>
+<div class="TabWindow" tab="7" id="HighScoreSubmit">
+
+
 </div>
 
 		</div>
@@ -937,4 +1009,3 @@ function ToggleTab(tab){
 
 	</body>
 </html>
-
