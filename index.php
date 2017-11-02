@@ -1,11 +1,5 @@
 <?php
 $v = "1.0";
-
-// /"{"Version":0.95,"Totals":{"GamesPlayed":339,"Score":13093,"Lines":79114,"ShipsDestroyed":138,"Powerups":680,"Moves":11561,"Time":10202.040000000103,"ShotsFired":856,"ShotsDestroyed":71,"Deaths":{"Shot":5,"Wall":17,"Normal":317}},"Record":{"Score":816,"Lines":3570},"Achievements":{},"Sound":"y","Volume":"20"}"
-
-/*
-	Move text to left hand bar?
-*/
 ?><!DOCTYPE html>
 <html>
 	<head>
@@ -58,17 +52,17 @@ Game = {};
 
 Game.Updates = [
 	[ 'v1.0',
-		'October 30th 2017',
+		'November 1st 2017',
 		'New colors; Black Page conversion.',
 		'New breaks at Levels.',
 		'New Road Tiles with smooth tiling.',
 		'New Powerup: Warp',
-		'Added Volume Slider.',
-		'Fixed double jumping bug.'
+		'Added Volume Slider.'
 	],
 	[	'v0.96',
 		'October 20th 2017',
-		'Added a favicon for style consistiency.'
+		'Added a favicon for style.',
+		'Fixed sound effects'
 	],
 	[	'v0.95',
 		'August 3rd 2016',
@@ -77,8 +71,8 @@ Game.Updates = [
 	[	'v0.9',
 		'September 12th 2014',
 		'Added a changelog.',
-		'More layout changes.',
-		'Pellets now give less score from leveling up.',
+		'Layout changes.',
+		'Pellets now give less score.',
 		'Time played is now tracked.',
 		'Added sound effects.'
 	],
@@ -91,8 +85,8 @@ Game.Updates = [
 		'June 13th 2014',
 		'Ships fly on and off the screen instead of disappearing',
 		'Added tabbed windows',
-		'Statistics window now tracks many more types of statistics',
-		'New save file storage system (All previous saves had to be wiped)'
+		'Statistics window tracks more statistics.',
+		'New save file storage system.'
 	]
 ];
 
@@ -239,16 +233,14 @@ Game.GenerateLine = function () {
 	for(i=0; i<Game.LineSize; i++) {
 		if (Game.LineLength[i] != 0) {
 			var road = "`";
-			// if ((Game.Stats.Lines+1) % 250 == 0 && Game.Level != 9) {
-			// 	road = "L";
-			// } else
+
 			if (getRandomInt(1, 1100) == 1) {
 				road = "I";
 			}  else if (getRandomInt(1, 300) == 1) {
 				road = "P";
 			} else if (getRandomInt(1, 900) === 1) {
 				road = "D";
-			} else if (getRandomInt(1, 900) === 1) {
+			} else if (getRandomInt(1, 900) === 1 && Game.Level >= 3) {
 				road = "W";
 			}
 			Line = setCharAt(Line, i, road);
@@ -288,8 +280,14 @@ Game.AddLine = function() {
 	Game.map = newMap;
 	Game.map[20] = Game.GenerateLine();
 	Game.LevelLines += 1;
+
 	if (Game.LevelLines < Game.GetLevelLines(Game.Level)) {
 		Game.Stats.Lines += 1;
+	}
+
+	if (Game.Spaceship.exists)
+	{
+		Game.Spaceship.lines += 1;
 	}
 
 	return false;
@@ -301,6 +299,7 @@ Game.DisplayMap = function(Text, RenderMode) {
 	for (y = 20; y >= 0; y--) {
 		var Line = Game.map[y];
 
+		// objects render mode
 		if (RenderMode == "Objects")
 		{
 			if (y == Game.Bullet.y)
@@ -326,6 +325,8 @@ Game.DisplayMap = function(Text, RenderMode) {
 			Map += endChar + replaceAll('`', '&nbsp;',
 				replaceAll('%', '&nbsp;',
 				replaceAll('@', '&nbsp;', Line))) + endChar + "<br>";
+
+		// road render mode all road tiles need to be road
 		} else {
 			if (Text != false) {
 				for (i=0;i<Text.length;i++) {
@@ -365,6 +366,7 @@ Game.CreateInterval = function(speed) {
 			dashTimer = Math.floor((Game.LevelLines - Game.GetLevelLines(Game.Level)) / 4);
 			dashTimer = Array(dashTimer+1).join("-");
 
+			// if the timer has reached the length of the line, then start the next level.
 			if (dashTimer ==  Array(Game.LineLength.length+2).join("-"))
 			{
 				// remove the completed text
@@ -376,20 +378,19 @@ Game.CreateInterval = function(speed) {
 			}
 
 			$("#GameWindow_Objects").html(Game.DisplayMap([
-				{y: 13, text: "@COMPLETED:@" },
-				{y: 12, text: "@Level@"+Game.Level+"@" },
-				{y: 11, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@"},
-				{y: 10, text: "@Press Space@" },
-				{y: 9, text: "@to continue@" },
+				{y: 12, text: "@COMPLETED:@" },
+				{y: 11, text: "@Level@"+Game.Level+"@" },
+				{y: 10, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@"},
+				{y: 9, text: "@Press Space@" },
+				{y: 8, text: "@to continue@" },
 			], "Objects"));
 
-
 			$("#GameWindow_Road").html(Game.DisplayMap([
-				{ y: 13, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
 				{ y: 12, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
 				{ y: 11, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
 				{ y: 10, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-				{ y: 9, text: "@@@@@@@@@@@@@@@@@@@@@@@"}
+				{ y: 9, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
+				{ y: 8, text: "@@@@@@@@@@@@@@@@@@@@@@@"}
 			], "Road"));
 
 		}
@@ -426,15 +427,6 @@ Game.CreateInterval = function(speed) {
 				Game.Stats.Powerups += 1;
 				Game.map[2] = setCharAt(Game.map[2], Game.PlayerX, "`");
 				break;
-			// case 'L':
-			// 	Game.Level += 1;
-			// 	Game.SetLevelClass(Game.Level);
-			//
-			// 	Game.AddText("<b>LEVEL "+Game.Level+"</b>");
-			// 	$('#level').html(Game.Level);
-			// 	Game.map[2] = setCharAt(Game.map[2], Game.PlayerX, "`");
-			// 	Game.PlaySound('level.wav');
-			// 	break;
 			case 'D':
 				Game.SFX.Power.play();
 				Game.Distortion = 25;
@@ -476,7 +468,8 @@ Game.CreateInterval = function(speed) {
 
 		/* Spaceship handling */
 		if (Game.Spaceship.exists == true) {
-			if ((Game.Stats.Lines % 30) == 0) Game.Spaceship.y -= 1;
+			if ((Game.Spaceship.lines % 30) == 0)
+				Game.Spaceship.y -= 1;
 
 			/* Spaceship movement */
 			if (Game.Spaceship.move == false) {
@@ -513,7 +506,7 @@ Game.CreateInterval = function(speed) {
 			}
 
 			/* After 150 lines after the spaceship has spawned make it fly away (now) */
-			if ((Game.Spaceship.start+150 ) < Game.Stats.Lines) {
+			if (Game.Spaceship.lines > 160) {
 				Game.Spaceship.flyaway = true;
 			}
 
@@ -523,8 +516,7 @@ Game.CreateInterval = function(speed) {
 			}
 		} else {
 			/* Randomly generate spaceships every 100 lines at 1/4 chance */
-			if ((1+Game.Stats.Lines) % 100 == 0 &&
-				(getRandomInt(1, 4) == 1 || Game.Stats.Lines < 150))  {
+			if (((1+Game.Stats.Lines) % 100 == 0 && getRandomInt(1, 4) == 1 && Game.Level >= 2) || Game.Stats.Lines+1 == 200)  {
 				Game.CreateSpaceship();
 			}
 		}
@@ -599,9 +591,13 @@ Game.Move = function (direction){
 				if (Tile3 == '`' || Tile3 == '%')
 					foundPosition = true;
 
-				if (Game.PlayerX > Game.LineSize-1 || Game.PlayerX < 0) {
-					Game.Over('Wall');
-					foundPosition = true;
+				if (Game.PlayerX > Game.LineSize-1)
+				{
+					Game.PlayerX = 0;
+				}
+				else if (Game.PlayerX < 0) {
+					Game.PlayerX = Game.LineSize-1;
+					// foundPosition = true;
 				}
 			}
 		}
@@ -673,6 +669,7 @@ Game.CreateSpaceship = function() {
 
 	Game.Spaceship = {
 		exists: true,
+		lines: getRandomInt(0, 30),
 		move:false,
 		flyaway:false,
 		direction: dir,
@@ -697,6 +694,10 @@ Game.SetLevelClass = function(level) {
 		$('#GameWindow_Objects').removeClass("d"+i);
 	}
 	$('#GameWindow_Objects').addClass("d"+level);
+	for (var i = 1; i <= 9; i++) {
+		$('.Xbox').removeClass("d"+i);
+	}
+	$('.Xbox').addClass("d"+level);
 }
 
 Game.GetLevelLines = function(level) {
@@ -722,6 +723,7 @@ Game.DestroySpaceship = function() {
 Game.UpdateSpeed = function (speed) {
 	Game.BaseSpeed = speed;
 	Game.CHEAT = true;
+	$('#stats_tracked').html("<h3>Fun Mode: Your statistics are no longer tracked.</h3>");
 	console.log("Updated");
 };
 
@@ -746,7 +748,14 @@ Game.UpdateSize = function(size) {
 	} else {
 		$('.GameWindow').css('width', '200px');
 	}
+
 	$('#GameWindow_Road').html("Press spacebar to begin.");
+
+	if (size != 15) {
+		Game.CHEAT = true;
+		$('#stats_tracked').html("<h3>Fun Mode: Your statistics are no longer tracked.</h3>");
+	}
+
 	return false;
 };
 
@@ -1000,6 +1009,7 @@ $(document).ready(function() {
 
 	/* Default to medium size */
 	Game.UpdateSize(15);
+	Game.SetLevelClass(1);
 	Game.DestroyBullet('player');
 	Game.DestroySpaceship();
 
@@ -1023,25 +1033,33 @@ $(document).ready(function() {
 	$("#Changelog").html(Game.CreateChangelog());
 });
 
-$(document).keydown(function(e) {
-	var code = e.keyCode;
+var down = {};
+$(document).keydown(function(event){
+	var keycode = (event.keyCode ? event.keyCode : event.which);
+	if (down[keycode] == null)
+	{
+		down[keycode] = true;
+		switch (keycode) {
+			// case 82: Game.Active = false; Game.Start(); break;
+			case 37: case 65: case 74: Game.Move('left');         break; //Right arrow or "a" or "j"
+			case 39: case 68: case 76: Game.Move('right');        break; //Left arrow or "d" or "l"
+			case 38: case 87: case 73: Game.FireBullet('player'); break; //Up arrow or "w" or i
+			case 32:
+				if (Game.Active == false || (Game.LevelLines >= parseInt(Game.GetLevelLines(Game.Level)))) {
+					Game.Start(); //Spacebar to start
+				} else {
+					Game.TogglePause(); //Spacebar to pause
+				}
 
-	switch (code) {
-		// case 82: Game.Active = false; Game.Start(); break;
-		case 37: case 65: case 74: Game.Move('left');         break; //Right arrow or "a" or "j"
-		case 39: case 68: case 76: Game.Move('right');        break; //Left arrow or "d" or "l"
-		case 38: case 87: case 73: Game.FireBullet('player'); break; //Up arrow or "w" or i
-		case 32:
-			if (Game.Active == false || (Game.LevelLines >= parseInt(Game.GetLevelLines(Game.Level)))) {
-				Game.Start(); //Spacebar to start
-			} else {
-				Game.TogglePause(); //Spacebar to pause
-			}
-
-			break;
-		default: return true;
+				break;
+			default: return true;
+		}
 	}
-	return false;
+});
+
+$(document).keyup(function(event) {
+     var keycode = (event.keyCode ? event.keyCode : event.which);
+     down[keycode] = null;
 });
 
 
@@ -1089,7 +1107,7 @@ function ToggleTab(tab){
 
 		body{
 			font-family:monospace;
-			font-size:14 px;;
+			font-size:14px;
 			margin:0px;
 			background-color: black;
 			color: white;
@@ -1149,6 +1167,10 @@ function ToggleTab(tab){
 			color: #3366BB;
 			font-weight:bold;
 		}
+
+		.Xbox {
+			font-size:20px;
+		}
 		</style>
 		<audio id="Sound" src="" style="display:none;"></audio>
 
@@ -1204,39 +1226,47 @@ function ToggleTab(tab){
 	Easter Egg?
 </div>
 <div class="TabWindow" style="display:inline;" tab="1">
-	You are a X that goes on a quest.<br>
-	The quest is to stay on the road. (Don&#39;t get shot either)<br>
-	Score is earned by moving to a new line.<br>
-	Each level makes the lines progressively shorter.<br><br>
+	<span style="font-size:22px;">You are a <span class="Xbox">X</span> that goes on a quest.</span><br>
+
+	And the quest is to stay on the road.<br><br>
 
 	Controls:<br>
-	Left and Right (or A and D) to move your character left and right.<br>
-	Up (or W) to shoot the spaceships (or spaceship bullets).<br>
-	Spacebar to start/reset the game.<br><br>
+	&nbsp;&nbsp;&nbsp;Left/Right, A/D: Move<br>
+	&nbsp;&nbsp;&nbsp;Up, W: Shoot<br>
+	<br>
 
-	Special Tiles:<br>
-	D (Distortion): Halves game speed for 25 turns<br>
-	L (Level): Land on this tile to level up<br>
-	I (Invulnerable): Invincibility for 50 lines<br>
-	P (Pellet): Score bonus.<br>
-	W (Warp): Move through the abyss.<br>
+	Look for:<br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox">D</span>: Distortion Powerup<br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox">I</span>: Invincibility Powerup<br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox">P</span>: Score Pellet<br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox">W</span>: Warp through the abyss<br>
+	<br>
 
-	<br>X-Quest v<?=$v?> by <a href="https://waldens.world">B0sh</a> &copy; 2014-<?=date('Y')?>
+	Watch Out!!<br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox"><_></span>: spaceship<br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox">v</span>: it's bullets<br>
+	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;">&nbsp;</span>: The Abyss<br>
+	<br>
+
+	X-Quest v<?=$v?> by <a href="https://waldens.world">B0sh</a> &copy; 2014-<?=date('Y')?>
 </div>
 <div class="TabWindow" tab="2">
 	<b>Volume:</b> (<span id="volumeLevel" style="width:32px;">30</span>)
 		<input name="volume" type="range" min="0" max="100" step="5" value="30"
 			oninput="$('#volumeLevel').html($('[name=volume]').val());"
 			onchange="Game.UpdateVolume($('[name=volume]').val()); $('#volumeLevel').html($('[name=volume]').val());">
-	<br>
+	<br><br>
+
+	Changing any of the below for fun options below will result in stats not being tracked. Refreshing will reset these.<br><br>
+
+	<div id="stats_tracked"></div>
+
 	<b>Board Size:</b> <select id="linesize" onchange="Game.UpdateSize($('#linesize').val());">
 		<option value="9"> Small </option>
 		<option value="15" selected> Medium </option>
 		<option value="21"> Long </option>
 		<option value="27"> Extra Long </option>
 	</select><br><br>
-
-	For each of the below options, changing them will result in statistics (ex: high score) not being recorded. Refreshing will reset these.<br><br>
 
 	<b>Game Speed:</b> <input type="text" value="120" size="2" id="speed" onchange="Game.UpdateSpeed($('#speed').val());" /> (ms)
 </div>
