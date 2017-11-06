@@ -30,11 +30,13 @@ function protect($data, $Remove=0){
 }
 $PDO = connectDB();
 
-if (isSEt($_POST['showHS']))
+if (isSEt($_POST['showHS']) && isSet($_POST['mode']))
 {
+	$mode = protect($_POST['mode']);
+
 	try {
-		$Query = $PDO->prepare("SELECT * FROM xquest ORDER BY score DESC LIMIT 10");
-		$Query->execute();
+		$Query = $PDO->prepare("SELECT * FROM xquest WHERE `mode`=? ORDER BY score DESC LIMIT 10");
+		$Query->execute(Array($mode));
 		$Query->setFetchMode(PDO::FETCH_ASSOC);
 	}
 	catch (PDOException $e) {
@@ -42,44 +44,54 @@ if (isSEt($_POST['showHS']))
 	}
 
 	echo '<table>
-		<tr>
-			<td>Rank</td>
-			<td>Username</td>
-			<td>Score</td>
-<!--			<td>Lines</b>-->
-			<td>Time</td>
+		<tr class="Xbox" style="font-weight:bold;">
+			<td></td>
+			<td>Name&nbsp;</td>
+			<td>Score&nbsp;</td>
+      <td>Lines&nbsp;</td>
+			<td>Time&nbsp;</td>
 		</tr>
 
 	';
 	$x = 1;
-	while ($Score = $Query->fetch()) {
-		$Stats= json_decode($Score['stats'], true);
+	while ($Score = $Query->fetch())
+	{
+		// single quotes aren't valid for json_decode....
+		$Score['stats'] = str_replace("'", '"', $Score['stats']);
+		$Stats = json_decode(trim($Score['stats']), true);
+		// echo '<pre>';var_dump($Stats);echo '</pre>';
+		// var_dump($Score['stats']);
+
 		echo '<tr>
-			<td>'.$x.'</td>
-			<td>'.$Score['username'].'</td>
-			<td>'.number_format($Score['score']).'</td>
-			<!--<td>'.number_format($Stats['Lines']).'</td>-->
-			<td>'.date('m/d/Y h:ia', $Score['timestamp']).'</td>
+			<td style="text-align:right;">'.$x.'&nbsp;</td>
+			<td>'.$Score['username'].'&nbsp;</td>
+			<td>'.number_format($Score['score']).'&nbsp;</td>
+			<td>'.number_format($Stats['Lines']).'&nbsp;</td>
+			<td>'.date('m/d/y h:ia', $Score['timestamp']).'&nbsp;</td>
 		</tr>';
 		$x++;
 	}
 	if ($x == 1)
-		ECHO '<tr><td>There is no high scores recorded.</td></tr>';
+		echo '<tr><td>There are no high scores recorded.</td></tr>';
 
 	echo '</table>';
+
+	echo '<br><br><i>X-Quest <span class="Xbox">'.ucfirst($mode).'</span> mode high scores</i>';
 }
-else if (isSet($_POST['score']) && isSet($_POST['stats']) && isSet($_POST['username']))
+else if (isSet($_POST['score']) && isSet($_POST['version']) && isSet($_POST['mode']) && isSet($_POST['stats']) && isSet($_POST['username']))
 {
 	$score = protect($_POST['score']);
+	$version = protect($_POST['version']);
+	$mode = protect($_POST['mode']);
 	$stats =str_replace("&quot;", "'", protect(json_encode($_POST['stats'])));
 	$username = protect($_POST['username']);
 
 	try {
 		$Insert = $PDO->prepare("
-			INSERT INTO xquest (score,stats,username, timestamp)
-			VALUES (?,?,?,?)
+			INSERT INTO xquest (`score`, `mode`, `stats`, `username`, `timestamp`, `version`)
+			VALUES (?,?,?,?,?,?)
 		");
-		$Insert->execute(array($score, $stats, $username, time()));
+		$Insert->execute(array($score, $mode, $stats, $username, time(), $version));
 	}
 	catch (PDOException $e) {
 		exit;

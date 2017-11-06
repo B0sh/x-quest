@@ -1,5 +1,5 @@
 <?php
-$v = "1.0";
+$v = "1.1";
 ?><!DOCTYPE html>
 <html>
 	<head>
@@ -51,6 +51,10 @@ function Format(number, decimals, dec_point, thousands_sep) {
 Game = {};
 
 Game.Updates = [
+	[ 'v1.1',
+		'November 5th 2017',
+		'Added Nightmare mode',
+	],
 	[ 'v1.0',
 		'November 1st 2017',
 		'New colors; Black Page conversion.',
@@ -113,6 +117,10 @@ Game.PositivePhrases = [
 	"The time has come", "Your quest begins", "pow pow kachow", "pop click woosh", "x, dgd or bge?",
 	"You are an X", "You go on a quest", "High Score?", "Do well", "chicka chic pow",
 ];
+
+// defaults
+Game.Mode = 'normal';
+Game.Level = 1;
 
 // var endZoneChar = '▓';
 var endZoneChar = '.';
@@ -197,6 +205,7 @@ Game.Start = function() {
 	}
 
 	$('#linesize').css('display','none');
+	$('#mode').css('display','none');
 	$('#level').html(Game.Level);
 
 	/* Generate the first 20 lines */
@@ -229,8 +238,25 @@ Game.GenerateLine = function () {
 		Game.LineLength[x] = getRandomInt(6, 22-Game.Level);
 	}
 
+	if (Game.Mode == 'normal')
+  {
+		var start = 0;
+		var end = Game.LineSize;
+	}
+	else if (Game.Mode == 'nightmare')
+	{
+		var start = 2;
+		var end = Game.LineSize - 2;
+
+		Line = setCharAt(Line, 0, '>');
+		Line = setCharAt(Line, 1, '>');
+
+		Line = setCharAt(Line, Game.LineSize - 1, '<');
+		Line = setCharAt(Line, Game.LineSize - 2, '<');
+	}
+
 	/* Generate tiles and manage lines */
-	for(i=0; i<Game.LineSize; i++) {
+	for(i=start; i<end; i++) {
 		if (Game.LineLength[i] != 0) {
 			var road = "`";
 
@@ -249,7 +275,7 @@ Game.GenerateLine = function () {
 			Game.LineLength[i] -= 1;
 			if (Game.LineLength[i] < getRandomInt(2, 6 - Math.floor(Game.Level/4)) && Game.LineReset[i] != 0) {
 				Game.LineReset[i] = 0;
-				if ((getRandomInt(1, 2) == 1 && i != Game.LineSize - 1) || i == 0) {
+				if ((getRandomInt(1, 2) == 1 && i != end - 1) || i == start) {
 					Game.LineReset[i+1] = 1;
 					Game.LineLength[i+1] = getRandomInt(6, 22 - Game.Level);
 				} else {
@@ -262,7 +288,7 @@ Game.GenerateLine = function () {
 
 	// at the end of the level
 	if (Game.LevelLines > Game.GetLevelLines(Game.Level)-20) {
-		for(i=0; i<Game.LineSize; i++) {
+		for(i=start; i<end; i++) {
 			Line = setCharAt(Line, i, "%");
 		}
 
@@ -411,7 +437,7 @@ Game.CreateInterval = function(speed) {
 			case 'P':
 				Game.SFX.Bonus.play();
 				Game.Stats.Score += (Game.Level*2)+2;
-				Game.Stats.Powerus += 1;
+				Game.Stats.Powerups += 1;
 				Game.AddText("+"+((Game.Level*2)+2)+" Score");
 				Game.map[2] = setCharAt(Game.map[2], Game.PlayerX, "`");
 				break;
@@ -724,7 +750,7 @@ Game.UpdateSpeed = function (speed) {
 	Game.BaseSpeed = speed;
 	Game.CHEAT = true;
 	$('#stats_tracked').html("<h3>Fun Mode: Your statistics are no longer tracked.</h3>");
-	console.log("Updated");
+	console.log("Updated Speed");
 };
 
 Game.UpdateVolume = function (volume) {
@@ -759,6 +785,28 @@ Game.UpdateSize = function(size) {
 	return false;
 };
 
+Game.UpdateMode = function(size) {
+	if (Game.Active == true)
+	{
+		alert("Wait until a game is no longer active");
+		$('#mode').val(Game.Mode);
+		return false;
+	}
+
+	if (Game.Mode == 'nightmare') {
+		Game.Mode = 'normal';
+		Game.BaseSpeed = 120;
+	} else {
+		Game.Mode = 'nightmare';
+		Game.BaseSpeed = 60;
+	}
+
+	$('#high-score').html(Format(Game.SaveFile.Record[Game.Mode].Score));
+	$('#high-lines').html(Format(Game.SaveFile.Record[Game.Mode].Lines));
+
+	return true;
+};
+
 /* Toggles pause on and off */
 Game.TogglePause = function () {
 	if (Game.Active == true) {
@@ -776,7 +824,7 @@ Game.TogglePause = function () {
 };
 
 Game.isNewRecord = function () {
-	if (Game.SaveFile.Record.Score < Game.Stats.Score)
+	if (Game.SaveFile.Record[Game.Mode].Score < Game.Stats.Score)
 		return true;
 	else
 		return false;
@@ -786,6 +834,7 @@ Game.Over = function(DeathType) {
 	Game.SFX.GameOver.play();
 
 	$('#linesize').css('display','inline');
+	$('#mode').css('display','inline');
 	Game.Active = false;
 	clearInterval(Game.Interval);
 	var Text = [
@@ -831,12 +880,12 @@ Game.Over = function(DeathType) {
 		Game.SaveFile.Totals.ShotsDestroyed += Game.Stats.ShotsDestroyed;
 
 		if (Game.isNewRecord()) {
-			Game.SaveFile.Record = {
+			Game.SaveFile.Record[Game.Mode] = {
 				Score: Game.Stats.Score,
 				Lines: Game.Stats.Lines
 			}
-			$('#high-score').html(Format(Game.SaveFile.Record.Score));
-			$('#high-lines').html(Format(Game.SaveFile.Record.Lines));
+			$('#high-score').html(Format(Game.SaveFile.Record[Game.Mode].Score));
+			$('#high-lines').html(Format(Game.SaveFile.Record[Game.Mode].Lines));
 		}
 
 		$('#total-score').html(Format(Game.SaveFile.Totals.Score));
@@ -923,6 +972,15 @@ Game.Load = function() {
 	if (Game.SaveFile.Version < 0.9) {
 		Game.SaveFile.Totals.Time = Game.SaveFile.Totals.Lines * 0.12;
 	}
+
+	// new record format
+	if (Game.SaveFile.Version < 1.0) {
+		Game.SaveFile.Record = {
+			'normal': Game.SaveFile.Record,
+			'nightmare': {'Score': 0, 'Lines': 0}
+		}
+	}
+
 	if (!Game.SaveFile.Volume)
 		Game.SaveFile.Volume = 30;
 	Game.UpdateVolume(Game.SaveFile.Volume);
@@ -972,11 +1030,14 @@ Game.LoadHighScore = function() {
 	$.ajax({
 		method: "POST",
 		data: {
-			showHS: true
+			showHS: true,
+			mode: Game.Mode
 		},
 		url: 'ajax.php',
 		success: function (data) {
 			$('#highScoreList').html(data);
+
+			Game.SetLevelClass(Game.Level);
 		}
 
 	});
@@ -988,7 +1049,9 @@ Game.SendHighScore = function(data) {
 		data: {
 			score: Game.Stats.Score,
 			username: $('#username').val(),
-			stats: Game.Stats
+			stats: Game.Stats,
+			mode: Game.Mode,
+			version: "<?=$v?>"
 		},
 		url: 'ajax.php',
 		success: function(data) {
@@ -1002,8 +1065,8 @@ $(document).ready(function() {
 	Game.Load();
 
 	/* Add the total score and lines from localStorage */
-	$('#high-score').html(Format(Game.SaveFile.Record.Score));
-	$('#high-lines').html(Format(Game.SaveFile.Record.Lines));
+	$('#high-score').html(Format(Game.SaveFile.Record[Game.Mode].Score));
+	$('#high-lines').html(Format(Game.SaveFile.Record[Game.Mode].Lines));
 	$('#total-score').html(Format(Game.SaveFile.Totals.Score));
 	$('#total-lines').html(Format(Game.SaveFile.Totals.Lines));
 
@@ -1041,10 +1104,11 @@ $(document).keydown(function(event){
 		down[keycode] = true;
 		switch (keycode) {
 			// case 82: Game.Active = false; Game.Start(); break;
-			case 37: case 65: case 74: Game.Move('left');         break; //Right arrow or "a" or "j"
-			case 39: case 68: case 76: Game.Move('right');        break; //Left arrow or "d" or "l"
-			case 38: case 87: case 73: Game.FireBullet('player'); break; //Up arrow or "w" or i
+			case 37: case 65: case 74: event.preventDefault(); Game.Move('left');         break; //Right arrow or "a" or "j"
+			case 39: case 68: case 76: event.preventDefault(); Game.Move('right');        break; //Left arrow or "d" or "l"
+			case 38: case 87: case 73: event.preventDefault(); Game.FireBullet('player'); break; //Up arrow or "w" or i
 			case 32:
+				event.preventDefault();
 				if (Game.Active == false || (Game.LevelLines >= parseInt(Game.GetLevelLines(Game.Level)))) {
 					Game.Start(); //Spacebar to start
 				} else {
@@ -1205,11 +1269,11 @@ function ToggleTab(tab){
 			<b>&nbsp;High Score:</b><br>
 			<div style="width:100%">
 				<div style="width:70%;text-align:right;float:left">Score:&nbsp;</div>
-				<div style="width:30%;text-align:left;float:left" id="high-score">0</div>
+				<div style="width:30%;text-align:left;float:left" id="high-score"></div>
 			</div>
 			<div style="width:100%">
 				<div style="width:70%;text-align:right;float:left">Lines:&nbsp;</div>
-				<div style="width:30%;text-align:left;float:left" id="high-lines">0</div>
+				<div style="width:30%;text-align:left;float:left" id="high-lines"></div>
 			</div><br><br><br><br>
 		</div>
 		<div class="Window" style="position: relative;width:200px;">
@@ -1257,11 +1321,20 @@ function ToggleTab(tab){
 			onchange="Game.UpdateVolume($('[name=volume]').val()); $('#volumeLevel').html($('[name=volume]').val());">
 	<br><br>
 
+	<b>Mode:</b>
+	<select id="mode" onchange="return Game.UpdateMode($('#mode').val());">
+		<option value="normal">Normal</option>
+		<option value="nightmare">Nightmare</option>
+	</select>
+	<br><br>
+
 	Changing any of the below for fun options below will result in stats not being tracked. Refreshing will reset these.<br><br>
 
 	<div id="stats_tracked"></div>
 
-	<b>Board Size:</b> <select id="linesize" onchange="Game.UpdateSize($('#linesize').val());">
+	<b>Board Size:</b>
+
+	<select id="linesize" onchange="Game.UpdateSize($('#linesize').val());">
 		<option value="9"> Small </option>
 		<option value="15" selected> Medium </option>
 		<option value="21"> Long </option>
@@ -1271,8 +1344,6 @@ function ToggleTab(tab){
 	<b>Game Speed:</b> <input type="text" value="120" size="2" id="speed" onchange="Game.UpdateSpeed($('#speed').val());" /> (ms)
 </div>
 <div class="TabWindow" tab="3">
-	High Scores<br><br>
-
 	<div id="highScoreList">Loading...</div>
 </div>
 <div class="TabWindow" id="Statistics" tab="4">
