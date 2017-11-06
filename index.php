@@ -110,7 +110,6 @@ Game.SFX = {
 	"GameOver": new Audio("Sound/gameover.wav"),
 };
 
-Game.BaseSpeed = 120; //milliseconds
 Game.PositivePhrases = [
 	"Good Luck!", "Having fun yet?", "Have fun!", "Kill &#39;em", "You can do it!",
 	"Run run run", "Don&#39;t die", "Stay on the road", "Stay positive", "I&#39;m gonna do an internet!",
@@ -328,18 +327,14 @@ Game.DisplayMap = function(Text, RenderMode) {
 		// objects render mode
 		if (RenderMode == "Objects")
 		{
-			if (y == Game.Bullet.y)
-				Line = setCharAt(Line, Game.Bullet.x, "^");
-			if (y == Game.Spaceship.Bullet.y)
-				Line = setCharAt(Line, Game.Spaceship.Bullet.x, "v");
-			if (y == 2)
-				Line = setCharAt(Line, Game.PlayerX, "<span style=''>X</span>");
+			if (y == Game.Bullet.y) Line = setCharAt(Line, Game.Bullet.x, "^");
+			if (y == Game.Spaceship.Bullet.y) Line = setCharAt(Line, Game.Spaceship.Bullet.x, "v");
+			if (y == 2) Line = setCharAt(Line, Game.PlayerX, "X");
 			if (y == Game.Spaceship.y) {
 				Line = setCharAt(Line, Game.Spaceship.x,   Game.Spaceship.display[0]);
 				Line = setCharAt(Line, Game.Spaceship.x+1, Game.Spaceship.display[1]);
 				Line = setCharAt(Line, Game.Spaceship.x+2, Game.Spaceship.display[2]);
 			}
-
 
 			if (Text != false) {
 				for (i=0;i<Text.length;i++) {
@@ -361,16 +356,24 @@ Game.DisplayMap = function(Text, RenderMode) {
 				}
 			}
 
-			Line = replaceAll('P', '`', Line);
-			Line = replaceAll('I', '`', Line);
-			Line = replaceAll('D', '`', Line);
-			Line = replaceAll('L', '`', Line);
-			Line = replaceAll('W', '`', Line);
+			Line = replaceAll('P', '@', Line);
+			Line = replaceAll('I', '@', Line);
+			Line = replaceAll('D', '@', Line);
+			Line = replaceAll('L', '@', Line);
+			Line = replaceAll('W', '@', Line);
+
+			if (y == Game.Bullet.y) Line = setCharAt(Line, Game.Bullet.x, "@");
+			if (y == Game.Spaceship.Bullet.y) Line = setCharAt(Line, Game.Spaceship.Bullet.x, "@");
+			if (y == 2) Line = setCharAt(Line, Game.PlayerX, "@");
+			if (y == Game.Spaceship.y) {
+				Line = setCharAt(Line, Game.Spaceship.x,   '@');
+				Line = setCharAt(Line, Game.Spaceship.x+1, '@');
+				Line = setCharAt(Line, Game.Spaceship.x+2, '@');
+			}
 
 			Map += endChar + replaceAll('`', Game.RoadTile,
 				replaceAll('%', endZoneChar,
 				replaceAll('@', '&nbsp;', Line))) + endChar + "<br>";
-
 		}
 	}
 	return Map;
@@ -790,7 +793,7 @@ Game.UpdateSize = function(size) {
 	return false;
 };
 
-Game.UpdateMode = function(size) {
+Game.UpdateMode = function(mode) {
 	if (Game.Active == true)
 	{
 		alert("Wait until a game is no longer active");
@@ -798,7 +801,7 @@ Game.UpdateMode = function(size) {
 		return false;
 	}
 
-	if (Game.Mode == 'nightmare') {
+	if (mode == 'normal') {
 		Game.Mode = 'normal';
 		Game.BaseSpeed = 120;
 	} else {
@@ -1068,6 +1071,7 @@ Game.SendHighScore = function(data) {
 
 $(document).ready(function() {
 	Game.Load();
+	Game.UpdateMode('normal');
 
 	/* Add the total score and lines from localStorage */
 	$('#high-score').html(Format(Game.SaveFile.Record[Game.Mode].Score));
