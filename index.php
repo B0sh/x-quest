@@ -460,6 +460,11 @@ Game.CreateInterval = function(speed) {
 				Game.CreateInterval(Game.BaseSpeed*2);
 				Game.map[2] = setCharAt(Game.map[2], Game.PlayerX, "`");
 				break;
+		  // nightmare mode wall tiles
+			case '<':
+			case '>':
+				Game.Over('Wall');
+				break;
 			case '@':
 				if (Game.Invincible == 0) {
 					Game.Over('Normal');
