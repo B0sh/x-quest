@@ -51,6 +51,11 @@ function Format(number, decimals, dec_point, thousands_sep) {
 Game = {};
 
 Game.Updates = [
+	[ 'v1.2',
+		'November 12th 2017',
+		'Adjusted leveling mechanics',
+		'Added an arcade-style kil screen',
+	],
 	[ 'v1.1',
 		'November 5th 2017',
 		'Added Nightmare mode',
@@ -102,6 +107,7 @@ Game.Version = <?=$v?>;
 Game.SFX = {
 	"Noscore": new Audio("Sound/noscore.wav"),
 	"LevelUp": new Audio("Sound/level.wav"),
+	"Killscreen": new Audio("Sound/killscreen.wav"),
 	"Bonus": new Audio("Sound/bonus.wav"),
 	"Explosion": new Audio("Sound/explosion.wav"),
 	"Score": new Audio("Sound/score.wav"),
@@ -113,8 +119,8 @@ Game.SFX = {
 Game.PositivePhrases = [
 	"Good Luck!", "Having fun yet?", "Have fun!", "Kill &#39;em", "You can do it!",
 	"Run run run", "Don&#39;t die", "Stay on the road", "Stay positive", "I&#39;m gonna do an internet!",
-	"The time has come", "Your quest begins", "pow pow kachow", "pop click woosh", "x, dgd or bge?",
-	"You are an X", "You go on a quest", "High Score?", "Do well", "chicka chic pow",
+	"The time has come", "Your quest begins", "pow pow kachow", "pop click woosh", "Exhilaration",
+	"You are an X", "You go on a quest", "Do well", "chicka chic pow", "Embody Luxury", "Precision", "Craftsmanship",
 ];
 
 // defaults
@@ -143,12 +149,16 @@ Game.Start = function() {
 			Game.Text = [];
 
 			Game.Level++;
+			Game.NextLevelClass = Game.DisplayLevel % 9 + 1;
 			if (Game.Level == 10)
 				Game.Level = 9;
+			Game.DisplayLevel++;
 
-			Game.NextLevelClass = Game.Level;
-			$('#level').html(Game.Level);
-			Game.SFX.LevelUp.play();
+			$('#level').html(Game.DisplayLevel);
+			if (Game.isKillScreen())
+				Game.SFX.Killscreen.play();
+			else
+				Game.SFX.LevelUp.play();
 		}
 		return false;
 	}
@@ -159,6 +169,7 @@ Game.Start = function() {
 	Game.Distortion = 0;
 	Game.Text = [];
 	Game.Level = 1;
+	Game.DisplayLevel = 1;
 	Game.LevelLines = 0;
 	Game.map = [];
 	Game.LineLength = [];
@@ -291,7 +302,6 @@ Game.GenerateLine = function () {
 		for(i=start; i<end; i++) {
 			Line = setCharAt(Line, i, "%");
 		}
-
 	}
 
 	return Line;
@@ -320,7 +330,11 @@ Game.AddLine = function() {
 };
 
 /* Render the game map from the Game.map array of lines */
-Game.DisplayMap = function(Text, RenderMode) {
+Game.DisplayMap = function(Text, RenderMode, options) {
+	if (Game.isKillScreen()) {
+		Text = Game.KillScreen(RenderMode);
+	}
+
 	var Map = "";
 	for (y = 20; y >= 0; y--) {
 		var Line = Game.map[y];
@@ -330,7 +344,6 @@ Game.DisplayMap = function(Text, RenderMode) {
 		{
 			if (y == Game.Bullet.y) Line = setCharAt(Line, Game.Bullet.x, "^");
 			if (y == Game.Spaceship.Bullet.y) Line = setCharAt(Line, Game.Spaceship.Bullet.x, "v");
-			if (y == 2) Line = setCharAt(Line, Game.PlayerX, "X");
 			if (y == Game.Spaceship.y) {
 				Line = setCharAt(Line, Game.Spaceship.x,   Game.Spaceship.display[0]);
 				Line = setCharAt(Line, Game.Spaceship.x+1, Game.Spaceship.display[1]);
@@ -343,6 +356,8 @@ Game.DisplayMap = function(Text, RenderMode) {
 						Line = Text[i].text.substr(0,Game.LineSize);
 				}
 			}
+
+			if (y == 2 && (typeof options === "undefined" || typeof options.renderPlayer === "undefined")) Line = setCharAt(Line, Game.PlayerX, "X");
 
 			Map += endChar + replaceAll('`', '&nbsp;',
 				replaceAll('%', '&nbsp;',
@@ -357,11 +372,12 @@ Game.DisplayMap = function(Text, RenderMode) {
 				}
 			}
 
-			Line = replaceAll('P', '@', Line);
-			Line = replaceAll('I', '@', Line);
-			Line = replaceAll('D', '@', Line);
-			Line = replaceAll('L', '@', Line);
-			Line = replaceAll('W', '@', Line);
+			// if (!Game.isKillScreen()) {
+				Line = replaceAll('P', '@', Line);
+				Line = replaceAll('I', '@', Line);
+				Line = replaceAll('D', '@', Line);
+				Line = replaceAll('W', '@', Line);
+			// }
 
 			if (y == Game.Bullet.y) Line = setCharAt(Line, Game.Bullet.x, "@");
 			if (y == Game.Spaceship.Bullet.y) Line = setCharAt(Line, Game.Spaceship.Bullet.x, "@");
@@ -409,7 +425,7 @@ Game.CreateInterval = function(speed) {
 
 			$("#GameWindow_Objects").html(Game.DisplayMap([
 				{y: 12, text: "@COMPLETED:@" },
-				{y: 11, text: "@Level@"+Game.Level+"@" },
+				{y: 11, text: "@Level@"+Game.DisplayLevel+"@" },
 				{y: 10, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@"},
 				{y: 9, text: "@Press Space@" },
 				{y: 8, text: "@to continue@" },
@@ -742,16 +758,65 @@ Game.SetLevelClass = function(level) {
 
 Game.GetLevelLines = function(level) {
 	switch (level) {
-		case 1: return 151; break;
-		case 2: return 177; break;
-		case 3: return 201; break;
-		case 4: return 225; break;
-		case 5: return 251; break;
-		case 6: return 277; break;
+		case 1: return 101; break;
+		case 2: return 151; break;
+		case 3: return 151; break;
+		case 4: return 176; break;
+		case 5: return 201; break;
+		case 6: return 251; break;
 		case 7: return 301; break;
 		case 8: return 351; break;
-		case 9: return 401; break;
+		case 9: return 301 ; break;
 	}
+}
+
+Game.isKillScreen = function(test) {
+	return Game.DisplayLevel > 63;
+}
+
+Game.KillScreen = function(RenderMode) {
+	var toY = Game.DisplayLevel - 59;
+
+	switch (RenderMode) {
+		case 'Road':
+			var Text = [];
+			for (var y = 0; y <= toY; y++)
+			{
+				Text[y] = {y:y, text:"```````````````````````"};
+				for (var x = 0; x <= 15; x++)
+				{
+
+					if (getRandomInt(0, 5) == 1)
+						Text[y].text = setCharAt(Text[y].text, x, String.fromCharCode(getRandomInt(20 , 255)));
+				}
+			}
+			return Text;
+			break;
+		case 'Objects':
+			var Text = [];
+			for (var y = 0; y <= toY; y++)
+			{
+				Text[y] = {y:y, text:"@@@@@@@@@@@@@@@@@@"};
+				for (var x = 0; x <= 15; x++)
+				{
+
+					if (getRandomInt(0, 18) == 1)
+						Text[y].text = setCharAt(Text[y].text, x, String.fromCharCode(getRandomInt(20 , 255)));
+				}
+			}
+
+			if (getRandomInt(0, 2) == 1) {
+				Text[Text.length] = {y: 12, text: "@COMPLETED:@" };
+				Text[Text.length] = {y: 11, text: "@Level@"+(63-Game.DisplayLevel)+"@" };
+				// Text[10] = {y: 10, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@"};
+				Text[Text.length] = {y: 9, text: "@Press Space@" };
+				Text[Text.length] = {y: 8, text: "@to continue@" };
+			}
+
+			return Text;
+			break;
+	}
+
 }
 
 Game.DestroySpaceship = function() {
@@ -809,7 +874,7 @@ Game.UpdateMode = function(mode) {
 
 	if (mode == 'normal') {
 		Game.Mode = 'normal';
-		Game.BaseSpeed = 120;
+		Game.BaseSpeed = 110;
 	} else {
 		Game.Mode = 'nightmare';
 		Game.BaseSpeed = 60;
@@ -987,17 +1052,17 @@ Game.Load = function() {
 		Game.SaveFile.Totals.Time = Game.SaveFile.Totals.Lines * 0.12;
 	}
 
-	// new record format
-	if (Game.SaveFile.Version < 1.0) {
-		Game.SaveFile.Record = {
-			'normal': Game.SaveFile.Record,
-			'nightmare': {'Score': 0, 'Lines': 0}
-		}
-	}
-
 	if (!Game.SaveFile.Volume)
 		Game.SaveFile.Volume = 30;
 	Game.UpdateVolume(Game.SaveFile.Volume);
+
+	if (typeof Game.SaveFile.Record.nightmare == "undefined")
+	{
+		Game.SaveFile.Record = {
+			normal: Game.SaveFile.Record,
+			nightmare: { Score: 0, Lines: 0}
+		}
+	}
 
 	console.log("Game Loaded");
 };
@@ -1051,7 +1116,7 @@ Game.LoadHighScore = function() {
 		success: function (data) {
 			$('#highScoreList').html(data);
 
-			Game.SetLevelClass(Game.Level);
+			Game.SetLevelClass(Game.DisplayLevel % 9 + 1);
 		}
 
 	});
@@ -1099,9 +1164,8 @@ $(document).ready(function() {
 	$('#GameWindow_Road').html('');
 	$('#GameWindow_Objects').html(Game.DisplayMap([
 		{y:11,text:"@@Press@Space@@"},
-		{y:10,text:"@@@to@start.@@@"},
-		{y:2 ,text:"@@@@@@@@@@@@@@@"}
-	], "Objects"));
+		{y:10,text:"@@@to@start.@@@"}
+	], "Objects", {renderPlayer:false}));
 
 	$('tab').click(function (e) {
 		ToggleTab($(this).attr('id'));
@@ -1154,8 +1218,37 @@ function ToggleTab(tab){
 		Game.LoadHighScore();
 	}
 
+	if (tab == 0) {
+		Game.CalculateStuff();
+	}
+
 	Game.CurrentTab = tab;
 }
+
+Game.CalculateStuff = function() {
+	var temp = Game.DisplayLevel;
+	text = "Easter Egg? There's a Kill Screen <br><br>";
+
+	text += "Calculating Time to Reach Kill Screen<br>";
+
+	Game.DisplayLevel = 0;
+	totalLines = 0;
+	for (var Level = 0; Level <= 5000; Level++) {
+		Game.DisplayLevel++;
+		x = Game.DisplayLevel;
+		if (x > 9) x = 9;
+		totalLines += Game.GetLevelLines(x);
+		if (Game.isKillScreen())
+			break;
+	}
+	text += "Kill Screen Level: " + Game.DisplayLevel;
+	text += "<br>Lines: " + totalLines;
+	text += "<br>Base Clock: " + Game.BaseSpeed + "ms";
+	text += "<br>Time: " + totalLines * Game.BaseSpeed / 1000 / 60 + " minutes"
+	Game.DisplayLevel = temp;
+	$('[tab=0]').html(text);
+
+};
 	</script>
 	</head>
 	<body>
@@ -1185,7 +1278,7 @@ function ToggleTab(tab){
 		.d9 { color: #ea4a3e;filter: invert(100%); }
 
 		body{
-			font-family:monospace;
+			font-family:Courier;
 			font-size:14px;
 			margin:0px;
 			background-color: black;
@@ -1307,21 +1400,21 @@ function ToggleTab(tab){
 <div class="TabWindow" style="display:inline;" tab="1">
 	<span style="font-size:22px;">You are a <span class="Xbox">X</span> that goes on a quest.</span><br>
 
-	And the quest is to stay on the road.<br><br>
+	&nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br>
 
-	Controls:<br>
-	&nbsp;&nbsp;&nbsp;Left/Right, A/D: Move<br>
-	&nbsp;&nbsp;&nbsp;Up, W: Shoot<br>
+	<b style="font-size: 18px;">Controls:</b><br>
+	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;">Left/Right, A/D</span>: Move<br>
+	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;">Up, W</span>: Shoot<br>
 	<br>
 
-	Look for:<br>
+	<b style="font-size: 18px;">Collect:</b><br>
 	&nbsp;&nbsp;&nbsp;<span class="Xbox">D</span>: Distortion Powerup<br>
 	&nbsp;&nbsp;&nbsp;<span class="Xbox">I</span>: Invincibility Powerup<br>
 	&nbsp;&nbsp;&nbsp;<span class="Xbox">P</span>: Score Pellet<br>
-	&nbsp;&nbsp;&nbsp;<span class="Xbox">W</span>: Warp through the abyss<br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox">W</span>: Warp across the abyss<br>
 	<br>
 
-	Watch Out!!<br>
+	<b style="font-size: 18px;">Watch out:</b><br>
 	&nbsp;&nbsp;&nbsp;<span class="Xbox"><_></span>: spaceship<br>
 	&nbsp;&nbsp;&nbsp;<span class="Xbox">v</span>: it's bullets<br>
 	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;">&nbsp;</span>: The Abyss<br>
