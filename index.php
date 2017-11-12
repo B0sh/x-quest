@@ -120,6 +120,7 @@ Game.PositivePhrases = [
 // defaults
 Game.Mode = 'normal';
 Game.Level = 1;
+Game.NextLevelClass = -1;
 
 // var endZoneChar = '▓';
 var endZoneChar = '.';
@@ -145,7 +146,7 @@ Game.Start = function() {
 			if (Game.Level == 10)
 				Game.Level = 9;
 
-			Game.SetLevelClass(Game.Level);
+			Game.NextLevelClass = Game.Level;
 			$('#level').html(Game.Level);
 			Game.SFX.LevelUp.play();
 		}
@@ -186,7 +187,7 @@ Game.Start = function() {
 	Game.DestroyBullet('player');
 	Game.DestroySpaceship();
 
-	Game.SetLevelClass(1);
+	Game.NextLevelClass = 1;
 
 	/* Player spawns in the middle location */
 	var mid = Math.floor((Game.LineSize - 1) / 2);
@@ -579,6 +580,11 @@ Game.CreateInterval = function(speed) {
 		}
 
 		Game.ProcessText();
+
+		if (Game.NextLevelClass != -1) {
+			Game.SetLevelClass(Game.NextLevelClass);
+			Game.NextLevelClass = -1;
+		}
 	}, speed);
 };
 
