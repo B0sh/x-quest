@@ -1,5 +1,5 @@
 <?php
-$v = "1.1";
+$v = "1.2";
 ?><!DOCTYPE html>
 <html>
 	<head>
@@ -1098,7 +1098,7 @@ Game.CreateChangelog = function() {
 	for(q=0;q<Game.Updates.length;q++) {
 		Changelog += 'X-Quest '+Game.Updates[q][0]+' : '+Game.Updates[q][1]+'<br>'
 		for(w=2;w<Game.Updates[q].length;w++) {
-			Changelog += ' &bull; '+Game.Updates[q][w]+'<br>';
+			Changelog += '<span style="color: #AAA;"> &bull; '+Game.Updates[q][w]+'</span><br>';
 		}
 		Changelog += '<br>';
 	}
@@ -1141,6 +1141,9 @@ Game.SendHighScore = function(data) {
 }
 
 $(document).ready(function() {
+	if (isiPad)
+		$('.no_display_iPad').css('display', 'none');
+
 	Game.Load();
 	Game.UpdateMode('normal');
 
@@ -1176,23 +1179,30 @@ $(document).ready(function() {
 });
 
 var down = {};
+var isiPad = navigator.userAgent.match(/iPad/i) != null;
+
 $(document).keydown(function(event){
 	var keycode = (event.keyCode ? event.keyCode : event.which);
-	if (down[keycode] == null)
+
+	// if you are active on a text area, don't process game characters.
+	if (document.activeElement.nodeName == 'TEXTAREA' || document.activeElement.nodeName == 'INPUT')
+		return true;
+
+	if (down[keycode] == null || isiPad)
 	{
 		down[keycode] = true;
 		switch (keycode) {
 			// case 82: Game.Active = false; Game.Start(); break;
-			case 37: case 65: case 74: event.preventDefault(); Game.Move('left');         break; //Right arrow or "a" or "j"
-			case 39: case 68: case 76: event.preventDefault(); Game.Move('right');        break; //Left arrow or "d" or "l"
-			case 38: case 87: case 73: event.preventDefault(); Game.FireBullet('player'); break; //Up arrow or "w" or i
+			case 37: case 65: case 74: Game.Move('left');         event.preventDefault(); break; //Right arrow or "a" or "j"
+			case 39: case 68: case 76: Game.Move('right');        event.preventDefault(); break; //Left arrow or "d" or "l"
+			case 38: case 87: case 73: Game.FireBullet('player'); event.preventDefault(); break; //Up arrow or "w" or i
 			case 32:
-				event.preventDefault();
 				if (Game.Active == false || (Game.LevelLines >= parseInt(Game.GetLevelLines(Game.Level)))) {
 					Game.Start(); //Spacebar to start
 				} else {
 					Game.TogglePause(); //Spacebar to pause
 				}
+				event.preventDefault();
 
 				break;
 			default: return true;
@@ -1202,6 +1212,7 @@ $(document).keydown(function(event){
 
 $(document).keyup(function(event) {
      var keycode = (event.keyCode ? event.keyCode : event.which);
+
      down[keycode] = null;
 });
 
@@ -1267,7 +1278,7 @@ Game.CalculateStuff = function() {
 
 		.d1,.d2,.d3,.d4,.d5,.d6,.d7,.d8,.d9{font-weight:bold; }
 
-		.d1 { color: #1100da; filter: invert(100%);}
+		/*.d1 { color: #1100da; filter: invert(100%);}
 		.d2 { color: #40bfb5; filter: invert(100%);}
 		.d3 { color: #c5b84c; filter: invert(100%);}
 		.d4 { color: #98bf40; filter: invert(100%);}
@@ -1275,10 +1286,20 @@ Game.CalculateStuff = function() {
 		.d6 { color: #bf4040; filter: invert(100%);}
 		.d7 { color: #bf408a;filter: invert(100%); }
 		.d8 { color: #6140bf; filter: invert(100%);}
-		.d9 { color: #ea4a3e;filter: invert(100%); }
+		.d9 { color: #ea4a3e;filter: invert(100%); }*/
+
+		.d1 { color: #eeff25; }
+		.d2 { color: #bf404a; }
+		.d3 { color: #c5b84c; }
+		.d4 { color: #3a47b3; }
+		.d5 { color: #4071bf; }
+		.d6 { color: #40bfbf; }
+		.d7 { color: #40bf75; }
+		.d8 { color: #9ebf40; }
+		.d9 { color: #15b5c1; }
 
 		body{
-			font-family:Courier;
+			font-family:monospace;
 			font-size:14px;
 			margin:0px;
 			background-color: black;
@@ -1331,7 +1352,7 @@ Game.CalculateStuff = function() {
 		}
 
 		.GameWindow {
-			line-height:100%;
+			line-height: 1;
 			font-size:20px;
 		}
 
@@ -1403,8 +1424,8 @@ Game.CalculateStuff = function() {
 	&nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br>
 
 	<b style="font-size: 18px;">Controls:</b><br>
-	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;">Left/Right, A/D</span>: Move<br>
-	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;">Up, W</span>: Shoot<br>
+	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;"><span class="no_display_iPad">Left/Right, </span>A/D</span>: Move<br>
+	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;"><span class="no_display_iPad">Up, </span>W</span>: Shoot<br>
 	<br>
 
 	<b style="font-size: 18px;">Collect:</b><br>
