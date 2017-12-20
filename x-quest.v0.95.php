@@ -573,7 +573,7 @@ Game.Over = function(DeathType) {
 	];
 	if (Game.isNewRecord()) {
 		Text.push({y:8, text:"@@High Score!@@@@@@@@@@@@@@@@@@@@@@@@@@@"});
-		ToggleTab('6');
+		// ToggleTab('6');
 	}
 
 	$("#GameWindow").html(Game.DisplayMap(Text));
@@ -613,11 +613,6 @@ Game.Over = function(DeathType) {
 };
 
 Game.CreateNewSaveFile = function() {
-	if (localStorage["xquest_HighScore"] !== undefined) {
-		var Record = {Score: parseInt(localStorage["xquest_HighScore"]),Lines: parseInt(localStorage["xquest_HighLines"])};
-	} else {
-		var Record = { Score:0, Lines: 0};
-	}
 	Game.SaveFile = {
 		Version: Game.Version,
 		Totals: {
@@ -636,7 +631,10 @@ Game.CreateNewSaveFile = function() {
 				Normal: 0
 			}
 		},
-		Record: Record,
+		Record: {
+			Score:0,
+			Lines: 0
+		},
 		Achievements: {
 
 		}
@@ -646,7 +644,7 @@ Game.CreateNewSaveFile = function() {
 /* Save Game.SaveFile into localStorage */
 Game.Save = function() {
 	try {
-		localStorage.setItem("XQuest", JSON.stringify(Game.SaveFile));
+		localStorage.setItem("XQuest_v095", JSON.stringify(Game.SaveFile));
 	}
 	catch(e) {
 		console.log(e);
@@ -658,7 +656,7 @@ Game.Save = function() {
 Game.Load = function() {
 	var SaveFile = 'Invalid';
 	try {
-		SaveFile = localStorage.getItem("XQuest");
+		SaveFile = localStorage.getItem("XQuest_v095");
 	}
 	catch(err) {
 		if (err instanceof SecurityError)
@@ -737,17 +735,19 @@ Game.CreateChangelog = function() {
 };
 
 Game.LoadHighScore = function() {
-	$.ajax({
-		method: "POST",
-		data: {
-			showHS: true
-		},
-		url: 'ajax.php',
-		success: function (data) {
-			$('#highScoreList').html(data);
-		}
+	$('#highScoreList').html('play the current version');
 
-	});
+	// $.ajax({
+	// 	method: "POST",
+	// 	data: {
+	// 		showHS: true
+	// 	},
+	// 	url: 'ajax.php',
+	// 	success: function (data) {
+	// 		$('#highScoreList').html(data);
+	// 	}
+  //
+	// });
 }
 
 Game.SendHighScore = function(data) {
@@ -978,7 +978,7 @@ function ToggleTab(tab){
 <div class="TabWindow" tab="3">
 	High Scores<br><br>
 
-	<div id="highScoreList">Loading...</div>
+	<div id="highScoreList">play the current version</div>
 </div>
 <div class="TabWindow" id="Statistics" tab="4">
 
