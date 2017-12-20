@@ -55,13 +55,13 @@ Game.Updates = [
 		'December 20th 2017',
 		'New Powerup: Multi-shot',
 		'Support for iPad & some older browsers',
-		'Fun Option: Font changer'
+		'Fun Option: Font changer',
 		'Fix: Spaceship hidden behind level up text.'
 	],
 	[ 'v1.2',
 		'November 12th 2017',
 		'Adjusted leveling mechanics',
-		'Added an arcade-style kil screen',
+		'Added an arcade-style kill screen',
 	],
 	[ 'v1.1',
 		'November 5th 2017',
@@ -80,7 +80,7 @@ Game.Updates = [
 		'Added a favicon for style.',
 		'Fixed sound effects'
 	],
-	[	'v0.95',
+	[	'<a href="x-quest.v0.95.php">v0.95</a>',
 		'August 3rd 2016',
 		'Added a high score list.'
 	],
