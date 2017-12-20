@@ -1,5 +1,5 @@
 <?php
-$v = "1.2";
+$v = "1.3";
 ?><!DOCTYPE html>
 <html>
 	<head>
@@ -51,6 +51,13 @@ function Format(number, decimals, dec_point, thousands_sep) {
 Game = {};
 
 Game.Updates = [
+	[ 'v1.3',
+		'December 20th 2017',
+		'New Powerup: Multi-shot',
+		'Support for iPad & some older browsers',
+		'Fun Option: Font changer'
+		'Fix: Spaceship hidden behind level up text.'
+	],
 	[ 'v1.2',
 		'November 12th 2017',
 		'Adjusted leveling mechanics',
@@ -127,6 +134,7 @@ Game.PositivePhrases = [
 Game.Mode = 'normal';
 Game.Level = 1;
 Game.NextLevelClass = -1;
+Game.Bullet = [];
 
 // var endZoneChar = '▓';
 var endZoneChar = '.';
@@ -160,13 +168,22 @@ Game.Start = function() {
 			else
 				Game.SFX.LevelUp.play();
 		}
+
+		$('.no_display_level_' + Game.DisplayLevel).css('display', 'block');
+
 		return false;
+	} else {
+
+		for (var i = 1; i < 10; i++ )
+			$('.no_display_level_' + Game.DisplayLevel + '').css('display', 'none');
+
 	}
 	Game.Active = true;
 	Game.Paused = false;
 	Game.Warp = 0;
 	Game.Invincible = 0;
 	Game.Distortion = 0;
+  Game.MultiShot = 0
 	Game.Text = [];
 	Game.Level = 1;
 	Game.DisplayLevel = 1;
@@ -175,6 +192,7 @@ Game.Start = function() {
 	Game.LineLength = [];
 	Game.LineReset = [];
 	Game.LineEntered = [];
+	Game.Bullet = [];
 	// Game.RoadTile = '<span class="c'+Game.Level+'">' + roadChar + '</span>';
 	Game.RoadTile = roadChar;
 	Game.HighScore = false;
@@ -194,8 +212,6 @@ Game.Start = function() {
 		}
 	};
 
-	/* "Destroying" = Create empty objects */
-	Game.DestroyBullet('player');
 	Game.DestroySpaceship();
 
 	Game.NextLevelClass = 1;
@@ -272,14 +288,17 @@ Game.GenerateLine = function () {
 			var road = "`";
 
 			if (getRandomInt(1, 1100) == 1) {
-				road = "I";
+				road = 'I';
 			}  else if (getRandomInt(1, 300) == 1) {
-				road = "P";
+				road = 'P';
 			} else if (getRandomInt(1, 900) === 1) {
-				road = "D";
+				road = 'D';
+			} else if (getRandomInt(1, 900) === 1 && Game.Level >= 6) {
+				road = 'W';
 			} else if (getRandomInt(1, 900) === 1 && Game.Level >= 3) {
-				road = "W";
+				road = 'M';
 			}
+
 			Line = setCharAt(Line, i, road);
 
 			/* Vertical line handler */
@@ -342,17 +361,32 @@ Game.DisplayMap = function(Text, RenderMode, options) {
 		// objects render mode
 		if (RenderMode == "Objects")
 		{
-			if (y == Game.Bullet.y) Line = setCharAt(Line, Game.Bullet.x, "^");
-			if (y == Game.Spaceship.Bullet.y) Line = setCharAt(Line, Game.Spaceship.Bullet.x, "v");
+			needsOverwrite = false;
+			// loop through bullets and set bullet character
+			for (i = 0 ; i < Game.Bullet.length ; i++ ) {
+				if (y == Game.Bullet[i].y) {
+					Line = setCharAt(Line, Game.Bullet[i].x, "^");
+					needsOverwrite = true;
+				}
+			}
+
+			for (i = 0 ; i < Game.Spaceship.Bullet.length ; i++ ) {
+				if (y == Game.Spaceship.Bullet[i].y) {
+					Line = setCharAt(Line, Game.Spaceship.Bullet[i].x, "v");
+					needsOverwrite = true;
+				}
+			}
+
 			if (y == Game.Spaceship.y) {
 				Line = setCharAt(Line, Game.Spaceship.x,   Game.Spaceship.display[0]);
 				Line = setCharAt(Line, Game.Spaceship.x+1, Game.Spaceship.display[1]);
 				Line = setCharAt(Line, Game.Spaceship.x+2, Game.Spaceship.display[2]);
+				needsOverwrite = true;
 			}
 
 			if (Text != false) {
 				for (i=0;i<Text.length;i++) {
-					if (Text[i].y == y)
+					if (Text[i].y == y && !(typeof Text[i].overwritable !== 'undefined' && needsOverwrite == true))
 						Line = Text[i].text.substr(0,Game.LineSize);
 				}
 			}
@@ -376,11 +410,21 @@ Game.DisplayMap = function(Text, RenderMode, options) {
 				Line = replaceAll('P', '@', Line);
 				Line = replaceAll('I', '@', Line);
 				Line = replaceAll('D', '@', Line);
+				Line = replaceAll('M', '@', Line);
 				Line = replaceAll('W', '@', Line);
 			// }
 
-			if (y == Game.Bullet.y) Line = setCharAt(Line, Game.Bullet.x, "@");
-			if (y == Game.Spaceship.Bullet.y) Line = setCharAt(Line, Game.Spaceship.Bullet.x, "@");
+			// loop through bullets and set bullet character
+			for (i = 0 ; i < Game.Bullet.length ; i++ ) {
+				if (y == Game.Bullet[i].y)
+				Line = setCharAt(Line, Game.Bullet[i].x, "@");
+			}
+
+			for (i = 0 ; i < Game.Spaceship.Bullet.length ; i++ ) {
+				if (y == Game.Spaceship.Bullet[i].y)
+				Line = setCharAt(Line, Game.Spaceship.Bullet[i].x, "@");
+			}
+
 			if (y == 2) Line = setCharAt(Line, Game.PlayerX, "@");
 			if (y == Game.Spaceship.y) {
 				Line = setCharAt(Line, Game.Spaceship.x,   '@');
@@ -424,11 +468,11 @@ Game.CreateInterval = function(speed) {
 			}
 
 			$("#GameWindow_Objects").html(Game.DisplayMap([
-				{y: 12, text: "@COMPLETED:@" },
-				{y: 11, text: "@Level@"+Game.DisplayLevel+"@" },
-				{y: 10, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@"},
-				{y: 9, text: "@Press Space@" },
-				{y: 8, text: "@to continue@" },
+				{y: 12, text: "@COMPLETED:@", overwritable: true },
+				{y: 11, text: "@Level@"+Game.DisplayLevel+"@", overwritable: true },
+				{y: 10, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@", overwritable: true},
+				{y: 9, text: "@Press Space@", overwritable: true },
+				{y: 8, text: "@to continue@", overwritable: true },
 			], "Objects"));
 
 			$("#GameWindow_Road").html(Game.DisplayMap([
@@ -480,6 +524,12 @@ Game.CreateInterval = function(speed) {
 				Game.CreateInterval(Game.BaseSpeed*2);
 				Game.map[2] = setCharAt(Game.map[2], Game.PlayerX, "`");
 				break;
+			case 'M':
+				Game.SFX.Power.play();
+				Game.MultiShot = 1;
+				Game.Stats.Powerups += 1;
+				Game.map[2] = setCharAt(Game.map[2], Game.PlayerX, "`");
+				break;
 		  // nightmare mode wall tiles
 			case '<':
 			case '>':
@@ -494,26 +544,37 @@ Game.CreateInterval = function(speed) {
 
 
 		/* Bullet handling */
-		if (Game.Bullet.exists == true) {
-			Game.Bullet.y += 1;
-			if (Game.Bullet.y == 21)
-				Game.DestroyBullet('player');
+		if (Game.Bullet.length !== 0) {
 
-			if (Game.Spaceship.exists == true &&
-				Game.Bullet.y == Game.Spaceship.y &&
-				Contains(Game.Bullet.x, Game.Spaceship.x, Game.Spaceship.x+2)) {
-					Game.DestroyBullet('player');
-					Game.Stats.Score += 10;
-					Game.Stats.ShipsDestroyed += 1;
-					Game.AddText("Hit! +10 Score");
-					Game.DestroySpaceship();
-					Game.SFX.Explosion.play();
-			}
-			if ((Game.Spaceship.Bullet.y == Game.Bullet.y || Game.Spaceship.Bullet.y+1 ==Game.Bullet.y) &&
-				Game.Bullet.x == Game.Spaceship.Bullet.x && Game.Bullet.y != -1) {
-					Game.DestroyBullet('player');
-					Game.DestroyBullet('Spaceship');
-					Game.Stats.ShotsDestroyed += 1;
+			for (i = 0 ; i < Game.Bullet.length ; i++ ) {
+				Game.Bullet[i].y += 1;
+				if (Game.Bullet[i].y == 21)
+				{
+					Game.DestroyBullet(i, 'player');
+					continue;
+				}
+
+				if (Game.Spaceship.exists == true &&
+					Game.Bullet[i].y == Game.Spaceship.y &&
+					Contains(Game.Bullet[i].x, Game.Spaceship.x, Game.Spaceship.x+2)) {
+						Game.DestroyBullet(i, 'player');
+						Game.Stats.Score += 10;
+						Game.Stats.ShipsDestroyed += 1;
+						Game.AddText("Hit! +10 Score");
+						Game.DestroySpaceship();
+						Game.SFX.Explosion.play();
+				}
+
+				// allow spaceship bullets to be destoryed
+				for (s = 0; s < Game.Spaceship.Bullet.length; s++ ) {
+					if ((Game.Spaceship.Bullet[s].y == Game.Bullet[i].y || Game.Spaceship.Bullet[s].y+1 ==Game.Bullet[i].y) &&
+						Game.Bullet[i].x == Game.Spaceship.Bullet[s].x && Game.Bullet[i].y != -1)
+					{
+						Game.DestroyBullet(i, 'player');
+						Game.DestroyBullet(s, 'spaceship');
+						Game.Stats.ShotsDestroyed += 1;
+					}
+				}
 			}
 		}
 
@@ -540,19 +601,22 @@ Game.CreateInterval = function(speed) {
 				Game.Spaceship.x += Game.Spaceship.direction;
 			}
 
-			/* Spaceship bullet handling */
-			if (Game.Spaceship.Bullet.exists == false && getRandomInt(1, 5) == 1 && Game.Spaceship.flyaway == false) {
-				Game.Spaceship.Bullet = {
-					exists: true,
-					x: Game.Spaceship.x,
-					y: Game.Spaceship.y
-				}
+			//  Spaceship bullet handling
+			if (Game.Spaceship.Bullet.length == 0 && getRandomInt(1, 5) == 1 && Game.Spaceship.flyaway == false) {
+
+				Game.FireBullet('spaceship');
+
 			} else {
-				Game.Spaceship.Bullet.y -= 1;
-				if (Game.Spaceship.Bullet.y == 0) Game.DestroyBullet('Spaceship');
-				if (Game.Spaceship.Bullet.y == 1 && Game.Spaceship.Bullet.x == Game.PlayerX && Game.Invincible == 0) {
-					Game.DestroyBullet('Spaceship');
-					Game.Over('Spaceship');
+
+				for (i = 0 ; i < Game.Spaceship.Bullet.length ; i++ ) {
+					Game.Spaceship.Bullet[i].y -= 1;
+					if (Game.Spaceship.Bullet[i].y == 0)
+						Game.DestroyBullet(i, 'spaceship');
+
+					else if (Game.Spaceship.Bullet[i].y == 1 && Game.Spaceship.Bullet[i].x == Game.PlayerX && Game.Invincible == 0) {
+						Game.DestroyBullet(i, 'spaceship');
+						Game.Over('Spaceship');
+					}
 				}
 			}
 
@@ -586,6 +650,10 @@ Game.CreateInterval = function(speed) {
 		if (Game.Warp != 0) {
 			Game.Warp -= 1;
 			$('#GameWindow_Objects').append('<br><b>Warp:</b> '+Game.Warp);
+		}
+		if (Game.MultiShot != 0) {
+			// Game.Warp -= 1;
+			$('#GameWindow_Objects').append('<br><b>MultiShot</b>');
 		}
 		if (Game.Distortion != 0) {
 			Game.Distortion -= 1;
@@ -677,35 +745,58 @@ Game.Move = function (direction){
 	}
 };
 
-Game.DestroyBullet = function(type) {
-	var bullet = {
-		exists:false,
-		x:0,
-		y:-1
-	};
+
+Game.DestroyBullet = function(id, type) {
+
 	switch (type) {
-		case 'player': Game.Bullet = bullet; break;
-		case 'Spaceship': Game.Spaceship.Bullet = bullet; break;
+		case 'player':
+			Game.Bullet.splice(id, 1);
+			break;
+		case 'spaceship':
+			Game.Spaceship.Bullet.splice(id, 1);
+			break;
 	}
 };
 
+
+
 Game.FireBullet = function(type) {
 	if (Game.Paused == false && Game.Active == true) {
-		if (type == 'player' && Game.Bullet.exists == false) {
+		if (type == 'player' && Game.Bullet.length === 0) {
+
 			Game.SFX.Shoot.play();
 			Game.Stats.ShotsFired += 1;
-			Game.Bullet = {
-				exists: true,
-				x: Game.PlayerX,
-				y: 2
-			};
-		} else if (type == 'Spaceship' && Game.Spaceship.Bullet.exists == false) {
+			if (Game.MultiShot == 0) {
+				Game.Bullet.push({
+					x: Game.PlayerX,
+					y: 3,
+				});
+
+			} else {
+				// multi shot activated
+				Game.Bullet.push({
+					x: Game.PlayerX-1,
+					y: 2,
+				});
+				Game.Bullet.push({
+					x: Game.PlayerX,
+					y: 3,
+				});
+				Game.Bullet.push({
+					x: Game.PlayerX+1,
+					y: 2,
+				});
+				Game.MultiShot = 0 ;
+			}
+
+		} else if (type == 'spaceship' && Game.Spaceship.Bullet.length == 0) {
+
 			Game.SFX.Shoot.play();
-			Game.Bullet = {
-				exists: true,
+			Game.Spaceship.Bullet.push({
 				x: Game.Spaceship.x,
-				y: Game.Spaceship.y
-			};
+				y: Game.Spaceship.y,
+			});
+
 		}
 	}
 };
@@ -718,7 +809,7 @@ Game.CreateSpaceship = function() {
 		var x = -2;
 		var dir = 1;
 	}
-	if (getRandomInt(0, 20) == 0)
+	if (getRandomInt(1, 24) == 0)
 		var disp = "^_~";
 	else
 		var disp = "<_>";
@@ -731,11 +822,7 @@ Game.CreateSpaceship = function() {
 		direction: dir,
 		start:Game.Stats.Lines,
 		display:disp,
-		Bullet:{
-			exists:false,
-			x:0,
-			y:-1
-		},
+		Bullet:[],
 		x: x,
 		y: getRandomInt(16,20)
 	}
@@ -821,7 +908,7 @@ Game.KillScreen = function(RenderMode) {
 
 Game.DestroySpaceship = function() {
 	Game.Spaceship = {
-		exists:false,move:false,flyaway:false,start:0,direction:0,x:0,y:-1,Bullet:{exists:false,x:0,y:-1}
+		exists:false,move:false,flyaway:false,start:0,direction:0,x:0,y:-1,Bullet:[]
 	};
 };
 
@@ -1126,7 +1213,10 @@ Game.LoadHighScore = function() {
 		success: function (data) {
 			$('#highScoreList').html(data);
 
-			Game.SetLevelClass(Game.DisplayLevel % 9 + 1);
+			if (typeof Game.DisplayLevel === "undefined")
+				Game.SetLevelClass(1);
+			else
+				Game.SetLevelClass(((Game.DisplayLevel - 1) % 9 + 1));
 		}
 
 	});
@@ -1166,7 +1256,6 @@ $(document).ready(function() {
 	/* Default to medium size */
 	Game.UpdateSize(15);
 	Game.SetLevelClass(1);
-	Game.DestroyBullet('player');
 	Game.DestroySpaceship();
 
 	Game.map = [];
@@ -1221,9 +1310,9 @@ $(document).keydown(function(event){
 });
 
 $(document).keyup(function(event) {
-     var keycode = (event.keyCode ? event.keyCode : event.which);
+   var keycode = (event.keyCode ? event.keyCode : event.which);
 
-     down[keycode] = null;
+   down[keycode] = null;
 });
 
 
@@ -1249,7 +1338,6 @@ function ToggleTab(tab){
 Game.CalculateStuff = function() {
 	var temp = Game.DisplayLevel;
 	text = "Easter Egg? There's a Kill Screen <br><br>";
-
 	text += "Calculating Time to Reach Kill Screen<br>";
 
 	Game.DisplayLevel = 0;
@@ -1374,6 +1462,18 @@ Game.CalculateStuff = function() {
 		.Xbox {
 			font-size:20px;
 		}
+
+		.no_display_level_1,
+		.no_display_level_2,
+		.no_display_level_3,
+		.no_display_level_4,
+		.no_display_level_5,
+		.no_display_level_6,
+		.no_display_level_7,
+		.no_display_level_8,
+		.no_display_level_9 {
+			display: none;
+		}
 		</style>
 		<audio id="Sound" src="" style="display:none;"></audio>
 
@@ -1442,7 +1542,8 @@ Game.CalculateStuff = function() {
 	&nbsp;&nbsp;&nbsp;<span class="Xbox">D</span>: Distortion Powerup<br>
 	&nbsp;&nbsp;&nbsp;<span class="Xbox">I</span>: Invincibility Powerup<br>
 	&nbsp;&nbsp;&nbsp;<span class="Xbox">P</span>: Score Pellet<br>
-	&nbsp;&nbsp;&nbsp;<span class="Xbox">W</span>: Warp across the abyss<br>
+	<span class="no_display_level_3">&nbsp;&nbsp;&nbsp;<span class="Xbox">M</span>: Muli Shot!<br></span>
+	<span class="no_display_level_6">&nbsp;&nbsp;&nbsp;<span class="Xbox">W</span>: Warp across the abyss<br></span>
 	<br>
 
 	<b style="font-size: 18px;">Watch out:</b><br>
