@@ -864,6 +864,16 @@ Game.UpdateSize = function(size) {
 	return false;
 };
 
+Game.UpdateFont = function (font) {
+  switch (font) {
+    case 'comic_sans': font = '"Comic Sans MS", cursive, sans-serif'; break;
+    case 'courier': font = '"Courier New", Courier, monospace'; break;
+  }
+
+  $('body').css('font-family', font);
+  return false;
+};
+
 Game.UpdateMode = function(mode) {
 	if (Game.Active == true)
 	{
@@ -1461,14 +1471,19 @@ Game.CalculateStuff = function() {
 
 	<div id="stats_tracked"></div>
 
-	<b>Board Size:</b>
-
+	<b>Board Size:</b> (totally doesn't work btw)
 	<select id="linesize" onchange="Game.UpdateSize($('#linesize').val());">
 		<option value="9"> Small </option>
 		<option value="15" selected> Medium </option>
 		<option value="21"> Long </option>
 		<option value="27"> Extra Long </option>
 	</select><br><br>
+
+  <b>Font:</b> <select id="font_select" onchange="Game.UpdateFont($('#font_select').val());">
+    <option value="monospace">Monospace</option>
+    <option value="courier">Courier</option>
+    <option value="comic_sans">Comic Sans MS</option>
+  </select><br><br>
 
 	<b>Game Speed:</b> <input type="text" value="120" size="2" id="speed" onchange="Game.UpdateSpeed($('#speed').val());" /> (ms)
 </div>
