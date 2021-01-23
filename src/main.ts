@@ -3,14 +3,79 @@ import Utility from "./utility";
 import jquery from '../jquery.js';
 import { SFX } from "./sfx";
 import { Howler } from "howler";
+import { XQuest } from "./game";
+import { InputUtility } from "./input-utility";
 
-let $ = (window as any).jQuery = jquery; 
+var $ = (window as any).jQuery = jquery; 
+const Game = new XQuest();
+(window as any).Game = Game;
 
-let Game: any = {};
+document.addEventListener('DOMContentLoaded', () => {
+	InputUtility.initListeners((event: KeyboardEvent) => {
+		switch (event.code) {
+			case 'KeyD': case 'KeyL': case 'ArrowLeft':
+				Game.Move('right');
+				event.preventDefault();
+				break; //Left arrow or "d" or "l"
+			case 'KeyA': case 'KeyJ': case 'ArrowRight':
+				Game.Move('left');
+				event.preventDefault();
+				break; //Right arrow or "a" or "j"
+			case 'KeyW': case 'KeyI': case 'ArrowUp':
+				Game.FireBullet('player');
+				event.preventDefault();
+				break; //Up arrow or "w" or i
+			case 'Space':
+				if (Game.Active == false || (Game.LevelLines >= parseInt(Game.GetLevelLines(Game.Level)))) {
+					Game.Start(); //Spacebar to start
+				} else {
+					Game.TogglePause(); //Spacebar to pause
+				}
+				event.preventDefault();
+
+				break;
+			default: return true;
+		}
+	});
+
+	if (Utility.isiPad())
+		$('.no_display_iPad').css('display', 'none');
+
+	Game.Load();
+	Game.UpdateMode('normal');
+
+	/* Add the total score and lines from localStorage */
+	$('#high-score').html(Utility.format(Game.SaveFile.Record[Game.Mode].Score));
+	$('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.Mode].Lines));
+	$('#total-score').html(Utility.format(Game.SaveFile.Totals.Score));
+	$('#total-lines').html(Utility.format(Game.SaveFile.Totals.Lines));
+
+	/* Default to medium size */
+	Game.UpdateSize(15);
+	Game.SetLevelClass(1);
+	Game.DestroySpaceship();
+
+	Game.map = [];
+	for(let i=0;i<=20;i++) {
+		Game.map[i] = '@@@@@@@@@@@@@@@';
+	}
+
+	$('#GameWindow_Road').html('');
+	$('#GameWindow_Objects').html(Game.DisplayMap([
+		{y:11,text:"@@Press@Space@@"},
+		{y:10,text:"@@@to@start.@@@"}
+	], "Objects", {renderPlayer:false}));
+
+	$('tab').click(function (e) {
+		ToggleTab($(this).attr('id'));
+	});
+
+	Game.UpdateStatistics();
+	$("#Changelog").html(Changelog.createChangelog());
+});
 
 
 Game.CurrentTab = 1;
-Game.Active = false;
 Game.CHEAT = false;
 Game.Version = 1.3;
 
@@ -32,119 +97,6 @@ Game.Bullet = [];
 var endZoneChar = '.';
 var roadChar = '|';
 var endChar = '';
-
-/* Called each time a new game begins; sets game variables */
-Game.Start = function() {
-
-	if (Game.Active == true) {
-
-		if ( Game.LevelLines > Game.GetLevelLines(Game.Level)-20) {
-			Game.Warp = 0;
-			Game.Invincible = 25;
-			if (Game.Distortion != 0) {
-				Game.CreateInterval(Game.BaseSpeed);
-				Game.Distortion = 0;
-			}
-			Game.LevelLines = 0;
-			Game.Text = [];
-
-			Game.Level++;
-			Game.NextLevelClass = Game.DisplayLevel % 9 + 1;
-			if (Game.Level == 10)
-				Game.Level = 9;
-			Game.DisplayLevel++;
-
-			$('#level').html(Game.DisplayLevel);
-			if (Game.isKillScreen())
-				SFX.Killscreen.play();
-			else
-				SFX.LevelUp.play();
-		}
-
-		$('.no_display_level_' + Game.DisplayLevel).css('display', 'block');
-
-		return false;
-	} else {
-
-		for (var i = 1; i < 10; i++ )
-			$('.no_display_level_' + Game.DisplayLevel + '').css('display', 'none');
-
-	}
-	Game.Active = true;
-	Game.Paused = false;
-	Game.Warp = 0;
-	Game.Invincible = 0;
-	Game.Distortion = 0;
-	Game.MultiShot = 0
-	Game.Text = [];
-	Game.Level = 1;
-	Game.DisplayLevel = 1;
-	Game.LevelLines = 0;
-	Game.map = [];
-	Game.LineLength = [];
-	Game.LineReset = [];
-	Game.LineEntered = [];
-	Game.Bullet = [];
-	// Game.RoadTile = '<span class="c'+Game.Level+'">' + roadChar + '</span>';
-	Game.RoadTile = roadChar;
-	Game.HighScore = false;
-	Game.Stats = {
-		Score: 0,
-		Lines: 0,
-		ShipsDestroyed: 0,
-		ShotsDestroyed: 0,
-		Powerups: 0,
-		Moves: 0,
-		ShotsFired: 0,
-		Time: 0,
-		Deaths: {
-			Shot: 0,
-			Wall: 0,
-			Normal: 0
-		}
-	};
-
-	Game.DestroySpaceship();
-
-	Game.NextLevelClass = 1;
-
-	/* Player spawns in the middle location */
-	var mid = Math.floor((Game.LineSize - 1) / 2);
-	Game.PlayerX = mid;
-	var x;
-	for(var i = 0; i < Game.LineSize; i++) {
-		// if the location is one of the 3 middle columns then make a line there
-		if (Utility.contains(i, mid-1, mid+1))
-			x = 1;
-		else x = 0;
-
-    	Game.LineLength.push(x*25);
-    	Game.LineReset.push(x);
-    	Game.LineEntered.push(x);
-	}
-
-	$('#linesize').css('display','none');
-	$('#mode').css('display','none');
-	$('#level').html(Game.Level);
-
-	/* Generate the first 20 lines */
-	for (let y = 0; y <= 20; y++) {
-		var Line = Game.GenerateLine();
-		Game.map[y] = Line;
-	}
-
-	/* If you're on the high score screen and a new game starts don't let it submit */
-	if (Game.CurrentTab == 6 || Game.CurrentTab == 7) {
-		ToggleTab('1');
-	}
-
-	/* Add a positive phrase in the text field */
-	Game.AddText( Game.PositivePhrases[Utility.getRandomInt(0, (Game.PositivePhrases.length-1))] );
-
-	/* Lets get this party started */
-	Game.CreateInterval(Game.BaseSpeed);
-	console.log('Game Started');
-};
 
 /* Generates the line (as text) */
 Game.GenerateLine = function () {
@@ -838,16 +790,6 @@ Game.UpdateSize = function(size) {
 	return false;
 };
 
-Game.UpdateFont = function (font) {
-  switch (font) {
-    case 'comic_sans': font = '"Comic Sans MS", cursive, sans-serif'; break;
-    case 'courier': font = '"Courier New", Courier, monospace'; break;
-  }
-
-  $('body').css('font-family', font);
-  return false;
-};
-
 Game.UpdateMode = function(mode) {
 	if (Game.Active == true)
 	{
@@ -1114,81 +1056,6 @@ Game.SendHighScore = function(data) {
 		}
 	})
 }
-
-$(document).ready(function() {
-	if (isiPad)
-		$('.no_display_iPad').css('display', 'none');
-
-	Game.Load();
-	Game.UpdateMode('normal');
-
-	/* Add the total score and lines from localStorage */
-	$('#high-score').html(Utility.format(Game.SaveFile.Record[Game.Mode].Score));
-	$('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.Mode].Lines));
-	$('#total-score').html(Utility.format(Game.SaveFile.Totals.Score));
-	$('#total-lines').html(Utility.format(Game.SaveFile.Totals.Lines));
-
-	/* Default to medium size */
-	Game.UpdateSize(15);
-	Game.SetLevelClass(1);
-	Game.DestroySpaceship();
-
-	Game.map = [];
-	for(let i=0;i<=20;i++) {
-		Game.map[i] = '@@@@@@@@@@@@@@@';
-	}
-
-	$('#GameWindow_Road').html('');
-	$('#GameWindow_Objects').html(Game.DisplayMap([
-		{y:11,text:"@@Press@Space@@"},
-		{y:10,text:"@@@to@start.@@@"}
-	], "Objects", {renderPlayer:false}));
-
-	$('tab').click(function (e) {
-		ToggleTab($(this).attr('id'));
-	});
-
-	Game.UpdateStatistics();
-	$("#Changelog").html(Changelog.createChangelog());
-});
-
-var down = {};
-var isiPad = navigator.userAgent.match(/iPad/i) != null;
-
-$(document).keydown(function(event){
-	var keycode = (event.keyCode ? event.keyCode : event.which);
-
-	// if you are active on a text area, don't process game characters.
-	if (document.activeElement.nodeName == 'TEXTAREA' || document.activeElement.nodeName == 'INPUT')
-		return true;
-
-	if (down[keycode] == null || isiPad)
-	{
-		down[keycode] = true;
-		switch (keycode) {
-			// case 82: Game.Active = false; Game.Start(); break;
-			case 37: case 65: case 74: Game.Move('left');         event.preventDefault(); break; //Right arrow or "a" or "j"
-			case 39: case 68: case 76: Game.Move('right');        event.preventDefault(); break; //Left arrow or "d" or "l"
-			case 38: case 87: case 73: Game.FireBullet('player'); event.preventDefault(); break; //Up arrow or "w" or i
-			case 32:
-				if (Game.Active == false || (Game.LevelLines >= parseInt(Game.GetLevelLines(Game.Level)))) {
-					Game.Start(); //Spacebar to start
-				} else {
-					Game.TogglePause(); //Spacebar to pause
-				}
-				event.preventDefault();
-
-				break;
-			default: return true;
-		}
-	}
-});
-
-$(document).keyup(function(event) {
-   var keycode = (event.keyCode ? event.keyCode : event.which);
-
-   down[keycode] = null;
-});
 
 
 function ToggleTab(tab){

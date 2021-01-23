@@ -23,4 +23,7 @@ export default class Utility {
         });
     }
 
+    static isiPad() {
+        return navigator.userAgent.match(/iPad/i) != null;
+    }
 }
