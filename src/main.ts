@@ -1,6 +1,8 @@
 import { Changelog } from "./changelog";
 import Utility from "./utility";
 import jquery from '../jquery.js';
+import { SFX } from "./sfx";
+import { Howler } from "howler";
 
 let $ = (window as any).jQuery = jquery; 
 
@@ -11,17 +13,7 @@ Game.CurrentTab = 1;
 Game.Active = false;
 Game.CHEAT = false;
 Game.Version = 1.3;
-Game.SFX = {
-	"Noscore": new Audio("https://waldens.world/projects/x-quest/Sound/noscore.wav"),
-	"LevelUp": new Audio("https://waldens.world/projects/x-quest/Sound/level.wav"),
-	"Killscreen": new Audio("https://waldens.world/projects/x-quest/Sound/killscreen.wav"),
-	"Bonus": new Audio("https://waldens.world/projects/x-quest/Sound/bonus.wav"),
-	"Explosion": new Audio("https://waldens.world/projects/x-quest/Sound/explosion.wav"),
-	"Score": new Audio("https://waldens.world/projects/x-quest/Sound/score.wav"),
-	"Power": new Audio("https://waldens.world/projects/x-quest/Sound/power.wav"),
-	"Shoot": new Audio("https://waldens.world/projects/x-quest/Sound/shoot.wav"),
-	"GameOver": new Audio("https://waldens.world/projects/x-quest/Sound/gameover.wav"),
-};
+
 
 Game.PositivePhrases = [
 	"Good Luck!", "Having fun yet?", "Have fun!", "Kill &#39;em", "You can do it!",
@@ -64,9 +56,9 @@ Game.Start = function() {
 
 			$('#level').html(Game.DisplayLevel);
 			if (Game.isKillScreen())
-				Game.SFX.Killscreen.play();
+				SFX.Killscreen.play();
 			else
-				Game.SFX.LevelUp.play();
+				SFX.LevelUp.play();
 		}
 
 		$('.no_display_level_' + Game.DisplayLevel).css('display', 'block');
@@ -83,7 +75,7 @@ Game.Start = function() {
 	Game.Warp = 0;
 	Game.Invincible = 0;
 	Game.Distortion = 0;
-  Game.MultiShot = 0
+	Game.MultiShot = 0
 	Game.Text = [];
 	Game.Level = 1;
 	Game.DisplayLevel = 1;
@@ -399,33 +391,33 @@ Game.CreateInterval = function(speed) {
 			case '|': break;
 			case '' + roadChar + '': break;
 			case 'P':
-				Game.SFX.Bonus.play();
+				SFX.Bonus.play();
 				Game.Stats.Score += (Game.Level*2)+2;
 				Game.Stats.Powerups += 1;
 				Game.AddText("+"+((Game.Level*2)+2)+" Score");
 				Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
 				break;
 			case 'I':
-				Game.SFX.Power.play();
+				SFX.Power.play();
 				Game.Invincible = 50;
 				Game.Stats.Powerups += 1;
 				Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
 				break;
 			case 'W':
-				Game.SFX.Power.play();
+				SFX.Power.play();
 				Game.Warp = 40;
 				Game.Stats.Powerups += 1;
 				Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
 				break;
 			case 'D':
-				Game.SFX.Power.play();
+				SFX.Power.play();
 				Game.Distortion = 25;
 				Game.Stats.Powerups += 1;
 				Game.CreateInterval(Game.BaseSpeed*2);
 				Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
 				break;
 			case 'M':
-				Game.SFX.Power.play();
+				SFX.Power.play();
 				Game.MultiShot = 1;
 				Game.Stats.Powerups += 1;
 				Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
@@ -462,7 +454,7 @@ Game.CreateInterval = function(speed) {
 						Game.Stats.ShipsDestroyed += 1;
 						Game.AddText("Hit! +10 Score");
 						Game.DestroySpaceship();
-						Game.SFX.Explosion.play();
+						SFX.Explosion.play();
 				}
 
 				// allow spaceship bullets to be destoryed
@@ -629,9 +621,9 @@ Game.Move = function (direction){
 		if (Game.LineEntered[Game.PlayerX] == 1 && Tile2 != '%') {
 			Game.LineEntered[Game.PlayerX] = 2;
 			Game.Stats.Score += 1;
-			Game.SFX.Score.play();
+			SFX.Score.play();
 		} else {
-			Game.SFX.Noscore.play();
+			SFX.Noscore.play();
 		}
 
 		Game.Stats.Moves += 1;
@@ -664,7 +656,7 @@ Game.FireBullet = function(type) {
 	if (Game.Paused == false && Game.Active == true) {
 		if (type == 'player' && Game.Bullet.length === 0) {
 
-			Game.SFX.Shoot.play();
+			SFX.Shoot.play();
 			Game.Stats.ShotsFired += 1;
 			if (Game.MultiShot == 0) {
 				Game.Bullet.push({
@@ -691,7 +683,7 @@ Game.FireBullet = function(type) {
 
 		} else if (type == 'spaceship' && Game.Spaceship.Bullet.length == 0) {
 
-			Game.SFX.Shoot.play();
+			SFX.Shoot.play();
 			Game.Spaceship.Bullet.push({
 				x: Game.Spaceship.x,
 				y: Game.Spaceship.y,
@@ -820,12 +812,7 @@ Game.UpdateSpeed = function (speed) {
 };
 
 Game.UpdateVolume = function (volume) {
-  for (var prop in Game.SFX) {
-     if (Game.SFX.hasOwnProperty(prop)) {
-        Game.SFX[prop].volume = volume / 100;
-     }
-  }
-
+	Howler.volume(volume);
 	Game.SaveFile.Volume = volume;
 	Game.Save();
 	console.log("Updated Volume");
@@ -907,7 +894,7 @@ Game.isNewRecord = function () {
 }
 
 Game.Over = function(DeathType) {
-	Game.SFX.GameOver.play();
+	SFX.GameOver.play();
 
 	$('#linesize').css('display','inline');
 	$('#mode').css('display','inline');
