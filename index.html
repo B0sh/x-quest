@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>X-Quest</title>
+        <link rel="shortcut icon" type="image/x-icon" href="xquest-favicon.png" />
+        <script src='jquery.js' type='text/javascript'></script>
+        <script src="./src/main.ts"></script>
+	</head>
+	<body>
+		<style>
+		.c1,.c2,.c3,.c4,.c5,.c6,.c7,.c8,.c9,.header{font-weight:bold;}
+
+		.c1 { color: #2196f3; }
+		.c2 { color: #40bfb5; }
+		.c3 { color: #40bf6f; }
+		.c4 { color: #98bf40; }
+		.c5 { color: #bf8e40; }
+		.c6 { color: #bf4040; }
+		.c7 { color: #bf408a; }
+		.c8 { color: #6140bf; }
+		.c9 { color: #ea4a3e; }
+
+		.d1,.d2,.d3,.d4,.d5,.d6,.d7,.d8,.d9{font-weight:bold; }
+
+		/*.d1 { color: #1100da; filter: invert(100%);}
+		.d2 { color: #40bfb5; filter: invert(100%);}
+		.d3 { color: #c5b84c; filter: invert(100%);}
+		.d4 { color: #98bf40; filter: invert(100%);}
+		.d5 { color: #bf8e40; filter: invert(100%);}
+		.d6 { color: #bf4040; filter: invert(100%);}
+		.d7 { color: #bf408a;filter: invert(100%); }
+		.d8 { color: #6140bf; filter: invert(100%);}
+		.d9 { color: #ea4a3e;filter: invert(100%); }*/
+
+		.d1 { color: #eeff25; }
+		.d2 { color: #bf404a; }
+		.d3 { color: #c5b84c; }
+		.d4 { color: #3a47b3; }
+		.d5 { color: #4071bf; }
+		.d6 { color: #40bfbf; }
+		.d7 { color: #40bf75; }
+		.d8 { color: #9ebf40; }
+		.d9 { color: #15b5c1; }
+
+		body{
+			font-family:monospace;
+			font-size:14px;
+			margin:0px;
+			background-color: black;
+			color: white;
+		}
+		.Window {
+			float:left;
+			min-height:400px;
+		}
+		.header {
+			font-size:20px;
+		}
+		.TabContainer tab {
+			float:left;
+			width:147px;
+			text-align:center;
+			margin-bottom:10px;
+			font-size:20px;
+			padding-top:4px;
+			padding-bottom:4px;
+			color:white;
+			cursor:pointer;
+			font-weight:bold;
+		   -webkit-touch-callout: none;
+		   -webkit-user-select: none;
+		   -khtml-user-select: none;
+		   -moz-user-select: none;
+		   -ms-user-select: none;
+			user-select: none;
+
+			border-right:1px solid white;
+			border-bottom:1px solid white;
+		}
+		.TabContainer .selected {
+			color:black;
+			background: white;
+		}
+		.TabWindow {
+			display:none;
+		}
+
+		#ScoreWindow {
+			width: 200px;
+			text-align:left;
+		}
+
+		#GameInfo {
+			width:750px;
+			text-align:left;
+		}
+
+		.GameWindow {
+			line-height: 1;
+			font-size:20px;
+		}
+
+		a {
+			color: #3366BB;
+			font-weight:bold;
+		}
+
+		.Xbox {
+			font-size:20px;
+		}
+
+		.no_display_level_1,
+		.no_display_level_2,
+		.no_display_level_3,
+		.no_display_level_4,
+		.no_display_level_5,
+		.no_display_level_6,
+		.no_display_level_7,
+		.no_display_level_8,
+		.no_display_level_9 {
+			display: none;
+		}
+		</style>
+		<audio id="Sound" src="" style="display:none;"></audio>
+
+	<div style="width:1200px;">
+		<div class="TabContainer">
+			<tab id="0" style="width:398px;"> X-Quest v1.3 </tab>
+			<tab id="1" class="selected">Instructions</tab>
+			<tab id="2">Options</tab>
+			<tab id="3">High Scores</tab>
+			<tab id="4">Statistics</tab>
+			<tab id="5">Changelog</tab>
+		</div>
+	</div>
+
+	<div id="container" style="width:1200px;text-align:center;">
+	<div id="outer_container">
+		<div class="Window" id="ScoreWindow" style="font-size:16px;">
+			<b>&nbsp;Current Game:</b><br>
+			<div style="width:100%">
+				<div style="width:70%;text-align:right;float:left">Score:&nbsp;</div>
+				<div style="width:30%;text-align:left;float:left" id="score">0</div>
+			</div>
+			<div style="width:100%">
+				<div style="width:70%;text-align:right;float:left">Lines:&nbsp;</div>
+				<div style="width:30%;text-align:left;float:left" id="lines">0</div>
+			</div>
+			<div style="width:100%">
+				<div style="width:70%;text-align:right;float:left">Level:&nbsp;</div>
+				<div style="width:30%;text-align:left;float:left" id="level">0</div>
+			</div><br><br><br><br>
+
+			<b>&nbsp;High Score:</b><br>
+			<div style="width:100%">
+				<div style="width:70%;text-align:right;float:left">Score:&nbsp;</div>
+				<div style="width:30%;text-align:left;float:left" id="high-score"></div>
+			</div>
+			<div style="width:100%">
+				<div style="width:70%;text-align:right;float:left">Lines:&nbsp;</div>
+				<div style="width:30%;text-align:left;float:left" id="high-lines"></div>
+			</div><br><br><br><br>
+		</div>
+		<div class="Window" style="position: relative;width:200px;">
+			<div class="GameWindow" style="position: absolute; margin-top:2px;" id="GameWindow_Road">
+				X-Quest requires JavaScript to be enabled.
+			</div>
+			<div class="GameWindow" style="position: absolute; margin-top:2px;z-index:1;" id="GameWindow_Objects">
+
+			</div>
+		</div>
+
+		<div class="Window" id="GameInfo">
+<div class="TabWindow" tab="0">
+	Easter Egg?
+</div>
+<div class="TabWindow" style="display:inline;" tab="1">
+	<span style="font-size:22px;">You are a <span class="Xbox">X</span> that goes on a quest.</span><br>
+
+	&nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br>
+
+	<b style="font-size: 18px;">Controls:</b><br>
+	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;"><span class="no_display_iPad">Left/Right, </span>A/D</span>: Move<br>
+	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;"><span class="no_display_iPad">Up, </span>W</span>: Shoot<br>
+	<br>
+
+	<b style="font-size: 18px;">Collect:</b><br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox">D</span>: Distortion Powerup<br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox">I</span>: Invincibility Powerup<br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox">P</span>: Score Pellet<br>
+	<span class="no_display_level_3">&nbsp;&nbsp;&nbsp;<span class="Xbox">M</span>: Muli Shot!<br></span>
+	<span class="no_display_level_6">&nbsp;&nbsp;&nbsp;<span class="Xbox">W</span>: Warp across the abyss<br></span>
+	<br>
+
+	<b style="font-size: 18px;">Watch out:</b><br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox"><_></span>: spaceship<br>
+	&nbsp;&nbsp;&nbsp;<span class="Xbox">v</span>: it's bullets<br>
+	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;">&nbsp;</span>: The Abyss<br>
+	<br>
+
+	X-Quest v1.3 by <a href="https://waldens.world">B0sh</a> &copy; 2014-2021</div>
+<div class="TabWindow" tab="2">
+	<b>Volume:</b> (<span id="volumeLevel" style="width:32px;">30</span>)
+		<input name="volume" type="range" min="0" max="100" step="5" value="30"
+			oninput="$('#volumeLevel').html($('[name=volume]').val());"
+			onchange="Game.UpdateVolume($('[name=volume]').val()); $('#volumeLevel').html($('[name=volume]').val());">
+	<br><br>
+
+	<b>Mode:</b>
+	<select id="mode" onchange="return Game.UpdateMode($('#mode').val());">
+		<option value="normal">Normal</option>
+		<option value="nightmare">Nightmare</option>
+	</select>
+	<br><br>
+
+	Changing any of the below for fun options below will result in stats not being tracked. Refreshing will reset these.<br><br>
+
+	<div id="stats_tracked"></div>
+
+	<b>Board Size:</b> (totally doesn't work btw)
+	<select id="linesize" onchange="Game.UpdateSize($('#linesize').val());">
+		<option value="9"> Small </option>
+		<option value="15" selected> Medium </option>
+		<option value="21"> Long </option>
+		<option value="27"> Extra Long </option>
+	</select><br><br>
+
+  <b>Font:</b> <select id="font_select" onchange="Game.UpdateFont($('#font_select').val());">
+    <option value="monospace">Monospace</option>
+    <option value="courier">Courier</option>
+    <option value="comic_sans">Comic Sans MS</option>
+  </select><br><br>
+
+	<b>Game Speed:</b> <input type="text" value="120" size="2" id="speed" onchange="Game.UpdateSpeed($('#speed').val());" /> (ms)
+</div>
+<div class="TabWindow" tab="3">
+	<div id="highScoreList">Loading...</div>
+</div>
+<div class="TabWindow" id="Statistics" tab="4">
+
+</div>
+<div class="TabWindow" tab="5" id="Changelog"style="overflow:scroll;overflow-x:hidden;height:350px;width:740px;">
+</div>
+<div class="TabWindow" tab="6" id="HighScoreEnter">
+
+	Congratulations on your HIGH SCORE!<br><br>
+
+	Would you like to submit it to the FUN-ONLY X-Quest High score list?<br><br>
+
+	<form method="POST">
+		<b>Nickname:</b> (Registering not enforced)<br>
+		<input type="text" value="" name="nickname" id="username" /><br>
+		<input type="submit" value="Send It Away" onclick="Game.SendHighScore(); return false;" />
+	</form>
+
+</div>
+<div class="TabWindow" tab="7" id="HighScoreSubmit">
+
+
+</div>
+
+		</div>
+	</div>
+</div>
+
+	</body>
+</html>

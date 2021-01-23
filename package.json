@@ -1,0 +1,22 @@
+{
+  "name": "x-quest",
+  "version": "1.4.0",
+  "description": "",
+  "main": "rot.js",
+  "scripts": {
+    "start": "parcel index.html",
+    "watch": "parcel index.html",
+    "build": "parcel build index.html"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jquery": "^3.5.1",
+    "rot-js": "^2.1.5"
+  },
+  "devDependencies": {
+    "marked": "^1.2.7",
+    "parcel-bundler": "^1.12.4",
+    "typescript": "^4.0.5"
+  }
+}
