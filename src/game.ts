@@ -17,6 +17,8 @@ var roadChar = '|';
 var endChar = '';
 
 export class XQuest {
+    version: string = '1.4';
+
     display: Display;
     // private player: Player;
     // private projectiles: Entity[] = [];
@@ -27,11 +29,12 @@ export class XQuest {
     options: DisplayOptions = {
         width: 30,
         height: 30,
+        fontSize: 20,
+        fontStyle: "bold",
         fontFamily: 'monospace',
     } as DisplayOptions;
 
-    Version: '1.3';
-
+    messages: string[] = [];
     Active: boolean = false;
     Paused: boolean = false;
     LevelLines: number = 0;
@@ -62,7 +65,7 @@ export class XQuest {
                     this.state.distortion = 0;
                 }
                 this.state.levelLines = 0;
-                Game.Text = [];
+                Game.messages = [];
 
                 this.state.level++;
                 this.state.nextLevelClass = this.state.displayLevel % 9 + 1;
@@ -93,7 +96,7 @@ export class XQuest {
         this.state.invincible = 0;
         this.state.distortion = 0;
         this.state.multishot = 0
-        Game.Text = [];
+        Game.messages = [];
         this.state.level = 1;
         this.state.displayLevel = 1;
         this.state.levelLines = 0;
@@ -166,15 +169,16 @@ export class XQuest {
         /* If a game loop exists already; kill it */
         clearInterval(Game.Interval);
         Game.CurrentSpeed = speed/1000;
+        const _this = this;
         Game.Interval = setInterval(function() {
             Game.AddLine();
 
-            if (Game.state.levelLines < Game.GetLevelLines(Game.state.level)) {
+            if (_this.state.levelLines < Game.GetLevelLines(_this.state.level)) {
                 $("#GameWindow_Road").html(Game.DisplayMap(false, "Road"));
                 $("#GameWindow_Objects").html(Game.DisplayMap(false, "Objects"));
             } else {
 
-                let dashTimer: any = Math.floor((Game.state.levelLines - Game.GetLevelLines(Game.state.level)) / 4);
+                let dashTimer: any = Math.floor((_this.state.levelLines - Game.GetLevelLines(_this.state.level)) / 4);
                 dashTimer = Array(dashTimer+1).join("-");
 
                 // if the timer has reached the length of the line, then start the next level.
@@ -188,21 +192,21 @@ export class XQuest {
                     return;
                 }
 
-                $("#GameWindow_Objects").html(this.DisplayMap([
-                    {y: 12, text: "@COMPLETED:@", overwritable: true },
-                    {y: 11, text: "@Level@"+Game.state.displayLevel+"@", overwritable: true },
-                    {y: 10, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@", overwritable: true},
-                    {y: 9, text: "@Press Space@", overwritable: true },
-                    {y: 8, text: "@to continue@", overwritable: true },
-                ], "Objects"));
+                // $("#GameWindow_Objects").html(this.DisplayMap([
+                //     {y: 12, text: "@COMPLETED:@", overwritable: true },
+                //     {y: 11, text: "@Level@"+Game.state.displayLevel+"@", overwritable: true },
+                //     {y: 10, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@", overwritable: true},
+                //     {y: 9, text: "@Press Space@", overwritable: true },
+                //     {y: 8, text: "@to continue@", overwritable: true },
+                // ], "Objects"));
 
-                $("#GameWindow_Road").html(this.DisplayMap([
-                    { y: 12, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-                    { y: 11, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-                    { y: 10, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-                    { y: 9, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-                    { y: 8, text: "@@@@@@@@@@@@@@@@@@@@@@@"}
-                ], "Road"));
+                // $("#GameWindow_Road").html(this.DisplayMap([
+                //     { y: 12, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
+                //     { y: 11, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
+                //     { y: 10, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
+                //     { y: 9, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
+                //     { y: 8, text: "@@@@@@@@@@@@@@@@@@@@@@@"}
+                // ], "Road"));
 
             }
             Game.state.stats.Time += Game.CurrentSpeed;
@@ -221,34 +225,34 @@ export class XQuest {
                 case '' + roadChar + '': break;
                 case 'P':
                     SFX.Bonus.play();
-                    this.state.stats.Score += (this.state.level*2)+2;
-                    this.state.stats.Powerups += 1;
-                    Game.AddText("+"+((Game.state.level*2)+2)+" Score");
+                    _this.state.stats.Score += (_this.state.level*2)+2;
+                    _this.state.stats.Powerups += 1;
+                    Game.AddText("+"+((_this.state.level*2)+2)+" Score");
                     Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
                     break;
                 case 'I':
                     SFX.Power.play();
-                    Game.state.invincible = 50;
-                    Game.state.stats.Powerups += 1;
+                    _this.state.invincible = 50;
+                    _this.state.stats.Powerups += 1;
                     Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
                     break;
                 case 'W':
                     SFX.Power.play();
-                    Game.state.warp = 40;
-                    Game.state.stats.Powerups += 1;
+                    _this.state.warp = 40;
+                    _this.state.stats.Powerups += 1;
                     Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
                     break;
                 case 'D':
                     SFX.Power.play();
-                    Game.state.distortion = 25;
-                    Game.state.stats.Powerups += 1;
+                    _this.state.distortion = 25;
+                    _this.state.stats.Powerups += 1;
                     Game.CreateInterval(Game.BaseSpeed*2);
                     Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
                     break;
                 case 'M':
                     SFX.Power.play();
-                    Game.state.multishot = 1;
-                    Game.state.stats.Powerups += 1;
+                    _this.state.multishot = 1;
+                    _this.state.stats.Powerups += 1;
                     Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
                     break;
             // nightmare mode wall tiles

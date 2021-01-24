@@ -78,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 Game.CurrentTab = 1;
 Game.CHEAT = false;
-Game.Version = 1.3;
 
 
 Game.PositivePhrases = [
@@ -190,16 +189,16 @@ Game.AddLine = function() {
 
 
 Game.AddText = function ( txt ) {
-	Game.Text.unshift( { ticks: 20, text: txt } );
+	Game.messages.unshift( { ticks: 20, text: txt } );
 };
 Game.ProcessText = function () {
-	for (let i=0;i<Game.Text.length;i++) {
-		if (Game.Text[i] != []) {
-			Game.Text[i].ticks -= 1;
-			if (Game.Text[i].ticks == 0) {
-				Game.Text.pop();
+	for (let i=0;i<Game.messages.length;i++) {
+		if (Game.messages[i] != []) {
+			Game.messages[i].ticks -= 1;
+			if (Game.messages[i].ticks == 0) {
+				Game.messages.pop();
 			} else {
-				$('#GameWindow_Objects').append("<br>"+Game.Text[i].text);
+				$('#GameWindow_Objects').append("<br>"+Game.messages[i].text);
 			}
 		}
 	}
@@ -374,7 +373,6 @@ Game.GetLevelLines = function(level) {
 	}
 }
 
-
 Game.DestroySpaceship = function() {
 	Game.Spaceship = {
 		exists:false,move:false,flyaway:false,start:0,direction:0,x:0,y:-1,Bullet:[]
@@ -535,7 +533,7 @@ Game.CreateNewSaveFile = function() {
 	}
 
 	Game.SaveFile = {
-		Version: Game.Version,
+		Version: Game.version,
 		Volume: 0.3,
 		Totals: {
 			GamesPlayed: 0,
@@ -642,8 +640,6 @@ Game.UpdateStatistics = function() {
 	);
 };
 
-
-
 Game.LoadHighScore = function() {
 	($ as any).ajax({
 		method: "POST",
@@ -670,9 +666,9 @@ Game.SendHighScore = function(data) {
 		data: {
 			score: Game.state.stats.Score,
 			username: $('#username').val(),
-			stats: Game.Stats,
+			stats: Game.state.stats,
 			mode: Game.state.gameMode,
-			version: "1.3"
+			version: Game.version
 		},
 		url: 'ajax.php',
 		success: function(data) {
@@ -702,26 +698,26 @@ function ToggleTab(tab){
 	Game.CurrentTab = tab;
 }
 
-Game.CalculateStuff = function() {
-	var temp = Game.state.displayLevel;
-	let text = "Easter Egg? There's a Kill Screen <br><br>";
-	text += "Calculating Time to Reach Kill Screen<br>";
+// Game.CalculateStuff = function() {
+// 	var temp = Game.state.displayLevel;
+// 	let text = "Easter Egg? There's a Kill Screen <br><br>";
+// 	text += "Calculating Time to Reach Kill Screen<br>";
 
-	Game.state.displayLevel = 0;
-	let totalLines = 0;
-	for (var Level = 0; Level <= 5000; Level++) {
-		Game.state.displayLevel++;
-		let x = Game.state.displayLevel;
-		if (x > 9) x = 9;
-		totalLines += Game.GetLevelLines(x);
-		if (Game.state.isKillScreen())
-			break;
-	}
-	text += "Kill Screen Level: " + Game.state.displayLevel;
-	text += "<br>Lines: " + totalLines;
-	text += "<br>Base Clock: " + Game.BaseSpeed + "ms";
-	text += "<br>Time: " + totalLines * Game.BaseSpeed / 1000 / 60 + " minutes"
-	Game.state.displayLevel = temp;
-	$('[tab=0]').html(text);
+// 	Game.state.displayLevel = 0;
+// 	let totalLines = 0;
+// 	for (var Level = 0; Level <= 5000; Level++) {
+// 		Game.state.displayLevel++;
+// 		let x = Game.state.displayLevel;
+// 		if (x > 9) x = 9;
+// 		totalLines += Game.GetLevelLines(x);
+// 		if (Game.state.isKillScreen())
+// 			break;
+// 	}
+// 	text += "Kill Screen Level: " + Game.state.displayLevel;
+// 	text += "<br>Lines: " + totalLines;
+// 	text += "<br>Base Clock: " + Game.BaseSpeed + "ms";
+// 	text += "<br>Time: " + totalLines * Game.BaseSpeed / 1000 / 60 + " minutes"
+// 	Game.state.displayLevel = temp;
+// 	$('[tab=0]').html(text);
 
-};
+// };

@@ -11,6 +11,7 @@ export class State {
     distortion: number = 0;
     multishot: number = 0;
     warp: number = 0;
+    lives: number = 3;
 
     stats: QuestStatistics;
 
