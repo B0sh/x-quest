@@ -7,10 +7,11 @@ import { XQuest } from "./game";
 import { InputUtility } from "./input-utility";
 
 var $ = (window as any).jQuery = jquery; 
-const Game = new XQuest();
+let Game = new XQuest();
 (window as any).Game = Game;
 
 document.addEventListener('DOMContentLoaded', () => {
+	Game.init();
 	InputUtility.initListeners((event: KeyboardEvent) => {
 		switch (event.code) {
 			case 'KeyD': case 'KeyL': case 'ArrowLeft':
@@ -26,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				event.preventDefault();
 				break; //Up arrow or "w" or i
 			case 'Space':
-				if (Game.Active == false || (Game.LevelLines >= parseInt(Game.GetLevelLines(Game.Level)))) {
+				if (Game.Active == false || (Game.state.levelLines >= parseInt(Game.GetLevelLines(Game.Level)))) {
 					Game.Start(); //Spacebar to start
 				} else {
 					Game.TogglePause(); //Spacebar to pause
@@ -45,8 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
 	Game.UpdateMode('normal');
 
 	/* Add the total score and lines from localStorage */
-	$('#high-score').html(Utility.format(Game.SaveFile.Record[Game.Mode].Score));
-	$('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.Mode].Lines));
+	$('#high-score').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Score));
+	$('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Lines));
 	$('#total-score').html(Utility.format(Game.SaveFile.Totals.Score));
 	$('#total-lines').html(Utility.format(Game.SaveFile.Totals.Lines));
 
@@ -88,15 +89,10 @@ Game.PositivePhrases = [
 ];
 
 // defaults
-Game.Mode = 'normal';
-Game.Level = 1;
-Game.NextLevelClass = -1;
+Game.state.gameMode = 'normal';
+Game.state.level = 1;
+Game.state.nextLevelClass = -1;
 Game.Bullet = [];
-
-// var endZoneChar = '▓';
-var endZoneChar = '.';
-var roadChar = '|';
-var endChar = '';
 
 /* Generates the line (as text) */
 Game.GenerateLine = function () {
@@ -106,15 +102,15 @@ Game.GenerateLine = function () {
 	if (Utility.getRandomInt(1, 30+Game.LineSize) == 1) {
 		var x = Utility.getRandomInt(0,Game.LineSize-1);
 		Game.LineReset[x] = 1;
-		Game.LineLength[x] = Utility.getRandomInt(6, 22-Game.Level);
+		Game.LineLength[x] = Utility.getRandomInt(6, 22-Game.state.level);
 	}
 
-	if (Game.Mode == 'normal')
+	if (Game.state.gameMode == 'normal')
   {
 		var start = 0;
 		var end = Game.LineSize;
 	}
-	else if (Game.Mode == 'nightmare')
+	else if (Game.state.gameMode == 'nightmare')
 	{
 		var start = 2;
 		var end: any = Game.LineSize - 2;
@@ -137,9 +133,9 @@ Game.GenerateLine = function () {
 				road = 'P';
 			} else if (Utility.getRandomInt(1, 900) === 1) {
 				road = 'D';
-			} else if (Utility.getRandomInt(1, 900) === 1 && Game.Level >= 6) {
+			} else if (Utility.getRandomInt(1, 900) === 1 && Game.state.level >= 6) {
 				road = 'W';
-			} else if (Utility.getRandomInt(1, 900) === 1 && Game.Level >= 3) {
+			} else if (Utility.getRandomInt(1, 900) === 1 && Game.state.level >= 3) {
 				road = 'M';
 			}
 
@@ -147,21 +143,21 @@ Game.GenerateLine = function () {
 
 			/* Vertical line handler */
 			Game.LineLength[i] -= 1;
-			if (Game.LineLength[i] < Utility.getRandomInt(2, 6 - Math.floor(Game.Level/4)) && Game.LineReset[i] != 0) {
+			if (Game.LineLength[i] < Utility.getRandomInt(2, 6 - Math.floor(Game.state.level/4)) && Game.LineReset[i] != 0) {
 				Game.LineReset[i] = 0;
 				if ((Utility.getRandomInt(1, 2) == 1 && i != end - 1) || i == start) {
 					Game.LineReset[i+1] = 1;
-					Game.LineLength[i+1] = Utility.getRandomInt(6, 22 - Game.Level);
+					Game.LineLength[i+1] = Utility.getRandomInt(6, 22 - Game.state.level);
 				} else {
 					Game.LineReset[i-1] = 1;
-					Game.LineLength[i-1] = Utility.getRandomInt(6, 20 - Game.Level);
+					Game.LineLength[i-1] = Utility.getRandomInt(6, 20 - Game.state.level);
 				}
 			}
 		}
 	}
 
 	// at the end of the level
-	if (Game.LevelLines > Game.GetLevelLines(Game.Level)-20) {
+	if (Game.state.levelLines > Game.GetLevelLines(Game.state.level)-20) {
 		for(let i=start; i<end; i++) {
 			Line = Utility.setCharAt(Line, i, "%");
 		}
@@ -178,10 +174,10 @@ Game.AddLine = function() {
 	}
 	Game.map = newMap;
 	Game.map[20] = Game.GenerateLine();
-	Game.LevelLines += 1;
+	Game.state.levelLines += 1;
 
-	if (Game.LevelLines < Game.GetLevelLines(Game.Level)) {
-		Game.Stats.Lines += 1;
+	if (Game.state.levelLines < Game.GetLevelLines(Game.state.level)) {
+		Game.state.stats.Lines += 1;
 	}
 
 	if (Game.Spaceship.exists)
@@ -192,329 +188,6 @@ Game.AddLine = function() {
 	return false;
 };
 
-/* Render the game map from the Game.map array of lines */
-Game.DisplayMap = function(Text, RenderMode, options) {
-	if (Game.isKillScreen()) {
-		Text = Game.KillScreen(RenderMode);
-	}
-
-	var Map = "";
-	for (let y = 20; y >= 0; y--) {
-		var Line = Game.map[y];
-
-		// objects render mode
-		if (RenderMode == "Objects")
-		{
-			let needsOverwrite = false;
-			// loop through bullets and set bullet character
-			for (let i = 0 ; i < Game.Bullet.length ; i++ ) {
-				if (y == Game.Bullet[i].y) {
-					Line = Utility.setCharAt(Line, Game.Bullet[i].x, "^");
-					needsOverwrite = true;
-				}
-			}
-
-			for (let i = 0 ; i < Game.Spaceship.Bullet.length ; i++ ) {
-				if (y == Game.Spaceship.Bullet[i].y) {
-					Line = Utility.setCharAt(Line, Game.Spaceship.Bullet[i].x, "v");
-					needsOverwrite = true;
-				}
-			}
-
-			if (y == Game.Spaceship.y) {
-				Line = Utility.setCharAt(Line, Game.Spaceship.x,   Game.Spaceship.display[0]);
-				Line = Utility.setCharAt(Line, Game.Spaceship.x+1, Game.Spaceship.display[1]);
-				Line = Utility.setCharAt(Line, Game.Spaceship.x+2, Game.Spaceship.display[2]);
-				needsOverwrite = true;
-			}
-
-			if (Text != false) {
-				for (let i=0;i<Text.length;i++) {
-					if (Text[i].y == y && !(typeof Text[i].overwritable !== 'undefined' && needsOverwrite == true))
-						Line = Text[i].text.substr(0,Game.LineSize);
-				}
-			}
-
-			if (y == 2 && (typeof options === "undefined" || typeof options.renderPlayer === "undefined")) Line = Utility.setCharAt(Line, Game.PlayerX, "X");
-
-			Map += endChar + Utility.replaceAll('`', '&nbsp;',
-				Utility.replaceAll('%', '&nbsp;',
-				Utility.replaceAll('@', '&nbsp;', Line))) + endChar + "<br>";
-
-		// road render mode all road tiles need to be road
-		} else {
-			if (Text != false) {
-				for (let i=0;i<Text.length;i++) {
-					if (Text[i].y == y)
-						Line = Text[i].text.substr(0,Game.LineSize);
-				}
-			}
-
-			// if (!Game.isKillScreen()) {
-				Line = Utility.replaceAll('P', '@', Line);
-				Line = Utility.replaceAll('I', '@', Line);
-				Line = Utility.replaceAll('D', '@', Line);
-				Line = Utility.replaceAll('M', '@', Line);
-				Line = Utility.replaceAll('W', '@', Line);
-			// }
-
-			// loop through bullets and set bullet character
-			for (let i = 0 ; i < Game.Bullet.length ; i++ ) {
-				if (y == Game.Bullet[i].y)
-				Line = Utility.setCharAt(Line, Game.Bullet[i].x, "@");
-			}
-
-			for (let i = 0 ; i < Game.Spaceship.Bullet.length ; i++ ) {
-				if (y == Game.Spaceship.Bullet[i].y)
-				Line = Utility.setCharAt(Line, Game.Spaceship.Bullet[i].x, "@");
-			}
-
-			if (y == 2) Line = Utility.setCharAt(Line, Game.PlayerX, "@");
-			if (y == Game.Spaceship.y) {
-				Line = Utility.setCharAt(Line, Game.Spaceship.x,   '@');
-				Line = Utility.setCharAt(Line, Game.Spaceship.x+1, '@');
-				Line = Utility.setCharAt(Line, Game.Spaceship.x+2, '@');
-			}
-
-			Map += endChar + Utility.replaceAll('`', Game.RoadTile,
-				Utility.replaceAll('%', endZoneChar,
-				Utility.replaceAll('@', '&nbsp;', Line))) + endChar + "<br>";
-		}
-	}
-	return Map;
-};
-
-/* Main Game loop, main function is to process tiles and update map */
-Game.CreateInterval = function(speed) {
-	/* If a game loop exists already; kill it */
-	clearInterval(Game.Interval);
-	Game.CurrentSpeed = speed/1000;
-	Game.Interval = setInterval(function() {
-		Game.AddLine();
-
-		if (Game.LevelLines < Game.GetLevelLines(Game.Level)) {
-			$("#GameWindow_Road").html(Game.DisplayMap(false, "Road"));
-			$("#GameWindow_Objects").html(Game.DisplayMap(false, "Objects"));
-		} else {
-
-			let dashTimer: any = Math.floor((Game.LevelLines - Game.GetLevelLines(Game.Level)) / 4);
-			dashTimer = Array(dashTimer+1).join("-");
-
-			// if the timer has reached the length of the line, then start the next level.
-			if (dashTimer ==  Array(Game.LineLength.length+2).join("-"))
-			{
-				// remove the completed text
-				$("#GameWindow_Road").html(Game.DisplayMap(false, "Road"));
-				$("#GameWindow_Objects").html(Game.DisplayMap(false, "Objects"));
-
-				Game.Start();
-				return;
-			}
-
-			$("#GameWindow_Objects").html(Game.DisplayMap([
-				{y: 12, text: "@COMPLETED:@", overwritable: true },
-				{y: 11, text: "@Level@"+Game.DisplayLevel+"@", overwritable: true },
-				{y: 10, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@", overwritable: true},
-				{y: 9, text: "@Press Space@", overwritable: true },
-				{y: 8, text: "@to continue@", overwritable: true },
-			], "Objects"));
-
-			$("#GameWindow_Road").html(Game.DisplayMap([
-				{ y: 12, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-				{ y: 11, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-				{ y: 10, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-				{ y: 9, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-				{ y: 8, text: "@@@@@@@@@@@@@@@@@@@@@@@"}
-			], "Road"));
-
-		}
-		Game.Stats.Time += Game.CurrentSpeed;
-
-		/* Create lines by the player for scoring purposes */
-		for(let x=0; x<Game.LineSize; x++) {
-			if (Game.map[3].charAt(x) == '@')
-				Game.LineEntered[x] = 0;
-			else if (Game.LineEntered[x] == 0)
-				Game.LineEntered[x] = 1;
-		}
-
-		var Tile = Game.map[2].split('')[Game.PlayerX];
-		switch (Tile) {
-			case '|': break;
-			case '' + roadChar + '': break;
-			case 'P':
-				SFX.Bonus.play();
-				Game.Stats.Score += (Game.Level*2)+2;
-				Game.Stats.Powerups += 1;
-				Game.AddText("+"+((Game.Level*2)+2)+" Score");
-				Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
-				break;
-			case 'I':
-				SFX.Power.play();
-				Game.Invincible = 50;
-				Game.Stats.Powerups += 1;
-				Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
-				break;
-			case 'W':
-				SFX.Power.play();
-				Game.Warp = 40;
-				Game.Stats.Powerups += 1;
-				Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
-				break;
-			case 'D':
-				SFX.Power.play();
-				Game.Distortion = 25;
-				Game.Stats.Powerups += 1;
-				Game.CreateInterval(Game.BaseSpeed*2);
-				Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
-				break;
-			case 'M':
-				SFX.Power.play();
-				Game.MultiShot = 1;
-				Game.Stats.Powerups += 1;
-				Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
-				break;
-		  // nightmare mode wall tiles
-			case '<':
-			case '>':
-				Game.Over('Wall');
-				break;
-			case '@':
-				if (Game.Invincible == 0) {
-					Game.Over('Normal');
-				}
-				break;
-		}
-
-
-		/* Bullet handling */
-		if (Game.Bullet.length !== 0) {
-
-			for (let i = 0 ; i < Game.Bullet.length ; i++ ) {
-				Game.Bullet[i].y += 1;
-				if (Game.Bullet[i].y == 21)
-				{
-					Game.DestroyBullet(i, 'player');
-					continue;
-				}
-
-				if (Game.Spaceship.exists == true &&
-					Game.Bullet[i].y == Game.Spaceship.y &&
-					Utility.contains(Game.Bullet[i].x, Game.Spaceship.x, Game.Spaceship.x+2)) {
-						Game.DestroyBullet(i, 'player');
-						Game.Stats.Score += 10;
-						Game.Stats.ShipsDestroyed += 1;
-						Game.AddText("Hit! +10 Score");
-						Game.DestroySpaceship();
-						SFX.Explosion.play();
-				}
-
-				// allow spaceship bullets to be destoryed
-				for (let s = 0; s < Game.Spaceship.Bullet.length; s++ ) {
-					if ((Game.Spaceship.Bullet[s].y == Game.Bullet[i].y || Game.Spaceship.Bullet[s].y+1 ==Game.Bullet[i].y) &&
-						Game.Bullet[i].x == Game.Spaceship.Bullet[s].x && Game.Bullet[i].y != -1)
-					{
-						Game.DestroyBullet(i, 'player');
-						Game.DestroyBullet(s, 'spaceship');
-						Game.Stats.ShotsDestroyed += 1;
-					}
-				}
-			}
-		}
-
-		/* Spaceship handling */
-		if (Game.Spaceship.exists == true) {
-			if ((Game.Spaceship.lines % 30) == 0)
-				Game.Spaceship.y -= 1;
-
-			/* Spaceship movement */
-			if (Game.Spaceship.move == false) {
-				Game.Spaceship.move = true;
-			} else {
-				if (Game.Spaceship.flyaway == false) {
-					if(Game.Spaceship.x >= Utility.getRandomInt(Math.floor(Game.LineSize*.7), Game.LineSize-3)
-					 && Game.Spaceship.direction == 1) {
-						Game.Spaceship.direction *= -1;
-					}
-					if(Game.Spaceship.x <= Utility.getRandomInt(1, Math.floor(Game.LineSize*.3)) && Game.Spaceship.direction == -1) {
-						Game.Spaceship.direction *= -1;
-					}
-				}
-
-				Game.Spaceship.move = false;
-				Game.Spaceship.x += Game.Spaceship.direction;
-			}
-
-			//  Spaceship bullet handling
-			if (Game.Spaceship.Bullet.length == 0 && Utility.getRandomInt(1, 5) == 1 && Game.Spaceship.flyaway == false) {
-
-				Game.FireBullet('spaceship');
-
-			} else {
-
-				for (let i = 0 ; i < Game.Spaceship.Bullet.length ; i++ ) {
-					Game.Spaceship.Bullet[i].y -= 1;
-					if (Game.Spaceship.Bullet[i].y == 0)
-						Game.DestroyBullet(i, 'spaceship');
-
-					else if (Game.Spaceship.Bullet[i].y == 1 && Game.Spaceship.Bullet[i].x == Game.PlayerX && Game.Invincible == 0) {
-						Game.DestroyBullet(i, 'spaceship');
-						Game.Over('Spaceship');
-					}
-				}
-			}
-
-			/* After 150 lines after the spaceship has spawned make it fly away (now) */
-			if (Game.Spaceship.lines > 160) {
-				Game.Spaceship.flyaway = true;
-			}
-
-			/* Destroy spaceship after it has flown off the screen */
-			if (Game.Spaceship.x == -3 || Game.Spaceship.x == (Game.LineSize+3)) {
-				Game.DestroySpaceship();
-			}
-		} else {
-			/* Randomly generate spaceships every 100 lines at 1/4 chance */
-			if (((1+Game.Stats.Lines) % 100 == 0 && Utility.getRandomInt(1, 4) == 1 && Game.Level >= 2) || Game.Stats.Lines+1 == 200)  {
-				Game.CreateSpaceship();
-			}
-		}
-
-		$('#score').html(Utility.format(Game.Stats.Score));
-		$('#lines').html(Utility.format(Game.Stats.Lines));
-
-		if (Game.isNewRecord() && Game.HighScore == false) {
-			Game.HighScore = true;
-			Game.AddText("<b>High Score!</b>");
-		}
-		if (Game.Invincible != 0) {
-			Game.Invincible -= 1;
-			$('#GameWindow_Objects').append('<br><b>Invincible:</b> '+Game.Invincible);
-		}
-		if (Game.Warp != 0) {
-			Game.Warp -= 1;
-			$('#GameWindow_Objects').append('<br><b>Warp:</b> '+Game.Warp);
-		}
-		if (Game.MultiShot != 0) {
-			// Game.Warp -= 1;
-			$('#GameWindow_Objects').append('<br><b>MultiShot</b>');
-		}
-		if (Game.Distortion != 0) {
-			Game.Distortion -= 1;
-			if (Game.Distortion == 0) {
-				Game.CreateInterval(Game.BaseSpeed);
-			}
-			$('#GameWindow_Objects').append('<br><b>Distortion:</b> '+Game.Distortion);
-		}
-
-		Game.ProcessText();
-
-		if (Game.NextLevelClass != -1) {
-			Game.SetLevelClass(Game.NextLevelClass);
-			Game.NextLevelClass = -1;
-		}
-	}, speed);
-};
 
 Game.AddText = function ( txt ) {
 	Game.Text.unshift( { ticks: 20, text: txt } );
@@ -542,7 +215,7 @@ Game.Move = function (direction){
 		var Tile2 = Game.map[2].split('')[Game.PlayerX];
 
 		// if you don't have warp mode on the move is pretty simple
-		if (Game.Warp == 0) {
+		if (Game.state.warp == 0) {
 			Game.PlayerX += direction;
 			if (Game.PlayerX > Game.LineSize-1 || Game.PlayerX < 0)
 				Game.Over('Wall');
@@ -572,19 +245,19 @@ Game.Move = function (direction){
 
 		if (Game.LineEntered[Game.PlayerX] == 1 && Tile2 != '%') {
 			Game.LineEntered[Game.PlayerX] = 2;
-			Game.Stats.Score += 1;
+			Game.state.stats.Score += 1;
 			SFX.Score.play();
 		} else {
 			SFX.Noscore.play();
 		}
 
-		Game.Stats.Moves += 1;
+		Game.state.stats.Moves += 1;
 
 		var Tile2 = Game.map[2].split('')[Game.PlayerX];
 		var Tile3 = Game.map[3].split('')[Game.PlayerX];
 
-		if (Tile3 == '@' &&  Tile2 == '@' && Game.Invincible == 0) {
-			Game.Over('Normal');
+		if (Tile3 == '@' &&  Tile2 == '@' && Game.state.invincible == 0) {
+			Game.Over('Abyss');
 		}
 	}
 };
@@ -609,8 +282,8 @@ Game.FireBullet = function(type) {
 		if (type == 'player' && Game.Bullet.length === 0) {
 
 			SFX.Shoot.play();
-			Game.Stats.ShotsFired += 1;
-			if (Game.MultiShot == 0) {
+			Game.state.stats.ShotsFired += 1;
+			if (Game.state.multishot == 0) {
 				Game.Bullet.push({
 					x: Game.PlayerX,
 					y: 3,
@@ -630,7 +303,7 @@ Game.FireBullet = function(type) {
 					x: Game.PlayerX+1,
 					y: 2,
 				});
-				Game.MultiShot = 0 ;
+				Game.state.multishot = 0 ;
 			}
 
 		} else if (type == 'spaceship' && Game.Spaceship.Bullet.length == 0) {
@@ -664,7 +337,7 @@ Game.CreateSpaceship = function() {
 		move:false,
 		flyaway:false,
 		direction: dir,
-		start:Game.Stats.Lines,
+		start:Game.state.stats.Lines,
 		display:disp,
 		Bullet:[],
 		x: x,
@@ -701,54 +374,6 @@ Game.GetLevelLines = function(level) {
 	}
 }
 
-Game.isKillScreen = function(test) {
-	return Game.DisplayLevel > 63;
-}
-
-Game.KillScreen = function(RenderMode) {
-	var toY = Game.DisplayLevel - 59;
-
-	switch (RenderMode) {
-		case 'Road':
-			var Text = [];
-			for (var y = 0; y <= toY; y++)
-			{
-				Text[y] = {y:y, text:"```````````````````````"};
-				for (var x = 0; x <= 15; x++)
-				{
-
-					if (Utility.getRandomInt(0, 5) == 1)
-						Text[y].text = Utility.setCharAt(Text[y].text, x, String.fromCharCode(Utility.getRandomInt(20 , 255)));
-				}
-			}
-			return Text;
-			break;
-		case 'Objects':
-			var Text = [];
-			for (var y = 0; y <= toY; y++)
-			{
-				Text[y] = {y:y, text:"@@@@@@@@@@@@@@@@@@"};
-				for (var x = 0; x <= 15; x++)
-				{
-
-					if (Utility.getRandomInt(0, 18) == 1)
-						Text[y].text = Utility.setCharAt(Text[y].text, x, String.fromCharCode(Utility.getRandomInt(20 , 255)));
-				}
-			}
-
-			if (Utility.getRandomInt(0, 2) == 1) {
-				Text[Text.length] = {y: 12, text: "@COMPLETED:@" };
-				Text[Text.length] = {y: 11, text: "@Level@"+(63-Game.DisplayLevel)+"@" };
-				// Text[10] = {y: 10, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@"};
-				Text[Text.length] = {y: 9, text: "@Press Space@" };
-				Text[Text.length] = {y: 8, text: "@to continue@" };
-			}
-
-			return Text;
-			break;
-	}
-
-}
 
 Game.DestroySpaceship = function() {
 	Game.Spaceship = {
@@ -794,20 +419,20 @@ Game.UpdateMode = function(mode) {
 	if (Game.Active == true)
 	{
 		alert("Wait until a game is no longer active");
-		$('#mode').val(Game.Mode);
+		$('#mode').val(Game.state.gameMode);
 		return false;
 	}
 
 	if (mode == 'normal') {
-		Game.Mode = 'normal';
+		Game.state.gameMode = 'normal';
 		Game.BaseSpeed = 110;
 	} else {
-		Game.Mode = 'nightmare';
+		Game.state.gameMode = 'nightmare';
 		Game.BaseSpeed = 60;
 	}
 
-	$('#high-score').html(Utility.format(Game.SaveFile.Record[Game.Mode].Score));
-	$('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.Mode].Lines));
+	$('#high-score').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Score));
+	$('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Lines));
 
 	return true;
 };
@@ -829,7 +454,7 @@ Game.TogglePause = function () {
 };
 
 Game.isNewRecord = function () {
-	if (Game.SaveFile.Record[Game.Mode].Score < Game.Stats.Score)
+	if (Game.SaveFile.Record[Game.state.gameMode].Score < Game.state.stats.Score)
 		return true;
 	else
 		return false;
@@ -844,9 +469,9 @@ Game.Over = function(DeathType) {
 	clearInterval(Game.Interval);
 	var Text = [
 		{y:12, text:"@@@Game Over@@@@@@@@@@@@@@@@@@@@@"},
-		{y:11, text:"@Score: "+Utility.format(Game.Stats.Score)+"@@@@@@@@@@@@@@@@@@@@@@@@"},
-		{y:10, text:"@Lines: "+Utility.format(Game.Stats.Lines)+"@@@@@@@@@@@@@@@@@@@@@@@@"},
-		{y:9, text:"@Level: "+Utility.format(Game.Level)+"@@@@@@@@@@@@@@@@@@@@@@@@"}
+		{y:11, text:"@Score: "+Utility.format(Game.state.stats.Score)+"@@@@@@@@@@@@@@@@@@@@@@@@"},
+		{y:10, text:"@Lines: "+Utility.format(Game.state.stats.Lines)+"@@@@@@@@@@@@@@@@@@@@@@@@"},
+		{y:9, text:"@Level: "+Utility.format(Game.state.level)+"@@@@@@@@@@@@@@@@@@@@@@@@"}
 	];
 	if (Game.isNewRecord()) {
 		Text.push({y:8, text:"@@High Score!@@@@@@@@@@@@@@@@@@@@@@@@@@@"});
@@ -869,28 +494,28 @@ Game.Over = function(DeathType) {
 
 	if(Game.CHEAT == false) {
 		switch(DeathType) {
-			case 'Spaceship': Game.SaveFile.Totals.Deaths.Shot++; break;
-			case 'Wall': Game.SaveFile.Totals.Deaths.Wall++; break;
-			case 'Normal': Game.SaveFile.Totals.Deaths.Normal++; break;
+			case 'Spaceship': Game.SaveFile.Totals.DeathShot++; break;
+			case 'Wall': Game.SaveFile.Totals.DeathWall++; break;
+			case 'Abyss': Game.SaveFile.Totals.DeathAbyss++; break;
 		}
 
 		Game.SaveFile.Totals.GamesPlayed += 1;
-		Game.SaveFile.Totals.Score += Game.Stats.Score;
-		Game.SaveFile.Totals.Lines += Game.Stats.Lines;
-		Game.SaveFile.Totals.ShipsDestroyed += Game.Stats.ShipsDestroyed;
-		Game.SaveFile.Totals.Powerups += Game.Stats.Powerups;
-		Game.SaveFile.Totals.Moves += Game.Stats.Moves;
-		Game.SaveFile.Totals.Time += Game.Stats.Time;
-		Game.SaveFile.Totals.ShotsFired += Game.Stats.ShotsFired;
-		Game.SaveFile.Totals.ShotsDestroyed += Game.Stats.ShotsDestroyed;
+		Game.SaveFile.Totals.Score += Game.state.stats.Score;
+		Game.SaveFile.Totals.Lines += Game.state.stats.Lines;
+		Game.SaveFile.Totals.ShipsDestroyed += Game.state.stats.ShipsDestroyed;
+		Game.SaveFile.Totals.Powerups += Game.state.stats.Powerups;
+		Game.SaveFile.Totals.Moves += Game.state.stats.Moves;
+		Game.SaveFile.Totals.Time += Game.state.stats.Time;
+		Game.SaveFile.Totals.ShotsFired += Game.state.stats.ShotsFired;
+		Game.SaveFile.Totals.ShotsDestroyed += Game.state.stats.ShotsDestroyed;
 
 		if (Game.isNewRecord()) {
-			Game.SaveFile.Record[Game.Mode] = {
-				Score: Game.Stats.Score,
-				Lines: Game.Stats.Lines
+			Game.SaveFile.Record[Game.state.gameMode] = {
+				Score: Game.state.stats.Score,
+				Lines: Game.state.stats.Lines
 			}
-			$('#high-score').html(Utility.format(Game.SaveFile.Record[Game.Mode].Score));
-			$('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.Mode].Lines));
+			$('#high-score').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Score));
+			$('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Lines));
 		}
 
 		$('#total-score').html(Utility.format(Game.SaveFile.Totals.Score));
@@ -1010,9 +635,9 @@ Game.UpdateStatistics = function() {
 		'<b>Shots Destroyed:</b> '+Utility.format(Game.SaveFile.Totals.ShotsDestroyed)+'<br>'+
 		'<b>Ships Destroyed:</b> '+Utility.format(Game.SaveFile.Totals.ShipsDestroyed)+'<br>'+
 		'<b>Powerups Collected:</b> '+Utility.format(Game.SaveFile.Totals.Powerups)+'<br>'+
-		'<b>Deaths To The Abyss:</b> '+Utility.format(Game.SaveFile.Totals.Deaths.Normal)+'<br>'+
-		'<b>Deaths To The Ship:</b> '+Utility.format(Game.SaveFile.Totals.Deaths.Shot)+'<br>'+
-		'<b>Deaths To The Wall:</b> '+Utility.format(Game.SaveFile.Totals.Deaths.Wall)+'<br>'+
+		'<b>Deaths To The Abyss:</b> '+Utility.format(Game.SaveFile.Totals.DeathAbyss)+'<br>'+
+		'<b>Deaths To The Ship:</b> '+Utility.format(Game.SaveFile.Totals.DeathShot)+'<br>'+
+		'<b>Deaths To The Wall:</b> '+Utility.format(Game.SaveFile.Totals.DeathWall)+'<br>'+
 		'<b>Time Played:</b> '+Time+'<br>'
 	);
 };
@@ -1024,16 +649,16 @@ Game.LoadHighScore = function() {
 		method: "POST",
 		data: {
 			showHS: true,
-			mode: Game.Mode
+			mode: Game.state.gameMode
 		},
 		url: 'ajax.php',
 		success: function (data) {
 			$('#highScoreList').html(data);
 
-			if (typeof Game.DisplayLevel === "undefined")
+			if (typeof Game.state.displayLevel === "undefined")
 				Game.SetLevelClass(1);
 			else
-				Game.SetLevelClass(((Game.DisplayLevel - 1) % 9 + 1));
+				Game.SetLevelClass(((Game.state.displayLevel - 1) % 9 + 1));
 		}
 
 	});
@@ -1043,10 +668,10 @@ Game.SendHighScore = function(data) {
 	($ as any).ajax({
 		method: "POST",
 		data: {
-			score: Game.Stats.Score,
+			score: Game.state.stats.Score,
 			username: $('#username').val(),
 			stats: Game.Stats,
-			mode: Game.Mode,
+			mode: Game.state.gameMode,
 			version: "1.3"
 		},
 		url: 'ajax.php',
@@ -1078,25 +703,25 @@ function ToggleTab(tab){
 }
 
 Game.CalculateStuff = function() {
-	var temp = Game.DisplayLevel;
+	var temp = Game.state.displayLevel;
 	let text = "Easter Egg? There's a Kill Screen <br><br>";
 	text += "Calculating Time to Reach Kill Screen<br>";
 
-	Game.DisplayLevel = 0;
+	Game.state.displayLevel = 0;
 	let totalLines = 0;
 	for (var Level = 0; Level <= 5000; Level++) {
-		Game.DisplayLevel++;
-		let x = Game.DisplayLevel;
+		Game.state.displayLevel++;
+		let x = Game.state.displayLevel;
 		if (x > 9) x = 9;
 		totalLines += Game.GetLevelLines(x);
-		if (Game.isKillScreen())
+		if (Game.state.isKillScreen())
 			break;
 	}
-	text += "Kill Screen Level: " + Game.DisplayLevel;
+	text += "Kill Screen Level: " + Game.state.displayLevel;
 	text += "<br>Lines: " + totalLines;
 	text += "<br>Base Clock: " + Game.BaseSpeed + "ms";
 	text += "<br>Time: " + totalLines * Game.BaseSpeed / 1000 / 60 + " minutes"
-	Game.DisplayLevel = temp;
+	Game.state.displayLevel = temp;
 	$('[tab=0]').html(text);
 
 };
