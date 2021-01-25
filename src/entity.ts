@@ -1,17 +1,16 @@
 import { Point } from "./point";
-import { Char } from "./char";
 
 export const enum EntityType {
     Player,
-    Enemy,
-
-    Projectile
+    Spaceship,
+    Bullet
 }
 
 export interface Entity {
     position: Point;
-    char: Char;
     type: EntityType;
 
-    act(): Promise<any>;
+    update(): void;
+    draw(): void;
+    unload(): void;
 }

@@ -28,8 +28,11 @@ export class RenderEngine {
             this.renderKillScreenArtifacts();
         }
 
-        this.renderRoad();
-        this.renderObjects();
+        if (this.game.Active) {
+            this.renderRoad();
+            this.renderObjects();
+        }
+
         this.renderUI();
         this.renderText();
     }
@@ -80,7 +83,7 @@ export class RenderEngine {
 
         let y = 0;
         for (let line of this.game.map.slice().reverse()) {
-            y ++;
+            y++;
 
             line = Utility.replaceAll('`', this.roadChar, line);
             line = Utility.replaceAll('%', this.endZoneChar, line);
@@ -105,26 +108,20 @@ export class RenderEngine {
             }
         }
 
-        for (let i = 0; i < this.game.Bullet.length ; i++ ) {
-            this.game.display.draw(this.game.Bullet[i].x + this.roadOffsetX, this.game.Bullet[i].y + this.roadOffsetY, "^", color, null);
+        for (let entity of this.game.entities) {
+            entity.draw();
         }
 
-        for (let i = 0 ; i < this.game.Spaceship.Bullet.length ; i++ ) {
-            this.game.display.draw(this.game.Spaceship.Bullet[i].x + this.roadOffsetX, this.game.Spaceship.Bullet[i].y + this.roadOffsetY, "v", color, null);
-        }
+        this.game.display.draw(this.game.playerPosition.x + this.roadOffsetX, this.game.playerPosition.y + this.roadOffsetY, "X", color, null);
+    }
 
-        this.game.display.draw(this.game.PlayerX + this.roadOffsetX, 19 + this.roadOffsetY, "X", color, null);
-
-        if (this.game.Spaceship && this.game.Spaceship.exists) {
-            this.game.display.draw(this.game.Spaceship.x,  + this.roadOffsetX  this.game.Spaceship.y + this.roadOffsetY, this.game.Spaceship.display[0], color, null);
-            this.game.display.draw(this.game.Spaceship.x+1 + this.roadOffsetX, this.game.Spaceship.y + this.roadOffsetY, this.game.Spaceship.display[1], color, null);
-            this.game.display.draw(this.game.Spaceship.x+2 + this.roadOffsetX, this.game.Spaceship.y + this.roadOffsetY, this.game.Spaceship.display[2], color, null);
-        }
+    renderObjectChar(x: number, y: number, char: string) {
+        const color = this.objectColors[(this.game.state.level - 1) % 9];
+        this.game.display.draw(x + this.roadOffsetX, y + this.roadOffsetY, char, color, null);
     }
 
     renderText() {
         const color = this.objectColors[(this.game.state.level - 1) % 9];
-
 
         if (this.game.Paused) {
             this.drawCenteredText(Math.floor(this.game.options.height/2), "-- PAUSED --", color, null);

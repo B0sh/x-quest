@@ -6,6 +6,10 @@ import { DisplayOptions } from 'rot-js/lib/display/types';
 import { Display } from 'rot-js';
 import { OverlayText, RenderEngine } from './render-engine';
 import { Board } from './board';
+import { Entity } from './entity';
+import { Point } from './point';
+import { Spaceship } from './spaceship';
+import { PlayerBullet } from './player-bullet';
 
 declare var Game: XQuest;
 declare var $: any;
@@ -39,12 +43,15 @@ export class XQuest {
     map: string[] = [];
     Active: boolean = false;
     Paused: boolean = false;
-    PlayerX: number;
+    playerPosition: Point;
     LineSize: number = 25;
+    GameHeight: number = 20;
     BaseSpeed: number;
 
     renderEngine: RenderEngine;
     board: Board;
+
+    entities: Entity[] = [];
 
     positivePhrases = [
         "Good Luck!", "Having fun yet?", "Have fun!", "Kill &#39;em", "You can do it!",
@@ -64,6 +71,51 @@ export class XQuest {
         // this.map = new Map(this);
 
         document.getElementsByClassName('TEMPGAMESPOT')[0].prepend(this.display.getContainer())
+    }
+
+    addEntity(entity: Entity) {
+        this.entities.push(entity);
+    }
+
+    deleteEntity(entity: Entity) {
+        entity.unload();
+        let index: number = this.entities.indexOf(entity);
+        if (index > -1) {
+            this.entities.splice(index, 1);
+        }
+    }
+
+
+    fireBullet() {
+        console.log("CALL FIRE BULLET");
+        let bulletExists: boolean = false;
+        this.entities.forEach((entity) => {
+            if (entity instanceof PlayerBullet) {
+                bulletExists = true;
+            }
+        });
+
+        if (!this.Paused && this.Active && !bulletExists) {
+            SFX.Shoot.play();
+            this.state.stats.ShotsFired += 1;
+
+            if (this.state.multishot == 0) {
+
+                const bullet = new PlayerBullet(this, new Point(this.playerPosition.x, this.playerPosition.y + 1));
+                this.entities.push(bullet);
+
+            } else {
+
+                const bulletLeft = new PlayerBullet(this, new Point(this.playerPosition.x - 1, this.playerPosition.y));
+                this.entities.push(bulletLeft);
+                const bullet = new PlayerBullet(this, new Point(this.playerPosition.x, this.playerPosition.y + 1));
+                this.entities.push(bullet);
+                const bulletRight = new PlayerBullet(this, new Point(this.playerPosition.x + 1, this.playerPosition.y));
+                this.entities.push(bulletRight);
+
+                Game.state.multishot = 0;
+            }
+        }
     }
 
     Start() {
@@ -96,6 +148,7 @@ export class XQuest {
                 $('.no_display_level_' + this.state.level + '').css('display', 'none');
 
         }
+        this.entities = [];
 
         this.Active = true;
         this.Paused = false;
@@ -126,13 +179,12 @@ export class XQuest {
             DeathShot: 0,
         };
 
-        Game.DestroySpaceship();
 
         this.state.nextLevelClass = 1;
 
         /* Player spawns in the middle location */
         var mid = Math.floor((Game.LineSize - 1) / 2);
-        Game.PlayerX = mid;
+        this.playerPosition = new Point(mid, Game.GameHeight - 1);
 
         this.board.generateStartingLines();
 
@@ -219,7 +271,7 @@ export class XQuest {
                     Game.LineEntered[x] = 1;
             }
 
-            var Tile = Game.map[2].split('')[Game.PlayerX];
+            var Tile = Game.map[2].split('')[Game.playerPosition.x];
             switch (Tile) {
                 case '|': break;
                 case '' + roadChar + '': break;
@@ -228,32 +280,32 @@ export class XQuest {
                     _this.state.stats.Score += (_this.state.level*2)+2;
                     _this.state.stats.Powerups += 1;
                     Game.AddText("+"+((_this.state.level*2)+2)+" Score");
-                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
+                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.playerPosition.x, "`");
                     break;
                 case 'I':
                     SFX.Power.play();
                     _this.state.invincible = 50;
                     _this.state.stats.Powerups += 1;
-                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
+                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.playerPosition.x, "`");
                     break;
                 case 'W':
                     SFX.Power.play();
                     _this.state.warp = 40;
                     _this.state.stats.Powerups += 1;
-                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
+                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.playerPosition.x, "`");
                     break;
                 case 'D':
                     SFX.Power.play();
                     _this.state.distortion = 25;
                     _this.state.stats.Powerups += 1;
                     Game.CreateInterval(Game.BaseSpeed*2);
-                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
+                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.playerPosition.x, "`");
                     break;
                 case 'M':
                     SFX.Power.play();
                     _this.state.multishot = 1;
                     _this.state.stats.Powerups += 1;
-                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.PlayerX, "`");
+                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.playerPosition.x, "`");
                     break;
             // nightmare mode wall tiles
                 case '<':
@@ -268,98 +320,23 @@ export class XQuest {
             }
 
 
-            /* Bullet handling */
-            if (Game.Bullet.length !== 0) {
-
-                for (let i = 0 ; i < Game.Bullet.length ; i++ ) {
-                    Game.Bullet[i].y += 1;
-                    if (Game.Bullet[i].y == 21)
-                    {
-                        Game.DestroyBullet(i, 'player');
-                        continue;
-                    }
-
-                    if (Game.Spaceship.exists == true &&
-                        Game.Bullet[i].y == Game.Spaceship.y &&
-                        Utility.contains(Game.Bullet[i].x, Game.Spaceship.x, Game.Spaceship.x+2)) {
-                            Game.DestroyBullet(i, 'player');
-                            Game.state.stats.Score += 10;
-                            Game.state.stats.ShipsDestroyed += 1;
-                            Game.AddText("Hit! +10 Score");
-                            Game.DestroySpaceship();
-                            SFX.Explosion.play();
-                    }
-
-                    // allow spaceship bullets to be destoryed
-                    for (let s = 0; s < Game.Spaceship.Bullet.length; s++ ) {
-                        if ((Game.Spaceship.Bullet[s].y == Game.Bullet[i].y || Game.Spaceship.Bullet[s].y+1 ==Game.Bullet[i].y) &&
-                            Game.Bullet[i].x == Game.Spaceship.Bullet[s].x && Game.Bullet[i].y != -1)
-                        {
-                            Game.DestroyBullet(i, 'player');
-                            Game.DestroyBullet(s, 'spaceship');
-                            Game.state.stats.ShotsDestroyed += 1;
-                        }
-                    }
+            /* Randomly generate spaceships every 100 lines at 1/4 chance */
+            let spaceshipExists: boolean = false;
+            _this.entities.forEach((entity) => {
+                if (entity instanceof Spaceship) {
+                    spaceshipExists = true;
                 }
+            });
+            if (((1+Game.state.stats.Lines) % 100 == 0 && Utility.getRandomInt(1, 4) == 1 && Game.state.level >= 2) || Game.state.stats.Lines+1 == 10)  {
+                const spaceship = new Spaceship(_this);
+                _this.entities.push(spaceship);
             }
 
-            /* Spaceship handling */
-            if (Game.Spaceship.exists == true) {
-                if ((Game.Spaceship.lines % 30) == 0)
-                    Game.Spaceship.y -= 1;
+            _this.entities.forEach((entity) => {
+                entity.update();
+            })
 
-                /* Spaceship movement */
-                if (Game.Spaceship.move == false) {
-                    Game.Spaceship.move = true;
-                } else {
-                    if (Game.Spaceship.flyaway == false) {
-                        if(Game.Spaceship.x >= Utility.getRandomInt(Math.floor(Game.LineSize*.7), Game.LineSize-3)
-                        && Game.Spaceship.direction == 1) {
-                            Game.Spaceship.direction *= -1;
-                        }
-                        if(Game.Spaceship.x <= Utility.getRandomInt(1, Math.floor(Game.LineSize*.3)) && Game.Spaceship.direction == -1) {
-                            Game.Spaceship.direction *= -1;
-                        }
-                    }
-
-                    Game.Spaceship.move = false;
-                    Game.Spaceship.x += Game.Spaceship.direction;
-                }
-
-                //  Spaceship bullet handling
-                if (Game.Spaceship.Bullet.length == 0 && Utility.getRandomInt(1, 5) == 1 && Game.Spaceship.flyaway == false) {
-
-                    Game.FireBullet('spaceship');
-
-                } else {
-
-                    for (let i = 0 ; i < Game.Spaceship.Bullet.length ; i++ ) {
-                        Game.Spaceship.Bullet[i].y -= 1;
-                        if (Game.Spaceship.Bullet[i].y == 0)
-                            Game.DestroyBullet(i, 'spaceship');
-
-                        else if (Game.Spaceship.Bullet[i].y == 1 && Game.Spaceship.Bullet[i].x == Game.PlayerX && Game.state.invincible == 0) {
-                            Game.DestroyBullet(i, 'spaceship');
-                            Game.Over('Spaceship');
-                        }
-                    }
-                }
-
-                /* After 150 lines after the spaceship has spawned make it fly away (now) */
-                if (Game.Spaceship.lines > 160) {
-                    Game.Spaceship.flyaway = true;
-                }
-
-                /* Destroy spaceship after it has flown off the screen */
-                if (Game.Spaceship.x == -3 || Game.Spaceship.x == (Game.LineSize+3)) {
-                    Game.DestroySpaceship();
-                }
-            } else {
-                /* Randomly generate spaceships every 100 lines at 1/4 chance */
-                if (((1+Game.state.stats.Lines) % 100 == 0 && Utility.getRandomInt(1, 4) == 1 && Game.state.level >= 2) || Game.state.stats.Lines+1 == 200)  {
-                    Game.CreateSpaceship();
-                }
-            }
+            _this.renderEngine.render();
 
             $('#score').html(Utility.format(Game.state.stats.Score));
             $('#lines').html(Utility.format(Game.state.stats.Lines));
@@ -410,27 +387,7 @@ export class XQuest {
             if (RenderMode == "Objects")
             {
                 let needsOverwrite = false;
-                // loop through bullets and set bullet character
-                for (let i = 0 ; i < Game.Bullet.length ; i++ ) {
-                    if (y == Game.Bullet[i].y) {
-                        Line = Utility.setCharAt(Line, Game.Bullet[i].x, "^");
-                        needsOverwrite = true;
-                    }
-                }
 
-                for (let i = 0 ; i < Game.Spaceship.Bullet.length ; i++ ) {
-                    if (y == Game.Spaceship.Bullet[i].y) {
-                        Line = Utility.setCharAt(Line, Game.Spaceship.Bullet[i].x, "v");
-                        needsOverwrite = true;
-                    }
-                }
-
-                if (y == Game.Spaceship.y) {
-                    Line = Utility.setCharAt(Line, Game.Spaceship.x,   Game.Spaceship.display[0]);
-                    Line = Utility.setCharAt(Line, Game.Spaceship.x+1, Game.Spaceship.display[1]);
-                    Line = Utility.setCharAt(Line, Game.Spaceship.x+2, Game.Spaceship.display[2]);
-                    needsOverwrite = true;
-                }
 
                 if (Text != false) {
                     for (let i=0;i<Text.length;i++) {
@@ -439,7 +396,7 @@ export class XQuest {
                     }
                 }
 
-                if (y == 2 && (typeof options === "undefined" || typeof options.renderPlayer === "undefined")) Line = Utility.setCharAt(Line, Game.PlayerX, "X");
+                if (y == 2 && (typeof options === "undefined" || typeof options.renderPlayer === "undefined")) Line = Utility.setCharAt(Line, Game.playerPosition.x, "X");
 
                 Map += endChar + Utility.replaceAll('`', '&nbsp;',
                     Utility.replaceAll('%', '&nbsp;',
@@ -461,25 +418,6 @@ export class XQuest {
                     Line = Utility.replaceAll('M', '@', Line);
                     Line = Utility.replaceAll('W', '@', Line);
                 // }
-
-                // loop through bullets and set bullet character
-                for (let i = 0 ; i < Game.Bullet.length ; i++ ) {
-                    if (y == Game.Bullet[i].y)
-                    Line = Utility.setCharAt(Line, Game.Bullet[i].x, "@");
-                }
-
-                for (let i = 0 ; i < Game.Spaceship.Bullet.length ; i++ ) {
-                    if (y == Game.Spaceship.Bullet[i].y)
-                    Line = Utility.setCharAt(Line, Game.Spaceship.Bullet[i].x, "@");
-                }
-
-                if (y == 2) Line = Utility.setCharAt(Line, Game.PlayerX, "@");
-                if (y == Game.Spaceship.y) {
-                    Line = Utility.setCharAt(Line, Game.Spaceship.x,   '@');
-                    Line = Utility.setCharAt(Line, Game.Spaceship.x+1, '@');
-                    Line = Utility.setCharAt(Line, Game.Spaceship.x+2, '@');
-                }
-
                 Map += endChar + Utility.replaceAll('`', Game.RoadTile,
                     Utility.replaceAll('%', endZoneChar,
                     Utility.replaceAll('@', '&nbsp;', Line))) + endChar + "<br>";
@@ -488,4 +426,79 @@ export class XQuest {
         return Map;
     };
 
+    Over(DeathType: string) {
+        SFX.GameOver.play();
+
+        $('#linesize').css('display','inline');
+        $('#mode').css('display','inline');
+        Game.Active = false;
+        clearInterval(Game.Interval);
+        var Text = [
+            {y:12, text:"@@@Game Over@@@@@@@@@@@@@@@@@@@@@"},
+            {y:11, text:"@Score: "+Utility.format(Game.state.stats.Score)+"@@@@@@@@@@@@@@@@@@@@@@@@"},
+            {y:10, text:"@Lines: "+Utility.format(Game.state.stats.Lines)+"@@@@@@@@@@@@@@@@@@@@@@@@"},
+            {y:9, text:"@Level: "+Utility.format(Game.state.level)+"@@@@@@@@@@@@@@@@@@@@@@@@"}
+        ];
+        if (Game.isNewRecord()) {
+            Text.push({y:8, text:"@@High Score!@@@@@@@@@@@@@@@@@@@@@@@@@@@"});
+            ToggleTab('6');
+        }
+        $("#GameWindow_Objects").html(Game.DisplayMap(Text, "Objects"));
+
+        var Text = [
+            {y:12, text:"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"},
+            {y:11, text:"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"},
+            {y:10, text:"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"},
+            {y:9, text:"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"},
+        ];
+        if (Game.isNewRecord()) {
+            Text.push({y:8, text: "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"});
+            ToggleTab('6');
+        }
+
+        $("#GameWindow_Road").html(Game.DisplayMap(Text, "Road"));
+
+        const overlayText: OverlayText[] = [
+            {centered: true, y:13, text:"Game Over"},
+            {x: 2, y:14, text:"    Score: "+Utility.format(Game.state.stats.Score)+"              "},
+            {x: 2, y:15, text:"    Lines: "+Utility.format(Game.state.stats.Lines)+"              "},
+            {x: 2, y:16, text:"    Level: "+Utility.format(Game.state.level)+"              "}
+        ];
+        Game.renderEngine.renderTextOverlay(overlayText);
+
+
+        if(Game.CHEAT == false) {
+            switch(DeathType) {
+                case 'Spaceship': Game.SaveFile.Totals.DeathShot++; break;
+                case 'Wall': Game.SaveFile.Totals.DeathWall++; break;
+                case 'Abyss': Game.SaveFile.Totals.DeathAbyss++; break;
+            }
+
+            Game.SaveFile.Totals.GamesPlayed += 1;
+            Game.SaveFile.Totals.Score += Game.state.stats.Score;
+            Game.SaveFile.Totals.Lines += Game.state.stats.Lines;
+            Game.SaveFile.Totals.ShipsDestroyed += Game.state.stats.ShipsDestroyed;
+            Game.SaveFile.Totals.Powerups += Game.state.stats.Powerups;
+            Game.SaveFile.Totals.Moves += Game.state.stats.Moves;
+            Game.SaveFile.Totals.Time += Game.state.stats.Time;
+            Game.SaveFile.Totals.ShotsFired += Game.state.stats.ShotsFired;
+            Game.SaveFile.Totals.ShotsDestroyed += Game.state.stats.ShotsDestroyed;
+
+            if (Game.isNewRecord()) {
+                Game.SaveFile.Record[Game.state.gameMode] = {
+                    Score: Game.state.stats.Score,
+                    Lines: Game.state.stats.Lines
+                }
+                $('#high-score').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Score));
+                $('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Lines));
+            }
+
+            $('#total-score').html(Utility.format(Game.SaveFile.Totals.Score));
+            $('#total-lines').html(Utility.format(Game.SaveFile.Totals.Lines));
+
+            Game.Save();
+
+            Game.UpdateStatistics();
+        }
+    };
 };
