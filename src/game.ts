@@ -4,7 +4,8 @@ import Utility from './utility';
 import { State } from './state';
 import { DisplayOptions } from 'rot-js/lib/display/types';
 import { Display } from 'rot-js';
-import { RenderEngine } from './render-engine';
+import { OverlayText, RenderEngine } from './render-engine';
+import { Board } from './board';
 
 declare var Game: XQuest;
 declare var $: any;
@@ -35,17 +36,28 @@ export class XQuest {
     } as DisplayOptions;
 
     messages: string[] = [];
+    map: string[] = [];
     Active: boolean = false;
     Paused: boolean = false;
-    LevelLines: number = 0;
+    PlayerX: number;
+    LineSize: number = 25;
     BaseSpeed: number;
 
     renderEngine: RenderEngine;
+    board: Board;
+
+    positivePhrases = [
+        "Good Luck!", "Having fun yet?", "Have fun!", "Kill &#39;em", "You can do it!",
+        "Run run run", "Don&#39;t die", "Stay on the road", "Stay positive", "I&#39;m gonna do an internet!",
+        "The time has come", "Your quest begins", "pow pow kachow", "pop click woosh", "Exhilaration",
+        "You are an X", "You go on a quest", "Do well", "chicka chic pow", "Embody Luxury", "Precision", "Craftsmanship",
+    ];
 
     constructor() {
         this.display = new Display(this.options);
         this.state = new State();
         this.renderEngine = new RenderEngine(this);
+        this.board = new Board(this);
     }
 
     init() {
@@ -56,37 +68,32 @@ export class XQuest {
 
     Start() {
         if (this.Active == true) {
-
-            if (this.LevelLines > Game.GetLevelLines(this.state.level) - 20) {
+            if (this.state.levelLines > this.board.getLevelLines(this.state.level) - 20) {
                 this.state.warp = 0;
                 this.state.invincible = 25;
-                if (Game.state.distortion != 0) {
+                if (this.state.distortion != 0) {
                     Game.CreateInterval(Game.BaseSpeed);
                     this.state.distortion = 0;
                 }
                 this.state.levelLines = 0;
                 Game.messages = [];
 
+                this.state.nextLevelClass = this.state.level % 9 + 1;
                 this.state.level++;
-                this.state.nextLevelClass = this.state.displayLevel % 9 + 1;
-                if (this.state.level == 10)
-                    this.state.level = 9;
-                this.state.displayLevel++;
 
-                $('#level').html(this.state.displayLevel);
+                $('#level').html(this.state.level);
                 if (this.state.isKillScreen())
                     SFX.Killscreen.play();
                 else
                     SFX.LevelUp.play();
             }
 
-            $('.no_display_level_' + this.state.displayLevel).css('display', 'block');
+            $('.no_display_level_' + this.state.level).css('display', 'block');
 
             return false;
         } else {
-
             for (var i = 1; i < 10; i++)
-                $('.no_display_level_' + this.state.displayLevel + '').css('display', 'none');
+                $('.no_display_level_' + this.state.level + '').css('display', 'none');
 
         }
 
@@ -98,11 +105,8 @@ export class XQuest {
         this.state.multishot = 0
         Game.messages = [];
         this.state.level = 1;
-        this.state.displayLevel = 1;
         this.state.levelLines = 0;
         Game.map = [];
-        Game.LineLength = [];
-        Game.LineReset = [];
         Game.LineEntered = [];
         Game.Bullet = [];
         // Game.RoadTile = '<span class="c'+Game.state.level+'">' + roadChar + '</span>';
@@ -129,35 +133,20 @@ export class XQuest {
         /* Player spawns in the middle location */
         var mid = Math.floor((Game.LineSize - 1) / 2);
         Game.PlayerX = mid;
-        var x;
-        for (var i = 0; i < Game.LineSize; i++) {
-            // if the location is one of the 3 middle columns then make a line there
-            if (Utility.contains(i, mid - 1, mid + 1))
-                x = 1;
-            else x = 0;
 
-            Game.LineLength.push(x * 25);
-            Game.LineReset.push(x);
-            Game.LineEntered.push(x);
-        }
+        this.board.generateStartingLines();
+
 
         $('#linesize').css('display', 'none');
         $('#mode').css('display', 'none');
         $('#level').html(this.state.level);
-
-        /* Generate the first 20 lines */
-        for (let y = 0; y <= 20; y++) {
-            var Line = Game.GenerateLine();
-            Game.map[y] = Line;
-        }
 
         /* If you're on the high score screen and a new game starts don't let it submit */
         if (Game.CurrentTab == 6 || Game.CurrentTab == 7) {
             ToggleTab('1');
         }
 
-        /* Add a positive phrase in the text field */
-        Game.AddText(Game.PositivePhrases[Utility.getRandomInt(0, (Game.PositivePhrases.length - 1))]);
+        Game.AddText(Game.positivePhrases[Utility.getRandomInt(0, (Game.positivePhrases.length - 1))]);
 
         /* Lets get this party started */
         Game.CreateInterval(Game.BaseSpeed);
@@ -173,16 +162,16 @@ export class XQuest {
         Game.Interval = setInterval(function() {
             Game.AddLine();
 
-            if (_this.state.levelLines < Game.GetLevelLines(_this.state.level)) {
+            if (_this.state.levelLines < Game.board.getLevelLines(_this.state.level)) {
                 $("#GameWindow_Road").html(Game.DisplayMap(false, "Road"));
                 $("#GameWindow_Objects").html(Game.DisplayMap(false, "Objects"));
             } else {
 
-                let dashTimer: any = Math.floor((_this.state.levelLines - Game.GetLevelLines(_this.state.level)) / 4);
+                let dashTimer: any = Math.floor((_this.state.levelLines - Game.board.getLevelLines(_this.state.level)) / 4);
                 dashTimer = Array(dashTimer+1).join("-");
 
                 // if the timer has reached the length of the line, then start the next level.
-                if (dashTimer ==  Array(Game.LineLength.length+2).join("-"))
+                if (dashTimer ==  Array(_this.board.lineLength.length+2).join("-"))
                 {
                     // remove the completed text
                     $("#GameWindow_Road").html(Game.DisplayMap(false, "Road"));
@@ -192,27 +181,38 @@ export class XQuest {
                     return;
                 }
 
-                // $("#GameWindow_Objects").html(this.DisplayMap([
-                //     {y: 12, text: "@COMPLETED:@", overwritable: true },
-                //     {y: 11, text: "@Level@"+Game.state.displayLevel+"@", overwritable: true },
-                //     {y: 10, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@", overwritable: true},
-                //     {y: 9, text: "@Press Space@", overwritable: true },
-                //     {y: 8, text: "@to continue@", overwritable: true },
-                // ], "Objects"));
+                $("#GameWindow_Objects").html(Game.DisplayMap([
+                    {y: 12, text: "@COMPLETED:@", overwritable: true },
+                    {y: 11, text: "@Level@"+Game.state.level+"@", overwritable: true },
+                    {y: 10, text: "" + dashTimer + "@@@@@@@@@@@@@@@@@@@@@", overwritable: true},
+                    {y: 9, text: "@Press Space@", overwritable: true },
+                    {y: 8, text: "@to continue@", overwritable: true },
+                ], "Objects"));
 
-                // $("#GameWindow_Road").html(this.DisplayMap([
-                //     { y: 12, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-                //     { y: 11, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-                //     { y: 10, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-                //     { y: 9, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
-                //     { y: 8, text: "@@@@@@@@@@@@@@@@@@@@@@@"}
-                // ], "Road"));
+                $("#GameWindow_Road").html(Game.DisplayMap([
+                    { y: 12, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
+                    { y: 11, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
+                    { y: 10, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
+                    { y: 9, text: "@@@@@@@@@@@@@@@@@@@@@@@"},
+                    { y: 8, text: "@@@@@@@@@@@@@@@@@@@@@@@"}
+                ], "Road"));
+
+
+                const overlayText: OverlayText[] = [
+                    { y: 14, centered: true, text: "COMPLETED:" },
+                    { y: 15, centered: true, text: "Level "+Game.state.level },
+                    { x: 2, y: 16, text: Utility.padEnd(dashTimer, Game.options.width - 4, ' ') },
+                    { y: 17, centered: true, text: "Press Space" },
+                    { y: 18, centered: true, text: "to continue" },
+                ];
+                Game.renderEngine.renderTextOverlay(overlayText);
+
 
             }
             Game.state.stats.Time += Game.CurrentSpeed;
 
             /* Create lines by the player for scoring purposes */
-            for(let x=0; x<Game.LineSize; x++) {
+            for (let x=0; x<Game.LineSize; x++) {
                 if (Game.map[3].charAt(x) == '@')
                     Game.LineEntered[x] = 0;
                 else if (Game.LineEntered[x] == 0)
@@ -399,7 +399,7 @@ export class XQuest {
 
 
     /* Render the game map from the Game.map array of lines */
-    DisplayMap(Text, RenderMode, options) {
+    DisplayMap(Text, RenderMode: string, options) {
         this.renderEngine.render();
 
         var Map = "";

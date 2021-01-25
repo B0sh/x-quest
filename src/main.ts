@@ -5,6 +5,7 @@ import { SFX } from "./sfx";
 import { Howler } from "howler";
 import { XQuest } from "./game";
 import { InputUtility } from "./input-utility";
+import { OverlayText } from "./render-engine";
 
 var $ = (window as any).jQuery = jquery; 
 let Game = new XQuest();
@@ -14,11 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
 	Game.init();
 	InputUtility.initListeners((event: KeyboardEvent) => {
 		switch (event.code) {
-			case 'KeyD': case 'KeyL': case 'ArrowLeft':
+			case 'KeyD': case 'KeyL': case 'ArrowRight':
 				Game.Move('right');
 				event.preventDefault();
 				break; //Left arrow or "d" or "l"
-			case 'KeyA': case 'KeyJ': case 'ArrowRight':
+			case 'KeyA': case 'KeyJ': case 'ArrowLeft':
 				Game.Move('left');
 				event.preventDefault();
 				break; //Right arrow or "a" or "j"
@@ -27,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				event.preventDefault();
 				break; //Up arrow or "w" or i
 			case 'Space':
-				if (Game.Active == false || (Game.state.levelLines >= parseInt(Game.GetLevelLines(Game.Level)))) {
+				if (Game.Active == false || (Game.state.levelLines >= Game.board.getLevelLines(Game.state.level))){
 					Game.Start(); //Spacebar to start
 				} else {
 					Game.TogglePause(); //Spacebar to pause
@@ -52,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	$('#total-lines').html(Utility.format(Game.SaveFile.Totals.Lines));
 
 	/* Default to medium size */
-	Game.UpdateSize(15);
+	Game.UpdateSize(24);
 	Game.SetLevelClass(1);
 	Game.DestroySpaceship();
 
@@ -67,6 +68,12 @@ document.addEventListener('DOMContentLoaded', () => {
 		{y:10,text:"@@@to@start.@@@"}
 	], "Objects", {renderPlayer:false}));
 
+	const overlayText: OverlayText[] = [
+		{centered: true, y:15, text:"Press Space"},
+		{centered: true, y:16, text:"to start."},
+	];
+	Game.renderEngine.renderTextOverlay(overlayText);
+
 	$('tab').click(function (e) {
 		ToggleTab($(this).attr('id'));
 	});
@@ -80,12 +87,6 @@ Game.CurrentTab = 1;
 Game.CHEAT = false;
 
 
-Game.PositivePhrases = [
-	"Good Luck!", "Having fun yet?", "Have fun!", "Kill &#39;em", "You can do it!",
-	"Run run run", "Don&#39;t die", "Stay on the road", "Stay positive", "I&#39;m gonna do an internet!",
-	"The time has come", "Your quest begins", "pow pow kachow", "pop click woosh", "Exhilaration",
-	"You are an X", "You go on a quest", "Do well", "chicka chic pow", "Embody Luxury", "Precision", "Craftsmanship",
-];
 
 // defaults
 Game.state.gameMode = 'normal';
@@ -93,77 +94,6 @@ Game.state.level = 1;
 Game.state.nextLevelClass = -1;
 Game.Bullet = [];
 
-/* Generates the line (as text) */
-Game.GenerateLine = function () {
-	var Line = Game.BaseLine;
-
-	/* Randomly start a new line every once in a while (Higher line size = less new lines) */
-	if (Utility.getRandomInt(1, 30+Game.LineSize) == 1) {
-		var x = Utility.getRandomInt(0,Game.LineSize-1);
-		Game.LineReset[x] = 1;
-		Game.LineLength[x] = Utility.getRandomInt(6, 22-Game.state.level);
-	}
-
-	if (Game.state.gameMode == 'normal')
-  {
-		var start = 0;
-		var end = Game.LineSize;
-	}
-	else if (Game.state.gameMode == 'nightmare')
-	{
-		var start = 2;
-		var end: any = Game.LineSize - 2;
-
-		Line = Utility.setCharAt(Line, 0, '>');
-		Line = Utility.setCharAt(Line, 1, '>');
-
-		Line = Utility.setCharAt(Line, Game.LineSize - 1, '<');
-		Line = Utility.setCharAt(Line, Game.LineSize - 2, '<');
-	}
-
-	/* Generate tiles and manage lines */
-	for(let i=start; i<end; i++) {
-		if (Game.LineLength[i] != 0) {
-			var road = "`";
-
-			if (Utility.getRandomInt(1, 1100) == 1) {
-				road = 'I';
-			}  else if (Utility.getRandomInt(1, 300) == 1) {
-				road = 'P';
-			} else if (Utility.getRandomInt(1, 900) === 1) {
-				road = 'D';
-			} else if (Utility.getRandomInt(1, 900) === 1 && Game.state.level >= 6) {
-				road = 'W';
-			} else if (Utility.getRandomInt(1, 900) === 1 && Game.state.level >= 3) {
-				road = 'M';
-			}
-
-			Line = Utility.setCharAt(Line, i, road);
-
-			/* Vertical line handler */
-			Game.LineLength[i] -= 1;
-			if (Game.LineLength[i] < Utility.getRandomInt(2, 6 - Math.floor(Game.state.level/4)) && Game.LineReset[i] != 0) {
-				Game.LineReset[i] = 0;
-				if ((Utility.getRandomInt(1, 2) == 1 && i != end - 1) || i == start) {
-					Game.LineReset[i+1] = 1;
-					Game.LineLength[i+1] = Utility.getRandomInt(6, 22 - Game.state.level);
-				} else {
-					Game.LineReset[i-1] = 1;
-					Game.LineLength[i-1] = Utility.getRandomInt(6, 20 - Game.state.level);
-				}
-			}
-		}
-	}
-
-	// at the end of the level
-	if (Game.state.levelLines > Game.GetLevelLines(Game.state.level)-20) {
-		for(let i=start; i<end; i++) {
-			Line = Utility.setCharAt(Line, i, "%");
-		}
-	}
-
-	return Line;
-};
 
 /* Adds a new line to the map array; called each tick */
 Game.AddLine = function() {
@@ -172,10 +102,10 @@ Game.AddLine = function() {
 		newMap[y-1] = Game.map[y];
 	}
 	Game.map = newMap;
-	Game.map[20] = Game.GenerateLine();
+	Game.map[20] = Game.board.generateLine();
 	Game.state.levelLines += 1;
 
-	if (Game.state.levelLines < Game.GetLevelLines(Game.state.level)) {
+	if (Game.state.levelLines < Game.board.getLevelLines(Game.state.level)) {
 		Game.state.stats.Lines += 1;
 	}
 
@@ -359,19 +289,7 @@ Game.SetLevelClass = function(level) {
 	$('.Xbox').addClass("d"+level);
 }
 
-Game.GetLevelLines = function(level) {
-	switch (level) {
-		case 1: return 101; break;
-		case 2: return 151; break;
-		case 3: return 151; break;
-		case 4: return 176; break;
-		case 5: return 201; break;
-		case 6: return 251; break;
-		case 7: return 301; break;
-		case 8: return 351; break;
-		case 9: return 301 ; break;
-	}
-}
+
 
 Game.DestroySpaceship = function() {
 	Game.Spaceship = {
@@ -440,6 +358,7 @@ Game.TogglePause = function () {
 	if (Game.Active == true) {
 		if (Game.Paused == false) {
 			Game.Paused = true;
+			Game.renderEngine.render();
 			clearInterval(Game.Interval);
 			$("#GameWindow_Road").html(Game.DisplayMap([{y:10,text:"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"}], "Road"));
 			$("#GameWindow_Objects").html(Game.DisplayMap([{y:10,text:"@--@PAUSED@--@"}], "Objects"));
@@ -475,7 +394,7 @@ Game.Over = function(DeathType) {
 		Text.push({y:8, text:"@@High Score!@@@@@@@@@@@@@@@@@@@@@@@@@@@"});
 		ToggleTab('6');
 	}
-		$("#GameWindow_Objects").html(Game.DisplayMap(Text, "Objects"));
+	$("#GameWindow_Objects").html(Game.DisplayMap(Text, "Objects"));
 
 	var Text = [
 		{y:12, text:"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"},
@@ -489,6 +408,15 @@ Game.Over = function(DeathType) {
 	}
 
 	$("#GameWindow_Road").html(Game.DisplayMap(Text, "Road"));
+
+	const overlayText: OverlayText[] = [
+		{centered: true, y:13, text:"Game Over"},
+		{x: 2, y:14, text:"    Score: "+Utility.format(Game.state.stats.Score)+"              "},
+		{x: 2, y:15, text:"    Lines: "+Utility.format(Game.state.stats.Lines)+"              "},
+		{x: 2, y:16, text:"    Level: "+Utility.format(Game.state.level)+"              "}
+	];
+	Game.renderEngine.renderTextOverlay(overlayText);
+
 
 	if(Game.CHEAT == false) {
 		switch(DeathType) {
@@ -651,10 +579,10 @@ Game.LoadHighScore = function() {
 		success: function (data) {
 			$('#highScoreList').html(data);
 
-			if (typeof Game.state.displayLevel === "undefined")
+			if (typeof Game.state.level === "undefined")
 				Game.SetLevelClass(1);
 			else
-				Game.SetLevelClass(((Game.state.displayLevel - 1) % 9 + 1));
+				Game.SetLevelClass(((Game.state.level - 1) % 9 + 1));
 		}
 
 	});
@@ -699,25 +627,25 @@ function ToggleTab(tab){
 }
 
 // Game.CalculateStuff = function() {
-// 	var temp = Game.state.displayLevel;
+// 	var temp = Game.state.level;
 // 	let text = "Easter Egg? There's a Kill Screen <br><br>";
 // 	text += "Calculating Time to Reach Kill Screen<br>";
 
-// 	Game.state.displayLevel = 0;
+// 	Game.state.level = 0;
 // 	let totalLines = 0;
 // 	for (var Level = 0; Level <= 5000; Level++) {
-// 		Game.state.displayLevel++;
-// 		let x = Game.state.displayLevel;
+// 		Game.state.level++;
+// 		let x = Game.state.level;
 // 		if (x > 9) x = 9;
-// 		totalLines += Game.GetLevelLines(x);
+// 		totalLines += Game.board.getLevelLines(x);
 // 		if (Game.state.isKillScreen())
 // 			break;
 // 	}
-// 	text += "Kill Screen Level: " + Game.state.displayLevel;
+// 	text += "Kill Screen Level: " + Game.state.level;
 // 	text += "<br>Lines: " + totalLines;
 // 	text += "<br>Base Clock: " + Game.BaseSpeed + "ms";
 // 	text += "<br>Time: " + totalLines * Game.BaseSpeed / 1000 / 60 + " minutes"
-// 	Game.state.displayLevel = temp;
+// 	Game.state.level = temp;
 // 	$('[tab=0]').html(text);
 
 // };

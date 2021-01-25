@@ -3,7 +3,6 @@ import { QuestStatistics } from "./stats";
 export class State {
     level: number;
     levelLines: number;
-    displayLevel: number;
     nextLevelClass: number;
     gameMode: string;
 
@@ -20,6 +19,6 @@ export class State {
     }
 
     isKillScreen() {
-        return this.displayLevel > 63;
+        return this.level > 63;
     }
 }
