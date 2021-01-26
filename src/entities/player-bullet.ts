@@ -1,11 +1,10 @@
-import { Util } from "rot-js";
 import { Entity, EntityType } from "./entity";
-import { XQuest } from "./game";
-import { Point } from "./point";
-import { SFX } from "./sfx";
+import { XQuest } from "../game";
+import { Point } from "../point";
+import { SFX } from "../sfx";
 import { Spaceship } from "./spaceship";
 import { SpaceshipBullet } from "./spaceship-bullet";
-import Utility from "./utility";
+import Utility from "../utility";
 
 export class PlayerBullet implements Entity {
     type: EntityType;
@@ -29,10 +28,9 @@ export class PlayerBullet implements Entity {
                 if (entity.position.y == this.position.y &&
                     Utility.contains(this.position.x, entity.position.x, entity.position.x + 2)) {
                     this.game.deleteEntity(this);
-                    this.game.deleteEntity(entity);
+                    entity.shot();
                     this.game.state.stats.Score += 10;
                     this.game.state.stats.ShipsDestroyed += 1;
-                    this.game.AddText("Hit! +10 Score");
                     SFX.Explosion.play();
                 }
             }
@@ -40,9 +38,11 @@ export class PlayerBullet implements Entity {
             if (entity instanceof SpaceshipBullet) {
                 if (entity.position.x == this.position.x &&
                     (entity.position.y == this.position.y || entity.position.y - 1 == this.position.y)) {
-                   this.game.deleteEntity(this);
-                   this.game.deleteEntity(entity);
-                   this.game.state.stats.ShotsDestroyed += 1; 
+                    this.game.deleteEntity(this);
+                    entity.shot();
+                    this.game.state.stats.Score += 3;
+                    this.game.state.stats.ShotsDestroyed += 1; 
+                    SFX.Explosion.play();
                 }
             }
         });

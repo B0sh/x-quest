@@ -27,7 +27,7 @@ export class Board {
             this.lineEntered.push(isMid);
         }
 
-        for (let y = 0; y <= 20; y++) {
+        for (let y = 0; y <= this.game.GameHeight; y++) {
             this.game.map.push(this.generateLine());
         }
     }
@@ -57,10 +57,9 @@ export class Board {
             line = Utility.setCharAt(line, this.game.LineSize - 2, '<');
         }
 
-        /* Generate tiles and manage lines */
         for (let i = start; i < end; i++) {
             if (this.lineLength[i] != 0) {
-                var road = "`";
+                let road: string = "`";
 
                 if (Utility.getRandomInt(1, 1100) == 1) {
                     road = 'I';
@@ -92,7 +91,7 @@ export class Board {
         }
 
         // at the end of the level
-        if (this.game.state.levelLines > this.game.board.getLevelLines(this.game.state.level) - 20) {
+        if (this.game.state.levelLines > this.game.board.getLevelLines(this.game.state.level) - this.game.GameHeight) {
             for (let i = start; i < end; i++) {
                 line = Utility.setCharAt(line, i, "%");
             }

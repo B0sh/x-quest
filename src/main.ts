@@ -46,31 +46,20 @@ document.addEventListener('DOMContentLoaded', () => {
 	Game.Load();
 	Game.UpdateMode('normal');
 
-	/* Add the total score and lines from localStorage */
-	$('#high-score').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Score));
-	$('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Lines));
-	$('#total-score').html(Utility.format(Game.SaveFile.Totals.Score));
-	$('#total-lines').html(Utility.format(Game.SaveFile.Totals.Lines));
-
 	/* Default to medium size */
 	Game.UpdateSize(24);
 	Game.SetLevelClass(1);
 
 	Game.map = [];
-	for(let i=0;i<=20;i++) {
+	for(let i = 0; i <= Game.GameHeight; i++) {
 		Game.map[i] = '@@@@@@@@@@@@@@@';
 	}
-
-	$('#GameWindow_Road').html('');
-	$('#GameWindow_Objects').html(Game.DisplayMap([
-		{y:11,text:"@@Press@Space@@"},
-		{y:10,text:"@@@to@start.@@@"}
-	], "Objects", {renderPlayer:false}));
 
 	const overlayText: OverlayText[] = [
 		{centered: true, y:15, text:"Press Space"},
 		{centered: true, y:16, text:"to start."},
 	];
+	Game.renderEngine.render();
 	Game.renderEngine.renderTextOverlay(overlayText);
 
 	$('tab').click(function (e) {
@@ -85,23 +74,19 @@ document.addEventListener('DOMContentLoaded', () => {
 Game.CurrentTab = 1;
 Game.CHEAT = false;
 
-
-
 // defaults
 Game.state.gameMode = 'normal';
 Game.state.level = 1;
 Game.state.nextLevelClass = -1;
-Game.Bullet = [];
-
 
 /* Adds a new line to the map array; called each tick */
 Game.AddLine = function() {
 	var newMap = [];
-	for (let y = 1; y <= 20; y++) {
+	for (let y = 1; y <= Game.GameHeight; y++) {
 		newMap[y-1] = Game.map[y];
 	}
 	Game.map = newMap;
-	Game.map[20] = Game.board.generateLine();
+	Game.map[Game.GameHeight] = Game.board.generateLine();
 	Game.state.levelLines += 1;
 
 	if (Game.state.levelLines < Game.board.getLevelLines(Game.state.level)) {
@@ -109,23 +94,6 @@ Game.AddLine = function() {
 	}
 
 	return false;
-};
-
-
-Game.AddText = function ( txt ) {
-	Game.messages.unshift( { ticks: 20, text: txt } );
-};
-Game.ProcessText = function () {
-	for (let i=0;i<Game.messages.length;i++) {
-		if (Game.messages[i] != []) {
-			Game.messages[i].ticks -= 1;
-			if (Game.messages[i].ticks == 0) {
-				Game.messages.pop();
-			} else {
-				$('#GameWindow_Objects').append("<br>"+Game.messages[i].text);
-			}
-		}
-	}
 };
 
 Game.Move = function (direction){
@@ -140,8 +108,10 @@ Game.Move = function (direction){
 		// if you don't have warp mode on the move is pretty simple
 		if (Game.state.warp == 0) {
 			Game.playerPosition.x += direction;
-			if (Game.playerPosition.x > Game.LineSize-1 || Game.playerPosition.x < 0)
+			if (Game.playerPosition.x > Game.LineSize-1 || Game.playerPosition.x < 0) {
 				Game.Over('Wall');
+				return;
+			}
 
 		// warp power up checks to find the next available line
 		//   and if it doesn't find one its a wall game over ofc
@@ -187,25 +157,13 @@ Game.Move = function (direction){
 
 Game.SetLevelClass = function(level) {
 	for (var i = 1; i <= 9; i++) {
-		$('#GameWindow_Road').removeClass("c"+i);
-	}
-	$('#GameWindow_Road').addClass("c"+level);
-	for (var i = 1; i <= 9; i++) {
-		$('#GameWindow_Objects').removeClass("d"+i);
-	}
-	$('#GameWindow_Objects').addClass("d"+level);
-	for (var i = 1; i <= 9; i++) {
 		$('.Xbox').removeClass("d"+i);
 	}
 	$('.Xbox').addClass("d"+level);
 }
 
-
-
 Game.UpdateSpeed = function (speed) {
 	Game.BaseSpeed = speed;
-	Game.CHEAT = true;
-	$('#stats_tracked').html("<h3>Fun Mode: Your statistics are no longer tracked.</h3>");
 	console.log("Updated Speed");
 };
 
@@ -220,20 +178,6 @@ Game.UpdateSize = function(size) {
 	Game.LineSize = parseInt(size);
 	var l = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
 	Game.BaseLine = l.substr(0,Game.LineSize);
-	if (Game.LineSize == 27) {
-		$('.GameWindow').css('width', '250px');
-	} else {
-		$('.GameWindow').css('width', '200px');
-	}
-
-	$('#GameWindow_Road').html("Press spacebar to begin.");
-
-	if (size != 15) {
-		Game.CHEAT = true;
-		$('#stats_tracked').html("<h3>Fun Mode: Your statistics are no longer tracked.</h3>");
-	}
-
-	return false;
 };
 
 Game.UpdateMode = function(mode) {
@@ -265,9 +209,6 @@ Game.TogglePause = function () {
 			Game.Paused = true;
 			Game.renderEngine.render();
 			clearInterval(Game.Interval);
-			$("#GameWindow_Road").html(Game.DisplayMap([{y:10,text:"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"}], "Road"));
-			$("#GameWindow_Objects").html(Game.DisplayMap([{y:10,text:"@--@PAUSED@--@"}], "Objects"));
-
 		} else {
 			Game.Paused = false;
 			Game.CreateInterval(Game.BaseSpeed);

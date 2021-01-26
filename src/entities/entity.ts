@@ -1,9 +1,10 @@
-import { Point } from "./point";
+import { Point } from "../point";
 
 export const enum EntityType {
     Player,
     Spaceship,
-    Bullet
+    Bullet,
+    PelletText
 }
 
 export interface Entity {
