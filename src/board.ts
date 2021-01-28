@@ -42,13 +42,15 @@ export class Board {
             this.lineLength[lineIndex] = Utility.getRandomInt(6, 22 - this.game.state.level);
         }
 
+        let start: number; 
+        let end: number;
         if (this.game.state.gameMode == 'normal') {
-            var start = 0;
-            var end = this.game.width;
+            start = 0;
+            end = this.game.width;
         }
         else if (this.game.state.gameMode == 'nightmare') {
-            var start = 2;
-            var end = this.game.width - 2;
+            start = 2;
+            end = this.game.width - 2;
 
             line = Utility.setCharAt(line, 0, '>');
             line = Utility.setCharAt(line, 1, '>');

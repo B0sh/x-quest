@@ -25,11 +25,17 @@ document.addEventListener('DOMContentLoaded', () => {
 				Game.fireBullet();
 				event.preventDefault();
 				break; //Up arrow or "w" or i
+			case 'KeyE': 
+				Game.usePowerup();
+				event.preventDefault();
+				break;
 			case 'Space':
-				if (Game.Active == false || (Game.state.levelLines >= Game.board.getLevelLines(Game.state.level))){
-					Game.Start(); //Spacebar to start
+				if (Game.Active == false) {
+					Game.start();
+				} else if (Game.state.levelLines >= Game.board.getLevelLines(Game.state.level)){
+					Game.nextLevel();	
 				} else {
-					Game.togglePause(); //Spacebar to pause
+					Game.togglePause();
 				}
 				event.preventDefault();
 

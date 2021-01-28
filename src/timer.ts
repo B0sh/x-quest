@@ -31,6 +31,7 @@ export class Timer {
         // }
         this.onTick();
         this.expected += this.interval;
+
         if (this.running) {
             this.timeout = setTimeout(this.step.bind(this), Math.max(0, this.interval - drift));
         }

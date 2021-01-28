@@ -59,8 +59,8 @@ export class RenderEngine {
     }
 
     renderUI() {
-        const roadColor = this.roadColors[(this.game.state.level - 1) % 9];
-        const objectColor = this.objectColors[(this.game.state.level - 1) % 9];
+        const roadColor = this.roadColors[((this.game.state.level ?? 1) - 1) % 9];
+        const objectColor = this.objectColors[((this.game.state.level ?? 1) - 1) % 9];
 
         for (let y = 0; y < this.game.options.height; y++) {
             this.game.display.draw(0, y, "/", "#FFFFFF", null);
@@ -82,10 +82,14 @@ export class RenderEngine {
             this.game.display.drawText(16, 2, Utility.padStart(score, 6, "."));
 
         for (let lives = 0; lives < this.game.state.lives; lives++) {
-            this.game.display.draw(2 + lives, 4, "X", objectColor, null);
+            this.game.display.draw(8 + lives, 4, "X", objectColor, null);
         }
 
-        this.drawColoredText(22, 4, "L=" + Utility.padStart(this.game.state.level, 2, "0"), roadColor, null);
+        this.game.display.draw(22, 4, "/", null, null);
+        this.game.display.draw(24, 4, this.game.state.power, objectColor, null);
+        this.game.display.draw(26, 4, "/", null, null);
+
+        this.drawColoredText(2, 4, "L=" + Utility.padStart(this.game.state.level, 2, "0"), roadColor, null);
     }
 
     renderRoad() {
@@ -135,10 +139,10 @@ export class RenderEngine {
 
         if (this.game.Finished) {
             const overlayText: OverlayText[] = [
-                {centered: true, y:14, text:"Game Over"},
-                {x: 2, y:15, text:"    Score: "+Utility.format(this.game.state.stats.Score)+"              "},
-                {x: 2, y:16, text:"    Lines: "+Utility.format(this.game.state.stats.Lines)+"              "},
-                {x: 2, y:17, text:"    Level: "+Utility.format(this.game.state.level)+"              "}
+                { centered: true, y:14, text:"Game Over" },
+                { x: 2, y:15, text:"    Score: "+Utility.format(this.game.state.stats.Score)+"              " },
+                { x: 2, y:16, text:"    Lines: "+Utility.format(this.game.state.stats.Lines)+"              " },
+                { x: 2, y:17, text:"    Level: "+Utility.format(this.game.state.level)+"              " }
             ];
             this.renderTextOverlay(overlayText);
             return;
@@ -146,8 +150,8 @@ export class RenderEngine {
 
         if (!this.game.Finished && !this.game.Active) {
             const overlayText: OverlayText[] = [
-                {centered: true, y:15, text:"Press Space"},
-                {centered: true, y:16, text:"to start."},
+                { centered: true, y: 15, text: "Press Space" },
+                { centered: true, y: 16, text: "to start." },
             ];
             this.renderTextOverlay(overlayText);
             return;
@@ -169,14 +173,22 @@ export class RenderEngine {
         }
 
         // this.drawColoredText(2, this.game.options.height - 2, "Multi Shot", color, null)
-        // this.drawColoredText(2, this.game.options.height - 1, "Invincibilty --------", color, null)
+        if (this.game.state.invincible > 0) {
+            const dashes: string = "-".repeat(Math.ceil(this.game.state.invincible / 5));
+            this.drawColoredText(2, this.game.options.height - 1, "Invincibilty    " + dashes, color, null)
+        }
+
+        if (this.game.state.distortion > 0) {
+            const dashes: string = "-".repeat(Math.ceil((this.game.state.distortion * 2) / 5));
+            this.drawColoredText(2, this.game.options.height - 1, "Distortion      " + dashes, color, null)
+        }
 
         if (this.game.state.levelLines >= this.game.board.getLevelLines(this.game.state.level)) {
             let dashTimer: any = Math.floor((this.game.state.levelLines - this.game.board.getLevelLines(this.game.state.level)) / 3);
             dashTimer = Array(dashTimer+1).join("-");
 
             if (dashTimer ==  Array(this.game.board.lineLength.length+2).join("-")) {
-                this.game.Start();
+                this.game.nextLevel();
                 return;
             }
 
@@ -184,9 +196,20 @@ export class RenderEngine {
                 { y: 14, centered: true, text: "COMPLETED" },
                 { y: 15, centered: true, text: "Level " + this.game.state.level },
                 { x: 3, y: 16, text: Utility.padEnd(dashTimer, this.game.width, ' ') },
-                { y: 17, centered: true, text: "Press Space" },
-                { y: 18, centered: true, text: "to continue" },
             ];
+
+            if (this.game.state.level == 3) {
+                overlayText.push({ y: 17, centered: true, text: "Look out for" });
+                overlayText.push({ y: 18, centered: true, text: "M - MultiShot" });
+            }
+            else if (this.game.state.level == 6) {
+                overlayText.push({ y: 17, centered: true, text: "Look out for" });
+                overlayText.push({ y: 18, centered: true, text: "W - Warp" });
+            }
+            else {
+                overlayText.push({ y: 17, centered: true, text: "Press Space" });
+                overlayText.push({ y: 18, centered: true, text: "to continue" });
+            }
             this.game.renderEngine.renderTextOverlay(overlayText);
         }
     }

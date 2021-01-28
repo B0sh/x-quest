@@ -13,6 +13,7 @@ export class State {
     multishot: number = 0;
     warp: number = 0;
     lives: number = 3;
+    power: string = null;
 
     stats: QuestStatistics;
     saveFile: SaveFile;

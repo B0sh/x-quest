@@ -64,7 +64,7 @@ export class XQuest {
 
     init() {
         document.getElementsByClassName('TEMPGAMESPOT')[0].prepend(this.display.getContainer())
-        this.renderEngine.render();
+        this.renderLoop();
     }
 
     frameCount: number = 0;
@@ -119,36 +119,31 @@ export class XQuest {
         }
     }
 
-    Start() {
-        this.lastFrameTime = performance.now();
-        this.renderLoop();
+    nextLevel() {
+        this.state.nextLevelClass = this.state.level % 9 + 1;
+        this.state.level++;
+        this.state.levelLines = 0;
 
+        this.state.warp = 0;
+        this.state.invincible = 25;
+        if (this.state.distortion != 0) {
+            this.startGameLoop(this.BaseSpeed);
+            this.state.distortion = 0;
+        }
+
+        if (this.state.isKillScreen()) {
+            SFX.Killscreen.play();
+        } else {
+            SFX.LevelUp.play();
+        }
+    }
+
+    start() {
         if (this.Active == true) {
             if (this.state.levelLines > this.board.getLevelLines(this.state.level) - this.height) {
-                this.state.warp = 0;
-                this.state.invincible = 25;
-                if (this.state.distortion != 0) {
-                    this.startGameLoop(this.BaseSpeed);
-                    this.state.distortion = 0;
-                }
-                this.state.levelLines = 0;
-
-                this.state.nextLevelClass = this.state.level % 9 + 1;
-                this.state.level++;
-
-                $('#level').html(this.state.level);
-                if (this.state.isKillScreen())
-                    SFX.Killscreen.play();
-                else
-                    SFX.LevelUp.play();
+                this.nextLevel();
             }
-
-            $('.no_display_level_' + this.state.level).css('display', 'block');
-
-            return false;
-        } else {
-            for (var i = 1; i < 10; i++)
-                $('.no_display_level_' + this.state.level + '').css('display', 'none');
+            return;
         }
 
         this.entities = [];
@@ -162,9 +157,9 @@ export class XQuest {
         this.state.multishot = 0
         this.state.level = 1;
         this.state.levelLines = 0;
+        this.state.power = null;
         this.map = [];
         this.LineEntered = [];
-        this.HighScore = false;
         this.state.stats = {
             Score: 0,
             Lines: 0,
@@ -183,7 +178,7 @@ export class XQuest {
         this.state.nextLevelClass = 1;
 
         /* Player spawns in the middle location */
-        var mid = Math.floor((this.width - 1) / 2);
+        const mid = Math.floor((this.width - 1) / 2);
         this.playerPosition = new Point(mid, this.height - 1);
 
         this.board.generateStartingLines();
@@ -226,10 +221,10 @@ export class XQuest {
                 var foundPosition = false;
                 while (!foundPosition) {
                     this.playerPosition.x += direction;
-                    var Tile3 = this.map[3].split('')[this.playerPosition.x];
+                    const tileUnderPlayer = this.map[3].split('')[this.playerPosition.x];
 
                     // only check whats above you becuse athats the area you are moving to
-                    if (Tile3 == '`' || Tile3 == '%')
+                    if (tileUnderPlayer == '`' || tileUnderPlayer == '%')
                         foundPosition = true;
 
                     if (this.playerPosition.x > this.width-1)
@@ -254,9 +249,9 @@ export class XQuest {
             this.state.stats.Moves += 1;
 
             var Tile2 = this.map[2].split('')[this.playerPosition.x];
-            var Tile3 = this.map[3].split('')[this.playerPosition.x];
+            var tileUnderPlayer = this.map[3].split('')[this.playerPosition.x];
 
-            if (Tile3 == '@' &&  Tile2 == '@' && this.state.invincible == 0) {
+            if (tileUnderPlayer == '@' &&  Tile2 == '@' && this.state.invincible == 0) {
                 this.Over('Abyss');
             }
         }
@@ -265,7 +260,6 @@ export class XQuest {
     gameLoop() {
         this.AddLine();
 
-        // add ms to time
         this.state.stats.Time += this.BaseSpeed / 1000;
 
         /* Create lines by the player for scoring purposes */
@@ -284,34 +278,33 @@ export class XQuest {
                 SFX.Bonus.play();
                 const score = (this.state.level*2)+2
                 this.state.stats.Score += score;
-                this.state.stats.Powerups += 1;
                 const pelletText = new PelletText(this, score);
                 this.addEntity(pelletText);
                 this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
                 break;
             case 'I':
                 SFX.Power.play();
-                this.state.invincible = 50;
-                this.state.stats.Powerups += 1;
+                this.state.power = 'I';
+                // this.state.invincible = 50;
                 this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
                 break;
             case 'W':
                 SFX.Power.play();
-                this.state.warp = 40;
-                this.state.stats.Powerups += 1;
+                this.state.power = 'W';
+                // this.state.warp = 40;
                 this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
                 break;
             case 'D':
                 SFX.Power.play();
-                this.state.distortion = 25;
-                this.state.stats.Powerups += 1;
-                this.startGameLoop(this.BaseSpeed*2);
+                this.state.power = 'D';
+                // this.state.distortion = 25;
+                // this.startGameLoop(this.BaseSpeed*2);
                 this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
                 break;
             case 'M':
                 SFX.Power.play();
-                this.state.multishot = 1;
-                this.state.stats.Powerups += 1;
+                this.state.power = 'M';
+                // this.state.multishot = 1;
                 this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
                 break;
             // nightmare mode wall tiles
@@ -367,6 +360,28 @@ export class XQuest {
             this.SetLevelClass(this.state.nextLevelClass);
             this.state.nextLevelClass = -1;
         }
+    }
+
+    usePowerup() {
+        switch (this.state.power) {
+            case 'D':
+                SFX.Power.play();
+                this.startGameLoop(this.BaseSpeed*2);
+                this.state.distortion = 25;
+                this.state.stats.Powerups += 1;
+                break;
+            case 'W':
+                SFX.Power.play();
+                this.state.warp = 50;
+                this.state.stats.Powerups += 1;
+                break;
+            case 'I':
+                SFX.Power.play();
+                this.state.invincible = 50;
+                this.state.stats.Powerups += 1;
+                break;
+        }
+        this.state.power = null;
     }
 
     startGameLoop(speed: number) {
