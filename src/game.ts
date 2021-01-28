@@ -13,6 +13,8 @@ import { PlayerBullet } from './entities/player-bullet';
 import { PelletText } from './entities/pellet-text';
 import { Howler } from 'howler';
 import { Timer } from './timer';
+import { RoadBullet } from './entities/road-bullet';
+import { Carrier } from './entities/carrier';
 
 declare var Game: XQuest;
 declare var $: any;
@@ -39,9 +41,12 @@ export class XQuest {
 
     messages: string[] = [];
     map: string[] = [];
+
     Active: boolean = false;
     Finished: boolean = false;
     Paused: boolean = false;
+    Restarting: boolean = false;
+
     playerPosition: Point;
     BaseSpeed: number;
     CHEAT: boolean = false;
@@ -119,24 +124,6 @@ export class XQuest {
         }
     }
 
-    nextLevel() {
-        this.state.nextLevelClass = this.state.level % 9 + 1;
-        this.state.level++;
-        this.state.levelLines = 0;
-
-        this.state.warp = 0;
-        this.state.invincible = 25;
-        if (this.state.distortion != 0) {
-            this.startGameLoop(this.BaseSpeed);
-            this.state.distortion = 0;
-        }
-
-        if (this.state.isKillScreen()) {
-            SFX.Killscreen.play();
-        } else {
-            SFX.LevelUp.play();
-        }
-    }
 
     start() {
         if (this.Active == true) {
@@ -156,6 +143,7 @@ export class XQuest {
         this.state.distortion = 0;
         this.state.multishot = 0
         this.state.level = 1;
+        this.state.lives = 3;
         this.state.levelLines = 0;
         this.state.power = null;
         this.map = [];
@@ -174,7 +162,6 @@ export class XQuest {
             DeathShot: 0,
         };
 
-
         this.state.nextLevelClass = 1;
 
         /* Player spawns in the middle location */
@@ -183,10 +170,8 @@ export class XQuest {
 
         this.board.generateStartingLines();
 
-
         $('#linesize').css('display', 'none');
         $('#mode').css('display', 'none');
-        $('#level').html(this.state.level);
 
         /* If you're on the high score screen and a new game starts don't let it submit */
         if (this.CurrentTab == 6 || this.CurrentTab == 7) {
@@ -198,8 +183,48 @@ export class XQuest {
         console.log('Game Started');
     }
 
-    Move(direction): void {
-        if (this.Active == true && this.Paused == false) {
+    nextLevel() {
+        this.state.nextLevelClass = this.state.level % 9 + 1;
+        this.state.level++;
+        this.state.levelLines = 0;
+
+        this.state.warp = 0;
+        this.state.invincible = 25;
+        if (this.state.distortion != 0) {
+            this.startGameLoop(this.BaseSpeed);
+            this.state.distortion = 0;
+        }
+
+        if (this.state.isKillScreen()) {
+            SFX.Killscreen.play();
+        } else {
+            SFX.LevelUp.play();
+        }
+    }
+
+    restartLevel() {
+        this.Restarting = false;
+        this.startGameLoop(this.BaseSpeed);
+                
+        this.entities = [];
+        this.state.levelLines = 0;
+        this.state.warp = 0;
+        this.state.invincible = 0;
+        this.state.power = null;
+        this.state.levelLines = 0;
+        if (this.state.distortion != 0) {
+            this.startGameLoop(this.BaseSpeed);
+            this.state.distortion = 0;
+        }
+
+        const mid = Math.floor((this.width - 1) / 2);
+        this.playerPosition = new Point(mid, this.height - 1);
+
+        this.board.generateStartingLines();
+    }
+
+    move(direction): void {
+        if (this.Active && !this.Paused && !this.Restarting) {
             switch(direction) {
                 case 'right': direction = 1; break;
                 case 'left': direction = -1; break;
@@ -273,7 +298,7 @@ export class XQuest {
         var Tile = this.map[2].split('')[this.playerPosition.x];
         switch (Tile) {
             case '|': break;
-            case '' + roadChar + '': break;
+            case roadChar: break;
             case 'P':
                 SFX.Bonus.play();
                 const score = (this.state.level*2)+2
@@ -307,6 +332,11 @@ export class XQuest {
                 // this.state.multishot = 1;
                 this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
                 break;
+            case 'R':
+                SFX.Power.play();
+                this.state.power = 'R';
+                this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
+                break;
             // nightmare mode wall tiles
             case '<':
             case '>':
@@ -328,6 +358,7 @@ export class XQuest {
                 spaceshipExists = true;
             }
         });
+
         if (((1+this.state.stats.Lines) % 100 == 0 && Utility.getRandomInt(1, 4) == 1 && this.state.level >= 2) || this.state.stats.Lines+1 == 20)  {
             const spaceship = new Spaceship(this);
             this.entities.push(spaceship);
@@ -380,6 +411,11 @@ export class XQuest {
                 this.state.invincible = 50;
                 this.state.stats.Powerups += 1;
                 break;
+            case 'R':
+                const bullet = new RoadBullet(this, new Point(this.playerPosition.x, this.playerPosition.y - 1));
+                SFX.Shoot.play();
+                this.entities.push(bullet);
+                break;
         }
         this.state.power = null;
     }
@@ -404,18 +440,23 @@ export class XQuest {
     }
 
     Over(death: string) {
+        this.state.lives --;
         SFX.GameOver.play();
-
-        this.Active = false;
-        this.Finished = true;
-        this.stopGameLoop();
-
-        if(this.CHEAT == false) {
-            this.state.saveGameStats(death);
-
-            this.UpdateStatistics();
+        if (this.state.lives > 0) {
+            this.Restarting = true;
+            this.stopGameLoop();
         }
+        else {
+            this.Active = false;
+            this.Finished = true;
+            this.stopGameLoop();
 
+            if(this.CHEAT == false) {
+                this.state.saveGameStats(death);
+
+                this.UpdateStatistics();
+            }
+        }
     }
 
     updateVolume(volume: number) {

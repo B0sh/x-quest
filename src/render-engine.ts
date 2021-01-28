@@ -26,6 +26,7 @@ export class RenderEngine {
 
     roadOffsetX: number = 3;
     roadOffsetY: number = 5;
+    restartAnimationSteps: number = 0;
 
     constructor(private game: XQuest) {
         
@@ -40,6 +41,7 @@ export class RenderEngine {
 
         if (this.game.Active || this.game.Finished) {
             this.renderRoad();
+            this.renderTextBehindObjects();
             this.renderObjects();
         }
 
@@ -68,7 +70,7 @@ export class RenderEngine {
         }
 
         this.drawCenteredText(0, 'X-Quest v' + this.game.version);
-        this.drawColoredText(2, 0, "" + this.game.frameCount, null, null);
+        // this.drawColoredText(2, 0, "" + this.game.frameCount, null, null);
 
         const score = this.game.state.stats?.Score;
         const currentRecord = this.game.state.currentHighScore();
@@ -95,7 +97,7 @@ export class RenderEngine {
     renderRoad() {
         const color = this.roadColors[(this.game.state.level - 1) % 9];
 
-        let y = 0;
+        let y: number = 0;
         for (let line of this.game.map.slice().reverse()) {
             y++;
 
@@ -111,7 +113,7 @@ export class RenderEngine {
 
     renderObjects() {
         const color = this.objectColors[(this.game.state.level - 1) % 9];
-        const powerUps = [ "P", "W", "M", "I", "D" ];
+        const powerUps = [ "P", "W", "M", "I", "D", "R" ];
 
         let y = 0;
         for (let line of this.game.map.slice().reverse()) {
@@ -157,6 +159,29 @@ export class RenderEngine {
             return;
         }
 
+        if (this.game.Restarting) {
+            this.restartAnimationSteps++;
+
+            let lineCount: number = Math.floor(this.restartAnimationSteps / 8);
+            let dashTimer: string = "-".repeat(lineCount);
+
+            if (lineCount == this.game.width) {
+                this.restartAnimationSteps = 0;
+                this.game.restartLevel();
+                return;
+            }
+
+            const overlayText: OverlayText[] = [
+                { y: 15, centered: true, text: "X failed its quest.", color: 'white' },
+                { x: 3, y: 16, text: Utility.padEnd(dashTimer, this.game.width, ' ') , color: 'white'},
+                { y: 17, centered: true, text: "Please wait", color: 'white' },
+                { y: 18, centered: true, text: "to respawn.", color: 'white' },
+            ];
+
+            this.renderTextOverlay(overlayText);
+            this.game.display.draw(5, 15, "X", color, null);
+        }
+
         if (this.game.Paused) {
             this.drawCenteredText(Math.floor(this.game.options.height/2), "-- PAUSED --", color, null);
         }
@@ -183,32 +208,36 @@ export class RenderEngine {
             this.drawColoredText(2, this.game.options.height - 1, "Distortion      " + dashes, color, null)
         }
 
-        if (this.game.state.levelLines >= this.game.board.getLevelLines(this.game.state.level)) {
-            let dashTimer: any = Math.floor((this.game.state.levelLines - this.game.board.getLevelLines(this.game.state.level)) / 3);
-            dashTimer = Array(dashTimer+1).join("-");
+ 
+    }
 
-            if (dashTimer ==  Array(this.game.board.lineLength.length+2).join("-")) {
+    renderTextBehindObjects() {
+        if (this.game.state.levelLines >= this.game.board.getLevelLines(this.game.state.level)) {
+            let lineCount: number = Math.floor((this.game.state.levelLines - this.game.board.getLevelLines(this.game.state.level)) / 3);
+            let dashTimer: string = "-".repeat(lineCount);
+
+            if (lineCount == this.game.width) {
                 this.game.nextLevel();
                 return;
             }
 
             const overlayText: OverlayText[] = [
-                { y: 14, centered: true, text: "COMPLETED" },
-                { y: 15, centered: true, text: "Level " + this.game.state.level },
-                { x: 3, y: 16, text: Utility.padEnd(dashTimer, this.game.width, ' ') },
+                { y: 14, centered: true, text: "COMPLETED", color: 'white' },
+                { y: 15, centered: true, text: "Level " + this.game.state.level, color: 'white' },
+                { x: 3, y: 16, text: Utility.padEnd(dashTimer, this.game.width, ' ') , color: 'white'},
             ];
 
             if (this.game.state.level == 3) {
-                overlayText.push({ y: 17, centered: true, text: "Look out for" });
-                overlayText.push({ y: 18, centered: true, text: "M - MultiShot" });
+                overlayText.push({ y: 17, centered: true, text: "Look out for", color: 'white' });
+                overlayText.push({ y: 18, centered: true, text: "M - MultiShot", color: 'white' });
             }
             else if (this.game.state.level == 6) {
-                overlayText.push({ y: 17, centered: true, text: "Look out for" });
-                overlayText.push({ y: 18, centered: true, text: "W - Warp" });
+                overlayText.push({ y: 17, centered: true, text: "Look out for", color: 'white' });
+                overlayText.push({ y: 18, centered: true, text: "W - Warp", color: 'white' });
             }
             else {
-                overlayText.push({ y: 17, centered: true, text: "Press Space" });
-                overlayText.push({ y: 18, centered: true, text: "to continue" });
+                overlayText.push({ y: 17, centered: true, text: "Press Space", color: 'white' });
+                overlayText.push({ y: 18, centered: true, text: "to continue", color: 'white' });
             }
             this.game.renderEngine.renderTextOverlay(overlayText);
         }

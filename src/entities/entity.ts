@@ -3,6 +3,7 @@ import { Point } from "../point";
 export const enum EntityType {
     Player,
     Spaceship,
+    Carrier,
     Bullet,
     PelletText
 }

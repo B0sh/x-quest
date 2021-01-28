@@ -5,6 +5,7 @@ import { SFX } from "../sfx";
 import { Spaceship } from "./spaceship";
 import { SpaceshipBullet } from "./spaceship-bullet";
 import Utility from "../utility";
+import { Carrier } from "./carrier";
 
 export class PlayerBullet implements Entity {
     type: EntityType;
@@ -37,12 +38,21 @@ export class PlayerBullet implements Entity {
 
             if (entity instanceof SpaceshipBullet) {
                 if (entity.position.x == this.position.x &&
-                    (entity.position.y == this.position.y || entity.position.y - 1 == this.position.y)) {
+                    Utility.contains(this.position.y, entity.position.y - 1, entity.position.y + 1)) {
                     this.game.deleteEntity(this);
                     entity.shot();
                     this.game.state.stats.Score += 3;
                     this.game.state.stats.ShotsDestroyed += 1; 
                     SFX.Explosion.play();
+                }
+            }
+
+            if (entity instanceof Carrier) {
+                if (entity.position.x == this.position.x &&
+                    Utility.contains(this.position.y, entity.position.y - 1, entity.position.y + 1)) {
+                    this.game.deleteEntity(this);
+                    entity.shot();
+                    // SFX.Explosion.play();
                 }
             }
         });

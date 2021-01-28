@@ -14,11 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
 	InputUtility.initListeners((event: KeyboardEvent) => {
 		switch (event.code) {
 			case 'KeyD': case 'KeyL': case 'ArrowRight':
-				Game.Move('right');
+				Game.move('right');
 				event.preventDefault();
 				break; //Left arrow or "d" or "l"
 			case 'KeyA': case 'KeyJ': case 'ArrowLeft':
-				Game.Move('left');
+				Game.move('left');
 				event.preventDefault();
 				break; //Right arrow or "a" or "j"
 			case 'KeyW': case 'KeyI': case 'ArrowUp':
@@ -30,11 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
 				event.preventDefault();
 				break;
 			case 'Space':
-				if (Game.Active == false) {
+				if (!Game.Active) {
 					Game.start();
 				} else if (Game.state.levelLines >= Game.board.getLevelLines(Game.state.level)){
 					Game.nextLevel();	
-				} else {
+				} else if (!Game.Restarting) {
 					Game.togglePause();
 				}
 				event.preventDefault();

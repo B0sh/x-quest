@@ -16,19 +16,42 @@ export class Board {
         this.lineEntered = [];
         this.game.map = [];
 
-        const mid = Math.floor((this.game.width - 1) / 2);
+        if (this.game.state.level == 1) {
+            const mid = Math.floor((this.game.width - 1) / 2);
 
-        for (var i = 0; i < this.game.width; i++) {
-            // if the location is one of the 3 middle columns then make a line there
-            const isMid: number  = Utility.contains(i, mid - 1, mid + 1) ? 1 : 0;
+            for (var i = 0; i < this.game.width; i++) {
+                // if the location is one of the 3 middle columns then make a line there
+                const isMid: number = Utility.contains(i, mid - 1, mid + 1) ? 1 : 0;
 
-            this.lineLength.push(isMid * 25);
-            this.lineReset.push(isMid);
-            this.lineEntered.push(isMid);
+                this.lineLength.push(isMid * 25);
+                this.lineReset.push(isMid);
+                this.lineEntered.push(isMid);
+            }
+
+            for (let y = 0; y <= this.game.height; y++) {
+                this.game.map.push(this.generateLine());
+            }
         }
+        else {
+            const line1X = Utility.getRandomInt(0, this.game.width - 1);
+            const line2X = Utility.getRandomInt(0, this.game.width - 1);
+            const line3X = Math.floor((this.game.width - 1) / 2);
 
-        for (let y = 0; y <= this.game.height; y++) {
-            this.game.map.push(this.generateLine());
+            for (var i = 0; i < this.game.width; i++) {
+                let spawnLine = (i == line1X || i == line2X || i == line3X);
+
+                this.lineLength.push(spawnLine ? 25 : 0);
+                this.lineReset.push(spawnLine ? 1 : 0);
+                this.lineEntered.push(spawnLine ? 1 : 0);
+            }
+
+            for (let y = 0; y <= this.game.height; y++) {
+                this.game.map.push(this.generateLine());
+            }
+
+            for (let y = 0; y <= this.game.height; y++) {
+                this.game.map[y] = "%".repeat(this.game.map[y].length);
+            }
         }
     }
 
@@ -69,6 +92,8 @@ export class Board {
                     road = 'P';
                 } else if (Utility.getRandomInt(1, 900) === 1) {
                     road = 'D';
+                } else if (Utility.getRandomInt(1, 1000) === 1) {
+                    road = 'R';
                 } else if (Utility.getRandomInt(1, 900) === 1 && this.game.state.level >= 6) {
                     road = 'W';
                 } else if (Utility.getRandomInt(1, 900) === 1 && this.game.state.level >= 3) {
