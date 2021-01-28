@@ -29,7 +29,7 @@ export class SpaceshipBullet implements Entity {
 
         this.position.y++;
 
-        if (this.position.y == this.game.GameHeight + 2) {
+        if (this.position.y == this.game.height + 2) {
             this.game.deleteEntity(this);
         }
 

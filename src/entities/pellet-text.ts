@@ -23,7 +23,7 @@ export class PelletText implements Entity {
     }
 
     draw() {
-        if (this.game.playerPosition.x + 6 > this.game.LineSize) {
+        if (this.game.playerPosition.x + 6 > this.game.width) {
             this.position = new Point(
                 this.game.playerPosition.x - this.score.toString().length - 4,
                 this.game.playerPosition.y

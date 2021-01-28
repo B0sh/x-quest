@@ -16,9 +16,9 @@ export class Board {
         this.lineEntered = [];
         this.game.map = [];
 
-        const mid = Math.floor((this.game.LineSize - 1) / 2);
+        const mid = Math.floor((this.game.width - 1) / 2);
 
-        for (var i = 0; i < this.game.LineSize; i++) {
+        for (var i = 0; i < this.game.width; i++) {
             // if the location is one of the 3 middle columns then make a line there
             const isMid: number  = Utility.contains(i, mid - 1, mid + 1) ? 1 : 0;
 
@@ -27,7 +27,7 @@ export class Board {
             this.lineEntered.push(isMid);
         }
 
-        for (let y = 0; y <= this.game.GameHeight; y++) {
+        for (let y = 0; y <= this.game.height; y++) {
             this.game.map.push(this.generateLine());
         }
     }
@@ -36,25 +36,25 @@ export class Board {
         let line: string = this.game.BaseLine;
 
         /* Randomly start a new line every once in a while (Higher line size = less new lines) */
-        if (Utility.getRandomInt(1, 30 + this.game.LineSize) == 1) {
-            let lineIndex = Utility.getRandomInt(0, this.game.LineSize - 1);
+        if (Utility.getRandomInt(1, 30 + this.game.width) == 1) {
+            let lineIndex = Utility.getRandomInt(0, this.game.width - 1);
             this.lineReset[lineIndex] = 1;
             this.lineLength[lineIndex] = Utility.getRandomInt(6, 22 - this.game.state.level);
         }
 
         if (this.game.state.gameMode == 'normal') {
             var start = 0;
-            var end = this.game.LineSize;
+            var end = this.game.width;
         }
         else if (this.game.state.gameMode == 'nightmare') {
             var start = 2;
-            var end = this.game.LineSize - 2;
+            var end = this.game.width - 2;
 
             line = Utility.setCharAt(line, 0, '>');
             line = Utility.setCharAt(line, 1, '>');
 
-            line = Utility.setCharAt(line, this.game.LineSize - 1, '<');
-            line = Utility.setCharAt(line, this.game.LineSize - 2, '<');
+            line = Utility.setCharAt(line, this.game.width - 1, '<');
+            line = Utility.setCharAt(line, this.game.width - 2, '<');
         }
 
         for (let i = start; i < end; i++) {
@@ -91,7 +91,7 @@ export class Board {
         }
 
         // at the end of the level
-        if (this.game.state.levelLines > this.game.board.getLevelLines(this.game.state.level) - this.game.GameHeight) {
+        if (this.game.state.levelLines > this.game.board.getLevelLines(this.game.state.level) - this.game.height) {
             for (let i = start; i < end; i++) {
                 line = Utility.setCharAt(line, i, "%");
             }

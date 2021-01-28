@@ -11,6 +11,8 @@ import { Entity, EntityType } from './entities/entity';
 import { Spaceship } from './entities/spaceship';
 import { PlayerBullet } from './entities/player-bullet';
 import { PelletText } from './entities/pellet-text';
+import { Howler } from 'howler';
+import { Timer } from './timer';
 
 declare var Game: XQuest;
 declare var $: any;
@@ -32,6 +34,8 @@ export class XQuest {
         fontStyle: "bold",
         fontFamily: 'monospace',
     } as DisplayOptions;
+    width: number = 25;
+    height: number = 22;
 
     messages: string[] = [];
     map: string[] = [];
@@ -39,24 +43,39 @@ export class XQuest {
     Finished: boolean = false;
     Paused: boolean = false;
     playerPosition: Point;
-    LineSize: number = 25;
-    GameHeight: number = 22;
     BaseSpeed: number;
+    CHEAT: boolean = false;
+    CurrentTab = 1;
+    BaseLine: string;
 
     renderEngine: RenderEngine;
     board: Board;
 
     entities: Entity[] = [];
 
+    timer: Timer;
+
     constructor() {
         this.display = new Display(this.options);
-        this.state = new State();
+        this.state = new State(this);
         this.renderEngine = new RenderEngine(this);
         this.board = new Board(this);
     }
 
     init() {
         document.getElementsByClassName('TEMPGAMESPOT')[0].prepend(this.display.getContainer())
+        this.renderEngine.render();
+    }
+
+    frameCount: number = 0;
+    renderLoop() {
+        this.frameCount++;
+        this.renderEngine.render();
+
+        const self = this;
+        window.requestAnimationFrame(() => {
+            self.renderLoop();
+        });
     }
 
     addEntity(entity: Entity) {
@@ -95,18 +114,21 @@ export class XQuest {
                 const bulletRight = new PlayerBullet(this, new Point(this.playerPosition.x + 1, this.playerPosition.y));
                 this.entities.push(bulletRight);
 
-                Game.state.multishot = 0;
+                this.state.multishot = 0;
             }
         }
     }
 
     Start() {
+        this.lastFrameTime = performance.now();
+        this.renderLoop();
+
         if (this.Active == true) {
-            if (this.state.levelLines > this.board.getLevelLines(this.state.level) - this.GameHeight) {
+            if (this.state.levelLines > this.board.getLevelLines(this.state.level) - this.height) {
                 this.state.warp = 0;
                 this.state.invincible = 25;
                 if (this.state.distortion != 0) {
-                    Game.CreateInterval(Game.BaseSpeed);
+                    this.startGameLoop(this.BaseSpeed);
                     this.state.distortion = 0;
                 }
                 this.state.levelLines = 0;
@@ -128,20 +150,21 @@ export class XQuest {
             for (var i = 1; i < 10; i++)
                 $('.no_display_level_' + this.state.level + '').css('display', 'none');
         }
+
         this.entities = [];
 
         this.Active = true;
         this.Finished = false;
         this.Paused = false;
         this.state.warp = 0;
-        this.state.invincible = 2000;
+        this.state.invincible = 0;
         this.state.distortion = 0;
         this.state.multishot = 0
         this.state.level = 1;
         this.state.levelLines = 0;
-        Game.map = [];
-        Game.LineEntered = [];
-        Game.HighScore = false;
+        this.map = [];
+        this.LineEntered = [];
+        this.HighScore = false;
         this.state.stats = {
             Score: 0,
             Lines: 0,
@@ -160,8 +183,8 @@ export class XQuest {
         this.state.nextLevelClass = 1;
 
         /* Player spawns in the middle location */
-        var mid = Math.floor((Game.LineSize - 1) / 2);
-        this.playerPosition = new Point(mid, Game.GameHeight - 1);
+        var mid = Math.floor((this.width - 1) / 2);
+        this.playerPosition = new Point(mid, this.height - 1);
 
         this.board.generateStartingLines();
 
@@ -171,177 +194,314 @@ export class XQuest {
         $('#level').html(this.state.level);
 
         /* If you're on the high score screen and a new game starts don't let it submit */
-        if (Game.CurrentTab == 6 || Game.CurrentTab == 7) {
+        if (this.CurrentTab == 6 || this.CurrentTab == 7) {
             ToggleTab('1');
         }
 
         /* Lets get this party started */
-        Game.CreateInterval(Game.BaseSpeed);
+        this.startGameLoop(this.BaseSpeed);
         console.log('Game Started');
     }
 
-    /* Main Game loop, main function is to process tiles and update map */
-    CreateInterval(speed: number) {
-        /* If a game loop exists already; kill it */
-        clearInterval(Game.Interval);
-        Game.CurrentSpeed = speed/1000;
-        const _this = this;
-        Game.Interval = setInterval(function() {
-            // https://developer.mozilla.org/en-US/docs/Web/API/Performance/now
-            // performance.now();
-            Game.AddLine();
-
-            Game.state.stats.Time += Game.CurrentSpeed;
-
-            /* Create lines by the player for scoring purposes */
-            for (let x=0; x<Game.LineSize; x++) {
-                if (Game.map[3].charAt(x) == '@')
-                    Game.LineEntered[x] = 0;
-                else if (Game.LineEntered[x] == 0)
-                    Game.LineEntered[x] = 1;
+    Move(direction): void {
+        if (this.Active == true && this.Paused == false) {
+            switch(direction) {
+                case 'right': direction = 1; break;
+                case 'left': direction = -1; break;
             }
 
-            var Tile = Game.map[2].split('')[Game.playerPosition.x];
-            switch (Tile) {
-                case '|': break;
-                case '' + roadChar + '': break;
-                case 'P':
-                    SFX.Bonus.play();
-                    const score = (_this.state.level*2)+2
-                    _this.state.stats.Score += score;
-                    _this.state.stats.Powerups += 1;
-                    const pelletText = new PelletText(_this, score);
-                    _this.addEntity(pelletText);
-                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.playerPosition.x, "`");
-                    break;
-                case 'I':
-                    SFX.Power.play();
-                    _this.state.invincible = 50;
-                    _this.state.stats.Powerups += 1;
-                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.playerPosition.x, "`");
-                    break;
-                case 'W':
-                    SFX.Power.play();
-                    _this.state.warp = 40;
-                    _this.state.stats.Powerups += 1;
-                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.playerPosition.x, "`");
-                    break;
-                case 'D':
-                    SFX.Power.play();
-                    _this.state.distortion = 25;
-                    _this.state.stats.Powerups += 1;
-                    Game.CreateInterval(Game.BaseSpeed*2);
-                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.playerPosition.x, "`");
-                    break;
-                case 'M':
-                    SFX.Power.play();
-                    _this.state.multishot = 1;
-                    _this.state.stats.Powerups += 1;
-                    Game.map[2] = Utility.setCharAt(Game.map[2], Game.playerPosition.x, "`");
-                    break;
-            // nightmare mode wall tiles
-                case '<':
-                case '>':
-                    Game.Over('Wall');
+            var Tile2 = this.map[2].split('')[this.playerPosition.x];
+
+            // if you don't have warp mode on the move is pretty simple
+            if (this.state.warp == 0) {
+                this.playerPosition.x += direction;
+                if (this.playerPosition.x > this.width-1 || this.playerPosition.x < 0) {
+                    this.Over('Wall');
                     return;
-                    break;
-                case '@':
-                    if (Game.state.invincible == 0) {
-                        Game.Over('Abyss');
-                        return;
+                }
+
+            // warp power up checks to find the next available line
+            //   and if it doesn't find one its a wall game over ofc
+            } else {
+                var foundPosition = false;
+                while (!foundPosition) {
+                    this.playerPosition.x += direction;
+                    var Tile3 = this.map[3].split('')[this.playerPosition.x];
+
+                    // only check whats above you becuse athats the area you are moving to
+                    if (Tile3 == '`' || Tile3 == '%')
+                        foundPosition = true;
+
+                    if (this.playerPosition.x > this.width-1)
+                    {
+                        this.playerPosition.x = 0;
                     }
-                    break;
-            }
-
-            /* Randomly generate spaceships every 100 lines at 1/4 chance */
-            let spaceshipExists: boolean = false;
-            _this.entities.forEach((entity) => {
-                if (entity.type == EntityType.Spaceship) {
-                    spaceshipExists = true;
+                    else if (this.playerPosition.x < 0) {
+                        this.playerPosition.x = this.width-1;
+                        // foundPosition = true;
+                    }
                 }
-            });
-            if (((1+Game.state.stats.Lines) % 100 == 0 && Utility.getRandomInt(1, 4) == 1 && Game.state.level >= 2) || Game.state.stats.Lines+1 == 10)  {
-                const spaceship = new Spaceship(_this);
-                _this.entities.push(spaceship);
             }
 
-            _this.entities.forEach((entity) => {
-                entity.update();
-            });
-
-            _this.renderEngine.render();
-
-
-            if (Game.isNewRecord() && Game.HighScore == false) {
-                Game.HighScore = true;
-            }
-            if (Game.state.invincible != 0) {
-                Game.state.invincible -= 1;
-                $('#GameWindow_Objects').append('<br><b>Invincible:</b> '+Game.state.invincible);
-            }
-            if (Game.state.warp != 0) {
-                Game.state.warp -= 1;
-                $('#GameWindow_Objects').append('<br><b>Warp:</b> '+Game.state.warp);
-            }
-            if (Game.state.multishot != 0) {
-                $('#GameWindow_Objects').append('<br><b>MultiShot</b>');
-            }
-            if (Game.state.distortion != 0) {
-                Game.state.distortion -= 1;
-                if (Game.state.distortion == 0) {
-                    Game.CreateInterval(Game.BaseSpeed);
-                }
-                $('#GameWindow_Objects').append('<br><b>Distortion:</b> '+Game.state.distortion);
+            if (this.LineEntered[this.playerPosition.x] == 1 && Tile2 != '%') {
+                this.LineEntered[this.playerPosition.x] = 2;
+                this.state.stats.Score += 1;
+                SFX.Score.play();
+            } else {
+                SFX.Noscore.play();
             }
 
-            if (Game.state.nextLevelClass != -1) {
-                Game.SetLevelClass(Game.state.nextLevelClass);
-                Game.state.nextLevelClass = -1;
+            this.state.stats.Moves += 1;
+
+            var Tile2 = this.map[2].split('')[this.playerPosition.x];
+            var Tile3 = this.map[3].split('')[this.playerPosition.x];
+
+            if (Tile3 == '@' &&  Tile2 == '@' && this.state.invincible == 0) {
+                this.Over('Abyss');
             }
-        }, speed);
-    };
+        }
+    }
 
-    Over(DeathType: string) {
-        SFX.GameOver.play();
+    gameLoop() {
+        this.AddLine();
 
-        Game.Active = false;
-        Game.Finished = true;
-        clearInterval(Game.Interval);
-        Game.renderEngine.render();
+        // add ms to time
+        this.state.stats.Time += this.BaseSpeed / 1000;
 
-        if(Game.CHEAT == false) {
-            switch(DeathType) {
-                case 'Spaceship': Game.SaveFile.Totals.DeathShot++; break;
-                case 'Wall': Game.SaveFile.Totals.DeathWall++; break;
-                case 'Abyss': Game.SaveFile.Totals.DeathAbyss++; break;
-            }
-
-            Game.SaveFile.Totals.GamesPlayed += 1;
-            Game.SaveFile.Totals.Score += Game.state.stats.Score;
-            Game.SaveFile.Totals.Lines += Game.state.stats.Lines;
-            Game.SaveFile.Totals.ShipsDestroyed += Game.state.stats.ShipsDestroyed;
-            Game.SaveFile.Totals.Powerups += Game.state.stats.Powerups;
-            Game.SaveFile.Totals.Moves += Game.state.stats.Moves;
-            Game.SaveFile.Totals.Time += Game.state.stats.Time;
-            Game.SaveFile.Totals.ShotsFired += Game.state.stats.ShotsFired;
-            Game.SaveFile.Totals.ShotsDestroyed += Game.state.stats.ShotsDestroyed;
-
-            if (Game.isNewRecord()) {
-                Game.SaveFile.Record[Game.state.gameMode] = {
-                    Score: Game.state.stats.Score,
-                    Lines: Game.state.stats.Lines
-                }
-                $('#high-score').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Score));
-                $('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Lines));
-            }
-
-            $('#total-score').html(Utility.format(Game.SaveFile.Totals.Score));
-            $('#total-lines').html(Utility.format(Game.SaveFile.Totals.Lines));
-
-            Game.Save();
-
-            Game.UpdateStatistics();
+        /* Create lines by the player for scoring purposes */
+        for (let x=0; x<this.width; x++) {
+            if (this.map[3].charAt(x) == '@')
+                this.LineEntered[x] = 0;
+            else if (this.LineEntered[x] == 0)
+                this.LineEntered[x] = 1;
         }
 
-    };
-};
+        var Tile = this.map[2].split('')[this.playerPosition.x];
+        switch (Tile) {
+            case '|': break;
+            case '' + roadChar + '': break;
+            case 'P':
+                SFX.Bonus.play();
+                const score = (this.state.level*2)+2
+                this.state.stats.Score += score;
+                this.state.stats.Powerups += 1;
+                const pelletText = new PelletText(this, score);
+                this.addEntity(pelletText);
+                this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
+                break;
+            case 'I':
+                SFX.Power.play();
+                this.state.invincible = 50;
+                this.state.stats.Powerups += 1;
+                this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
+                break;
+            case 'W':
+                SFX.Power.play();
+                this.state.warp = 40;
+                this.state.stats.Powerups += 1;
+                this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
+                break;
+            case 'D':
+                SFX.Power.play();
+                this.state.distortion = 25;
+                this.state.stats.Powerups += 1;
+                this.startGameLoop(this.BaseSpeed*2);
+                this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
+                break;
+            case 'M':
+                SFX.Power.play();
+                this.state.multishot = 1;
+                this.state.stats.Powerups += 1;
+                this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
+                break;
+            // nightmare mode wall tiles
+            case '<':
+            case '>':
+                this.Over('Wall');
+                return;
+                break;
+            case '@':
+                if (this.state.invincible == 0) {
+                    this.Over('Abyss');
+                    return;
+                }
+                break;
+        }
+
+        /* Randomly generate spaceships every 100 lines at 1/4 chance */
+        let spaceshipExists: boolean = false;
+        this.entities.forEach((entity) => {
+            if (entity.type == EntityType.Spaceship) {
+                spaceshipExists = true;
+            }
+        });
+        if (((1+this.state.stats.Lines) % 100 == 0 && Utility.getRandomInt(1, 4) == 1 && this.state.level >= 2) || this.state.stats.Lines+1 == 20)  {
+            const spaceship = new Spaceship(this);
+            this.entities.push(spaceship);
+        }
+
+        this.entities.forEach((entity) => {
+            entity.update();
+        });
+
+        if (this.state.invincible != 0) {
+            this.state.invincible -= 1;
+            $('#GameWindow_Objects').append('<br><b>Invincible:</b> '+this.state.invincible);
+        }
+        if (this.state.warp != 0) {
+            this.state.warp -= 1;
+            $('#GameWindow_Objects').append('<br><b>Warp:</b> '+this.state.warp);
+        }
+        if (this.state.multishot != 0) {
+            $('#GameWindow_Objects').append('<br><b>MultiShot</b>');
+        }
+        if (this.state.distortion != 0) {
+            this.state.distortion -= 1;
+            if (this.state.distortion == 0) {
+                this.startGameLoop(this.BaseSpeed);
+            }
+            $('#GameWindow_Objects').append('<br><b>Distortion:</b> '+this.state.distortion);
+        }
+
+        if (this.state.nextLevelClass != -1) {
+            this.SetLevelClass(this.state.nextLevelClass);
+            this.state.nextLevelClass = -1;
+        }
+    }
+
+    startGameLoop(speed: number) {
+        console.log("START GAME LOOP");
+        if (this.timer && this.timer.interval == speed) {
+            this.timer.start();
+        } else if (this.timer) {
+            this.timer.stop();
+            this.timer = new Timer(this.gameLoop.bind(this), speed);
+            this.timer.start();
+        } else {
+            this.timer = new Timer(this.gameLoop.bind(this), speed);
+            this.timer.start();
+        }
+    }
+
+    stopGameLoop() {
+        console.log("STOP");
+        this.timer.stop();
+    }
+
+    Over(death: string) {
+        SFX.GameOver.play();
+
+        this.Active = false;
+        this.Finished = true;
+        this.stopGameLoop();
+
+        if(this.CHEAT == false) {
+            this.state.saveGameStats(death);
+
+            this.UpdateStatistics();
+        }
+
+    }
+
+    updateVolume(volume: number) {
+        Howler.volume(volume);
+        this.state.saveFile.Volume = volume;
+        this.state.save();
+        console.log("Updated Volume");
+    }
+
+    togglePause() {
+        if (this.Active == true) {
+            if (this.Paused == false) {
+                this.Paused = true;
+                this.stopGameLoop();
+            } else {
+                this.Paused = false;
+                this.startGameLoop(this.BaseSpeed);
+            }
+        }
+    }
+
+    UpdateStatistics() {
+        if (!this.state.saveFile || !this.state.saveFile.Totals) {
+            return;
+        }
+
+        const time = this.state.saveFile.Totals.Time;
+        let timeFormatted: string;
+
+        if(time < 600) {
+            timeFormatted = Utility.format(time, 1) + " Seconds";
+        } else if (time < 36000) {
+            timeFormatted = Utility.format(time/60, 1) + " Minutes";
+        } else {
+            timeFormatted = Utility.format(time / 3600, 1) + " Hours";
+        }
+
+        $('#Statistics').html(
+            '<b>Games Played:</b> '+Utility.format(this.state.saveFile.Totals.GamesPlayed)+'<br>'+
+            '<b>Score:</b> '+Utility.format(this.state.saveFile.Totals.Score)+'<br>'+
+            '<b>Lines:</b> '+Utility.format(this.state.saveFile.Totals.Lines)+'<br>'+
+            '<b>Times Moved:</b> '+Utility.format(this.state.saveFile.Totals.Moves)+'<br>'+
+            '<b>Shots Fired:</b> '+Utility.format(this.state.saveFile.Totals.ShotsFired)+'<br>'+
+            '<b>Shots Destroyed:</b> '+Utility.format(this.state.saveFile.Totals.ShotsDestroyed)+'<br>'+
+            '<b>Ships Destroyed:</b> '+Utility.format(this.state.saveFile.Totals.ShipsDestroyed)+'<br>'+
+            '<b>Powerups Collected:</b> '+Utility.format(this.state.saveFile.Totals.Powerups)+'<br>'+
+            '<b>Deaths To The Abyss:</b> '+Utility.format(this.state.saveFile.Totals.DeathAbyss)+'<br>'+
+            '<b>Deaths To The Ship:</b> '+Utility.format(this.state.saveFile.Totals.DeathShot)+'<br>'+
+            '<b>Deaths To The Wall:</b> '+Utility.format(this.state.saveFile.Totals.DeathWall)+'<br>'+
+            '<b>Time Played:</b> '+timeFormatted+'<br>'
+        );
+    }
+
+    AddLine() {
+        var newMap = [];
+        for (let y = 1; y <= this.height; y++) {
+            newMap[y-1] = this.map[y];
+        }
+        this.map = newMap;
+        this.map[this.height] = this.board.generateLine();
+        this.state.levelLines += 1;
+
+        if (this.state.levelLines < this.board.getLevelLines(this.state.level)) {
+            this.state.stats.Lines += 1;
+        }
+
+        return false;
+    }
+
+
+    SetLevelClass(level) {
+        for (var i = 1; i <= 9; i++) {
+            $('.Xbox').removeClass("d"+i);
+        }
+        $('.Xbox').addClass("d"+level);
+    }
+
+    UpdateSpeed(speed) {
+        this.BaseSpeed = speed;
+        console.log("Updated Speed");
+    }
+
+    UpdateSize(size) {
+        this.width = parseInt(size);
+        var l = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
+        this.BaseLine = l.substr(0,this.width);
+    }
+
+    UpdateMode(mode) {
+        if (this.Active == true) {
+            alert("Wait until a game is no longer active");
+            $('#mode').val(this.state.gameMode);
+            return false;
+        }
+
+        if (mode == 'normal') {
+            this.state.gameMode = 'normal';
+            this.BaseSpeed = 110;
+        } else {
+            this.state.gameMode = 'nightmare';
+            this.BaseSpeed = 60;
+        }
+    }
+}

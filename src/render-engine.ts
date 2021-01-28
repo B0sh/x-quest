@@ -48,7 +48,7 @@ export class RenderEngine {
     }
 
     drawCenteredText(y: number, text: string, fg: string = null, bg: string = null) {
-        const x = Math.floor(this.game.options.width / 2 - text.length / 2);
+        const x = Math.floor(this.game.options.width / 2 - text?.length / 2);
         this.drawColoredText(x, y, text, fg, bg);
     }
 
@@ -63,23 +63,23 @@ export class RenderEngine {
         const objectColor = this.objectColors[(this.game.state.level - 1) % 9];
 
         for (let y = 0; y < this.game.options.height; y++) {
-            if (y == 0 || y == this.game.options.height - 1) {
-                for (let x = 0; x < this.game.options.width; x++) {
-                    // this.game.display.draw(x, y, "#", null, null);
-                }
-            }
-
             this.game.display.draw(0, y, "/", "#FFFFFF", null);
             this.game.display.draw(this.game.options.width - 1, y, "\\", "#FFFFFF", null);
         }
 
         this.drawCenteredText(0, 'X-Quest v' + this.game.version);
+        this.drawColoredText(2, 0, "" + this.game.frameCount, null, null);
 
+        const score = this.game.state.stats?.Score;
+        const currentRecord = this.game.state.currentHighScore();
         this.drawColoredText(2, 1, "Score", "#ccf", null);
-        this.drawColoredText(2, 2, Utility.padStart(this.game.state.stats?.Score, 6, "."), "#fff", null);
+        this.drawColoredText(2, 2, Utility.padStart(score, 6, "."), "#fff", null);
 
         this.game.display.drawText(16, 1, "High Score");
-        this.game.display.drawText(16, 2, Utility.padStart(this.game.SaveFile?.Record['normal'].Score, 6, "."));
+        if (currentRecord > score)
+            this.game.display.drawText(16, 2, Utility.padStart(currentRecord, 6, "."));
+        else
+            this.game.display.drawText(16, 2, Utility.padStart(score, 6, "."));
 
         for (let lives = 0; lives < this.game.state.lives; lives++) {
             this.game.display.draw(2 + lives, 4, "X", objectColor, null);
@@ -144,16 +144,28 @@ export class RenderEngine {
             return;
         }
 
+        if (!this.game.Finished && !this.game.Active) {
+            const overlayText: OverlayText[] = [
+                {centered: true, y:15, text:"Press Space"},
+                {centered: true, y:16, text:"to start."},
+            ];
+            this.renderTextOverlay(overlayText);
+            return;
+        }
+
         if (this.game.Paused) {
             this.drawCenteredText(Math.floor(this.game.options.height/2), "-- PAUSED --", color, null);
         }
 
         if (this.game.state.levelLines < 51 && this.game.state.level == 1) {
-            if (this.game.state.levelLines == 1) {
+            if (!this.selectedPhrase) {
                 this.selectedPhrase = this.positivePhrases[Utility.getRandomInt(0, this.positivePhrases.length - 1)];
             }
 
             this.drawCenteredText(this.game.options.height - 1, this.selectedPhrase, color, null);
+        }
+        else {
+            this.selectedPhrase = null;
         }
 
         // this.drawColoredText(2, this.game.options.height - 2, "Multi Shot", color, null)
@@ -171,7 +183,7 @@ export class RenderEngine {
             const overlayText: OverlayText[] = [
                 { y: 14, centered: true, text: "COMPLETED" },
                 { y: 15, centered: true, text: "Level " + this.game.state.level },
-                { x: 3, y: 16, text: Utility.padEnd(dashTimer, this.game.LineSize, ' ') },
+                { x: 3, y: 16, text: Utility.padEnd(dashTimer, this.game.width, ' ') },
                 { y: 17, centered: true, text: "Press Space" },
                 { y: 18, centered: true, text: "to continue" },
             ];

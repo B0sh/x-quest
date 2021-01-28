@@ -170,7 +170,7 @@
 	<b>Volume:</b> (<span id="volumeLevel" style="width:32px;">30</span>)
 		<input name="volume" type="range" min="0" max="100" step="5" value="30"
 			oninput="$('#volumeLevel').html($('[name=volume]').val());"
-			onchange="Game.UpdateVolume($('[name=volume]').val()); $('#volumeLevel').html($('[name=volume]').val());">
+			onchange="Game.updateVolume($('[name=volume]').val()); $('#volumeLevel').html($('[name=volume]').val());">
 	<br><br>
 
 	<b>Mode:</b>

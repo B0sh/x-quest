@@ -1,8 +1,6 @@
 import { Changelog } from "./changelog";
 import Utility from "./utility";
 import jquery from '../jquery.js';
-import { SFX } from "./sfx";
-import { Howler } from "howler";
 import { XQuest } from "./game";
 import { InputUtility } from "./input-utility";
 import { OverlayText } from "./render-engine";
@@ -31,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				if (Game.Active == false || (Game.state.levelLines >= Game.board.getLevelLines(Game.state.level))){
 					Game.Start(); //Spacebar to start
 				} else {
-					Game.TogglePause(); //Spacebar to pause
+					Game.togglePause(); //Spacebar to pause
 				}
 				event.preventDefault();
 
@@ -43,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (Utility.isiPad())
 		$('.no_display_iPad').css('display', 'none');
 
-	Game.Load();
+	Game.state.load();
 	Game.UpdateMode('normal');
 
 	/* Default to medium size */
@@ -51,16 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	Game.SetLevelClass(1);
 
 	Game.map = [];
-	for(let i = 0; i <= Game.GameHeight; i++) {
+	for(let i = 0; i <= Game.height; i++) {
 		Game.map[i] = '@@@@@@@@@@@@@@@';
 	}
-
-	const overlayText: OverlayText[] = [
-		{centered: true, y:15, text:"Press Space"},
-		{centered: true, y:16, text:"to start."},
-	];
-	Game.renderEngine.render();
-	Game.renderEngine.renderTextOverlay(overlayText);
 
 	$('tab').click(function (e) {
 		ToggleTab($(this).attr('id'));
@@ -71,313 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-Game.CurrentTab = 1;
-Game.CHEAT = false;
-
-// defaults
-Game.state.gameMode = 'normal';
-Game.state.level = 1;
-Game.state.nextLevelClass = -1;
-
-/* Adds a new line to the map array; called each tick */
-Game.AddLine = function() {
-	var newMap = [];
-	for (let y = 1; y <= Game.GameHeight; y++) {
-		newMap[y-1] = Game.map[y];
-	}
-	Game.map = newMap;
-	Game.map[Game.GameHeight] = Game.board.generateLine();
-	Game.state.levelLines += 1;
-
-	if (Game.state.levelLines < Game.board.getLevelLines(Game.state.level)) {
-		Game.state.stats.Lines += 1;
-	}
-
-	return false;
-};
-
-Game.Move = function (direction){
-	if (Game.Active == true && Game.Paused == false) {
-		switch(direction) {
-			case 'right': direction = 1; break;
-			case 'left': direction = -1; break;
-		}
-
-		var Tile2 = Game.map[2].split('')[Game.playerPosition.x];
-
-		// if you don't have warp mode on the move is pretty simple
-		if (Game.state.warp == 0) {
-			Game.playerPosition.x += direction;
-			if (Game.playerPosition.x > Game.LineSize-1 || Game.playerPosition.x < 0) {
-				Game.Over('Wall');
-				return;
-			}
-
-		// warp power up checks to find the next available line
-		//   and if it doesn't find one its a wall game over ofc
-		} else {
-			var foundPosition = false;
-			while (!foundPosition) {
-				Game.playerPosition.x += direction;
-				var Tile3 = Game.map[3].split('')[Game.playerPosition.x];
-
-				// only check whats above you becuse athats the area you are moving to
-				if (Tile3 == '`' || Tile3 == '%')
-					foundPosition = true;
-
-				if (Game.playerPosition.x > Game.LineSize-1)
-				{
-					Game.playerPosition.x = 0;
-				}
-				else if (Game.playerPosition.x < 0) {
-					Game.playerPosition.x = Game.LineSize-1;
-					// foundPosition = true;
-				}
-			}
-		}
-
-		if (Game.LineEntered[Game.playerPosition.x] == 1 && Tile2 != '%') {
-			Game.LineEntered[Game.playerPosition.x] = 2;
-			Game.state.stats.Score += 1;
-			SFX.Score.play();
-		} else {
-			SFX.Noscore.play();
-		}
-
-		Game.state.stats.Moves += 1;
-
-		var Tile2 = Game.map[2].split('')[Game.playerPosition.x];
-		var Tile3 = Game.map[3].split('')[Game.playerPosition.x];
-
-		if (Tile3 == '@' &&  Tile2 == '@' && Game.state.invincible == 0) {
-			Game.Over('Abyss');
-		}
-	}
-};
-
-Game.SetLevelClass = function(level) {
-	for (var i = 1; i <= 9; i++) {
-		$('.Xbox').removeClass("d"+i);
-	}
-	$('.Xbox').addClass("d"+level);
-}
-
-Game.UpdateSpeed = function (speed) {
-	Game.BaseSpeed = speed;
-	console.log("Updated Speed");
-};
-
-Game.UpdateVolume = function (volume) {
-	Howler.volume(volume);
-	Game.SaveFile.Volume = volume;
-	Game.Save();
-	console.log("Updated Volume");
-};
-
-Game.UpdateSize = function(size) {
-	Game.LineSize = parseInt(size);
-	var l = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
-	Game.BaseLine = l.substr(0,Game.LineSize);
-};
-
-Game.UpdateMode = function(mode) {
-	if (Game.Active == true)
-	{
-		alert("Wait until a game is no longer active");
-		$('#mode').val(Game.state.gameMode);
-		return false;
-	}
-
-	if (mode == 'normal') {
-		Game.state.gameMode = 'normal';
-		Game.BaseSpeed = 110;
-	} else {
-		Game.state.gameMode = 'nightmare';
-		Game.BaseSpeed = 60;
-	}
-
-	$('#high-score').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Score));
-	$('#high-lines').html(Utility.format(Game.SaveFile.Record[Game.state.gameMode].Lines));
-
-	return true;
-};
-
-/* Toggles pause on and off */
-Game.TogglePause = function () {
-	if (Game.Active == true) {
-		if (Game.Paused == false) {
-			Game.Paused = true;
-			Game.renderEngine.render();
-			clearInterval(Game.Interval);
-		} else {
-			Game.Paused = false;
-			Game.CreateInterval(Game.BaseSpeed);
-		}
-	}
-};
-
-Game.isNewRecord = function () {
-	if (Game.SaveFile.Record[Game.state.gameMode].Score < Game.state.stats.Score)
-		return true;
-	else
-		return false;
-}
-
-
-Game.CreateNewSaveFile = function() {
-	if (localStorage["xquest_HighScore"] !== undefined) {
-		var Record = {Score: parseInt(localStorage["xquest_HighScore"]),Lines: parseInt(localStorage["xquest_HighLines"])};
-	} else {
-		var Record = { Score:0, Lines: 0};
-	}
-
-	Game.SaveFile = {
-		Version: Game.version,
-		Volume: 0.3,
-		Totals: {
-			GamesPlayed: 0,
-			Score: 0,
-			Lines: 0,
-			ShipsDestroyed: 0,
-			Powerups: 0,
-			Moves: 0,
-			Time: 0,
-			ShotsFired: 0,
-			ShotsDestroyed: 0,
-			Deaths: {
-				Shot: 0,
-				Wall: 0,
-				Normal: 0
-			}
-		},
-		Record: Record,
-		Achievements: {
-
-		}
-	};
-};
-
-/* Save Game.SaveFile into localStorage */
-Game.Save = function() {
-	try {
-		localStorage.setItem("XQuest", JSON.stringify(Game.SaveFile));
-	}
-	catch(e) {
-		console.log(e);
-		alert("Save Failed!");
-	}
-}
-
-/* Load the save file from localStorage */
-Game.Load = function() {
-	var SaveFile = 'Invalid';
-	try {
-		SaveFile = localStorage.getItem("XQuest");
-	}
-	catch(err) {
-		alert("Cannot access localStorage - browser may not support localStorage, or storage may be corrupt");
-		return false;
-	}
-
-	/* If a save file does not exist, create a new one */
-	if (!SaveFile) {
-		Game.CreateNewSaveFile();
-		Game.Save();
-		Game.Load();
-		return false;
-	}
-	if (SaveFile == 'Invalid') {
-		alert("Save file not loaded.");
-		return false;
-	}
-
-	Game.SaveFile = JSON.parse(SaveFile);
-
-	if (Game.SaveFile.Version < 0.9) {
-		Game.SaveFile.Totals.Time = Game.SaveFile.Totals.Lines * 0.12;
-	}
-
-	if (!Game.SaveFile.Volume)
-		Game.SaveFile.Volume = 30;
-	Game.UpdateVolume(Game.SaveFile.Volume);
-
-	if (typeof Game.SaveFile.Record.nightmare == "undefined")
-	{
-		Game.SaveFile.Record = {
-			normal: Game.SaveFile.Record,
-			nightmare: { Score: 0, Lines: 0}
-		}
-	}
-
-
-	console.log("Game Loaded");
-};
-
-Game.UpdateStatistics = function() {
-	var Time = Game.SaveFile.Totals.Time;
-	if(Time < 600) {
-		Time = Utility.format(Time, 1) + " Seconds";
-	} else if (Time < 36000) {
-		Time = Utility.format(Time/60, 1) + " Minutes";
-	} else {
-		Time = Utility.format(Time / 3600, 1) + " Hours";
-	}
-
-	$('#Statistics').html(
-		'<b>Games Played:</b> '+Utility.format(Game.SaveFile.Totals.GamesPlayed)+'<br>'+
-		'<b>Score:</b> '+Utility.format(Game.SaveFile.Totals.Score)+'<br>'+
-		'<b>Lines:</b> '+Utility.format(Game.SaveFile.Totals.Lines)+'<br>'+
-		'<b>Times Moved:</b> '+Utility.format(Game.SaveFile.Totals.Moves)+'<br>'+
-		'<b>Shots Fired:</b> '+Utility.format(Game.SaveFile.Totals.ShotsFired)+'<br>'+
-		'<b>Shots Destroyed:</b> '+Utility.format(Game.SaveFile.Totals.ShotsDestroyed)+'<br>'+
-		'<b>Ships Destroyed:</b> '+Utility.format(Game.SaveFile.Totals.ShipsDestroyed)+'<br>'+
-		'<b>Powerups Collected:</b> '+Utility.format(Game.SaveFile.Totals.Powerups)+'<br>'+
-		'<b>Deaths To The Abyss:</b> '+Utility.format(Game.SaveFile.Totals.DeathAbyss)+'<br>'+
-		'<b>Deaths To The Ship:</b> '+Utility.format(Game.SaveFile.Totals.DeathShot)+'<br>'+
-		'<b>Deaths To The Wall:</b> '+Utility.format(Game.SaveFile.Totals.DeathWall)+'<br>'+
-		'<b>Time Played:</b> '+Time+'<br>'
-	);
-};
-
-Game.LoadHighScore = function() {
-	($ as any).ajax({
-		method: "POST",
-		data: {
-			showHS: true,
-			mode: Game.state.gameMode
-		},
-		url: 'ajax.php',
-		success: function (data) {
-			$('#highScoreList').html(data);
-
-			if (typeof Game.state.level === "undefined")
-				Game.SetLevelClass(1);
-			else
-				Game.SetLevelClass(((Game.state.level - 1) % 9 + 1));
-		}
-
-	});
-}
-
-Game.SendHighScore = function(data) {
-	($ as any).ajax({
-		method: "POST",
-		data: {
-			score: Game.state.stats.Score,
-			username: $('#username').val(),
-			stats: Game.state.stats,
-			mode: Game.state.gameMode,
-			version: Game.version
-		},
-		url: 'ajax.php',
-		success: function(data) {
-			ToggleTab('7');
-			$('#HighScoreSubmit').html(data);
-		}
-	})
-}
-
-
 function ToggleTab(tab){
 	for (let i = 0; i <= 12; i++) {
 		$('[tab='+i+']').css('display', 'none');
@@ -386,13 +70,13 @@ function ToggleTab(tab){
 	$('[tab='+tab+']').css('display', 'inline-block');
 	$('[id='+tab+']').attr('class', 'selected');
 
-	if (tab == 3) {
-		Game.LoadHighScore();
-	}
+	// if (tab == 3) {
+	// 	Game.LoadHighScore();
+	// }
 
-	if (tab == 0) {
-		Game.CalculateStuff();
-	}
+	// if (tab == 0) {
+	// 	Game.CalculateStuff();
+	// }
 
 	Game.CurrentTab = tab;
 }

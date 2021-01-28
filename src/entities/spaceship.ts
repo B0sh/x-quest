@@ -34,7 +34,7 @@ export class Spaceship implements Entity {
         else {
             this.movementDirection = -1;
             this.position = new Point(
-                this.game.LineSize + 2,
+                this.game.width + 2,
                 Utility.getRandomInt(1, 4)
             );
         }
@@ -72,7 +72,7 @@ export class Spaceship implements Entity {
 
         const flyAway: boolean = this.linesActive > 160;
         const clampXLeft = 3;
-        const clampXRight = this.game.LineSize - 5;
+        const clampXRight = this.game.width - 5;
         const isTurning: boolean = ((this.position.x >= clampXRight && this.movementDirection == 1) || 
                 (this.position.x <= clampXLeft && this.movementDirection == -1));
         const isInMiddle: boolean = (this.position.x <= clampXRight && this.position.x >= clampXLeft);
@@ -92,7 +92,7 @@ export class Spaceship implements Entity {
             this.fireBullet();
         }
 
-        if (this.position.x == -3 || this.position.x == this.game.LineSize + 3) {
+        if (this.position.x == -3 || this.position.x == this.game.width + 3) {
             this.game.deleteEntity(this);
         }
     }
