@@ -21,7 +21,7 @@ export class RenderEngine {
         "You are an X", "You go on a quest", "Do well", "chicka chic pow", "Embody Luxury", "Precision", "Craftsmanship",
     ];
 
-    roadChar: string = '│';
+    roadChar: string = String.fromCharCode(0x2502);
     endZoneChar: string = '.';
 
     roadOffsetX: number = 3;

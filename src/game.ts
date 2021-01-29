@@ -19,7 +19,7 @@ import { Carrier } from './entities/carrier';
 declare var Game: XQuest;
 declare var $: any;
 
-var $ = (window as any).jQuery = jquery; 
+var $: any = (window as any).jQuery = jquery; 
 
 var roadChar = '|';
 
@@ -57,6 +57,9 @@ export class XQuest {
     board: Board;
 
     entities: Entity[] = [];
+    
+    // TO REPLACE
+    LineEntered: any[] = [];
 
     timer: Timer;
 
@@ -175,6 +178,7 @@ export class XQuest {
 
         /* If you're on the high score screen and a new game starts don't let it submit */
         if (this.CurrentTab == 6 || this.CurrentTab == 7) {
+            //@ts-ignore
             ToggleTab('1');
         }
 
@@ -460,6 +464,7 @@ export class XQuest {
     }
 
     updateVolume(volume: number) {
+        volume = 0.05;
         Howler.volume(volume);
         this.state.saveFile.Volume = volume;
         this.state.save();
