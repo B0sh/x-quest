@@ -2,9 +2,8 @@
 <html>
 	<head>
 		<title>X-Quest</title>
-        <link rel="shortcut icon" type="image/x-icon" href="xquest-favicon.png" />
-        <script src='jquery.js' type='text/javascript'></script>
-        <script src="./src/main.ts"></script>
+        <link rel='shortcut icon' type='image/x-icon' href='xquest-favicon.png' />
+        <script src='./src/main.ts'></script>
 	</head>
 	<body>
 		<style>
@@ -22,7 +21,7 @@
 
 		.d1,.d2,.d3,.d4,.d5,.d6,.d7,.d8,.d9{font-weight:bold; }
 
-		/*.d1 { color: #1100da; filter: invert(100%);}
+		/* .d1 { color: #1100da; filter: invert(100%);}
 		.d2 { color: #40bfb5; filter: invert(100%);}
 		.d3 { color: #c5b84c; filter: invert(100%);}
 		.d4 { color: #98bf40; filter: invert(100%);}
@@ -30,7 +29,7 @@
 		.d6 { color: #bf4040; filter: invert(100%);}
 		.d7 { color: #bf408a;filter: invert(100%); }
 		.d8 { color: #6140bf; filter: invert(100%);}
-		.d9 { color: #ea4a3e;filter: invert(100%); }*/
+		.d9 { color: #ea4a3e;filter: invert(100%); } */
 
 		.d1 { color: #eeff25; }
 		.d2 { color: #bf404a; }
@@ -184,14 +183,6 @@
 	Changing any of the below for fun options below will result in stats not being tracked. Refreshing will reset these.<br><br>
 
 	<div id="stats_tracked"></div>
-
-	<b>Board Size:</b> (totally doesn't work btw)
-	<select id="linesize" onchange="Game.UpdateSize($('#linesize').val());">
-		<option value="9"> Small </option>
-		<option value="15" selected> Medium </option>
-		<option value="21"> Long </option>
-		<option value="27"> Extra Long </option>
-	</select><br><br>
 
 	<b>Game Speed:</b> <input type="text" value="120" size="2" id="speed" onchange="Game.UpdateSpeed($('#speed').val());" /> (ms)
 </div>

@@ -13,6 +13,7 @@
   "dependencies": {
     "howler": "^2.2.1",
     "jquery": "^3.5.1",
+    "parcel-plugin-static-files-copy": "^2.5.1",
     "rot-js": "^2.1.5"
   },
   "devDependencies": {

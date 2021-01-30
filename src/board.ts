@@ -58,11 +58,13 @@ export class Board {
     generateLine(): string {
         let line: string = this.game.BaseLine;
 
+        const level = this.game.state.level > 9 ? 9 : this.game.state.level;
+
         /* Randomly start a new line every once in a while (Higher line size = less new lines) */
         if (Utility.getRandomInt(1, 30 + this.game.width) == 1) {
             let lineIndex = Utility.getRandomInt(0, this.game.width - 1);
             this.lineReset[lineIndex] = 1;
-            this.lineLength[lineIndex] = Utility.getRandomInt(6, 22 - this.game.state.level);
+            this.lineLength[lineIndex] = Utility.getRandomInt(6, 22 - level);
         }
 
         let start: number; 
@@ -94,9 +96,9 @@ export class Board {
                     road = 'D';
                 } else if (Utility.getRandomInt(1, 1000) === 1) {
                     road = 'R';
-                } else if (Utility.getRandomInt(1, 900) === 1 && this.game.state.level >= 6) {
+                } else if (Utility.getRandomInt(1, 900) === 1 && level >= 6) {
                     road = 'W';
-                } else if (Utility.getRandomInt(1, 900) === 1 && this.game.state.level >= 3) {
+                } else if (Utility.getRandomInt(1, 900) === 1 && level >= 3) {
                     road = 'M';
                 }
 
@@ -104,20 +106,28 @@ export class Board {
 
                 /* Vertical line handler */
                 this.lineLength[i] -= 1;
-                if (this.lineLength[i] < Utility.getRandomInt(2, 6 - Math.floor(this.game.state.level / 4)) && this.lineReset[i] != 0) {
+
+                let gap: number = Utility.getRandomInt(2, 6 - Math.floor(level / 4));
+                // gap = 60;
+
+                if (this.lineLength[i] < gap && this.lineReset[i] != 0) {
                     this.lineReset[i] = 0;
-                    if ((Utility.getRandomInt(1, 2) == 1 && i != end - 1) || i == start) {
+
+                    const direction = Utility.getRandomInt(1, 2);
+
+                    if (i == start || direction == 1) {
                         this.lineReset[i + 1] = 1;
-                        this.lineLength[i + 1] = Utility.getRandomInt(6, 22 - this.game.state.level);
-                    } else {
+                        this.lineLength[i + 1] = Utility.getRandomInt(6, 22 - level);
+                    }
+                    else if (i == end - 1 || direction == 2) {
                         this.lineReset[i - 1] = 1;
-                        this.lineLength[i - 1] = Utility.getRandomInt(6, 20 - this.game.state.level);
+                        this.lineLength[i - 1] = Utility.getRandomInt(6, 20 - level);
                     }
                 }
             }
         }
 
-        // at the end of the level
+        // At the end of the level keep generating new lines, but cover over with the dead zone
         if (this.game.state.levelLines > this.game.board.getLevelLines(this.game.state.level) - this.game.height) {
             for (let i = start; i < end; i++) {
                 line = Utility.setCharAt(line, i, "%");
@@ -125,6 +135,19 @@ export class Board {
         }
 
         return line;
+    }
+
+    removeOneTileGaps() {
+        const yTop = this.game.height - 1;
+        for (let x = 0; x < this.game.width; x++) {
+            const top = this.game.map[yTop][x]
+            const middle = this.game.map[yTop-1][x]
+            const bottom = this.game.map[yTop-2][x]
+            if (top != '@' && middle == '@' && bottom != '@') {
+                this.game.map[yTop - 1] = Utility.setCharAt(this.game.map[yTop-1], x, '=');
+            }
+            // console.log(x, top, middle, bottom);
+        }
     }
 
     getLevelLines(level: number): number {

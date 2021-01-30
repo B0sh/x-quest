@@ -1,3 +1,4 @@
+import { RNG } from "rot-js";
 import { XQuest } from "./game";
 import Utility from "./utility";
 
@@ -35,14 +36,14 @@ export class RenderEngine {
     render() {
         this.game.display.clear();
 
-        if (this.game.state.isKillScreen()) {
-            this.renderKillScreenArtifacts();
-        }
-
         if (this.game.Active || this.game.Finished) {
             this.renderRoad();
             this.renderTextBehindObjects();
             this.renderObjects();
+
+            if (this.game.state.isKillScreen()) {
+                this.renderKillScreenArtifacts();
+            }
         }
 
         this.renderUI();
@@ -70,18 +71,17 @@ export class RenderEngine {
         }
 
         this.drawCenteredText(0, 'X-Quest v' + this.game.version);
-        // this.drawColoredText(2, 0, "" + this.game.frameCount, null, null);
 
         const score = this.game.state.stats?.Score;
         const currentRecord = this.game.state.currentHighScore();
-        this.drawColoredText(2, 1, "Score", "#ccf", null);
+        this.drawColoredText(2, 1, "Score", null, null);
         this.drawColoredText(2, 2, Utility.padStart(score, 6, "."), "#fff", null);
 
         this.game.display.drawText(16, 1, "High Score");
         if (currentRecord > score)
-            this.game.display.drawText(16, 2, Utility.padStart(currentRecord, 6, "."));
+            this.drawColoredText(16, 2, Utility.padStart(currentRecord, 6, "."), "#FFF", null);
         else
-            this.game.display.drawText(16, 2, Utility.padStart(score, 6, "."));
+            this.drawColoredText(16, 2, Utility.padStart(score, 6, "."), "#FFF", null);
 
         for (let lives = 0; lives < this.game.state.lives; lives++) {
             this.game.display.draw(8 + lives, 4, "X", objectColor, null);
@@ -266,20 +266,23 @@ export class RenderEngine {
     }
 
     renderKillScreenArtifacts() {
-        const toY = this.game.state.level - 59;
-        const color = this.roadColors[this.game.state.level % 9];
+        RNG.setSeed(Math.floor(this.game.state.stats.Lines / 4));
 
-        for (let y = 0; y <= toY; y++)
+        const toY = (this.game.state.level - 61.5) * 3
+
+        for (let y = 0; y < toY; y++)
         {
-            for (let x = 0; x <= 15; x++)
+            for (let x = 0; x < this.game.options.width; x++)
             {
-                if (Utility.getRandomInt(0, 5) == 1)
+                const color = this.objectColors[RNG.getUniformInt(0, 8)];
+                if (RNG.getUniformInt(0, 100) > 65)
                 {
-                    this.game.display.draw(x, y, String.fromCharCode(Utility.getRandomInt(20 , 255)), color, null);
+                    const char = String.fromCharCode(RNG.getUniformInt(20 , 255));
+                    this.game.display.draw(x, y + this.roadOffsetY, char, color, null);
                 }
                 else 
                 {
-                    this.game.display.draw(x, y, " ", color, null);
+                    // this.game.display.draw(x + this.roadOffsetX, y + this.roadOffsetY, " ", color, null);
                 }
             }
         }

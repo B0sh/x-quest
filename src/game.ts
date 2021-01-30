@@ -1,5 +1,4 @@
 import { SFX } from './sfx';
-import jquery from '../jquery.js';
 import Utility from './utility';
 import { State } from './state';
 import { DisplayOptions } from 'rot-js/lib/display/types';
@@ -15,11 +14,7 @@ import { Howler } from 'howler';
 import { Timer } from './timer';
 import { RoadBullet } from './entities/road-bullet';
 import { Carrier } from './entities/carrier';
-
-declare var Game: XQuest;
-declare var $: any;
-
-var $: any = (window as any).jQuery = jquery; 
+import { Menu } from './menu';
 
 var roadChar = '|';
 
@@ -27,8 +22,12 @@ export class XQuest {
     version: string = '1.4';
 
     display: Display;
-
     state: State;
+    renderEngine: RenderEngine;
+    board: Board;
+    timer: Timer;
+    menu: Menu;
+
     options: DisplayOptions = {
         width: 30,
         height: 30,
@@ -53,25 +52,24 @@ export class XQuest {
     CurrentTab = 1;
     BaseLine: string;
 
-    renderEngine: RenderEngine;
-    board: Board;
 
     entities: Entity[] = [];
     
     // TO REPLACE
     LineEntered: any[] = [];
 
-    timer: Timer;
 
     constructor() {
         this.display = new Display(this.options);
         this.state = new State(this);
         this.renderEngine = new RenderEngine(this);
         this.board = new Board(this);
+        this.menu = new Menu(this);
     }
 
     init() {
         document.getElementsByClassName('TEMPGAMESPOT')[0].prepend(this.display.getContainer())
+        this.menu.initTabEvents();
         this.renderLoop();
     }
 
@@ -173,13 +171,9 @@ export class XQuest {
 
         this.board.generateStartingLines();
 
-        $('#linesize').css('display', 'none');
-        $('#mode').css('display', 'none');
-
         /* If you're on the high score screen and a new game starts don't let it submit */
         if (this.CurrentTab == 6 || this.CurrentTab == 7) {
-            //@ts-ignore
-            ToggleTab('1');
+            this.menu.toggleTab(1);
         }
 
         /* Lets get this party started */
@@ -363,7 +357,7 @@ export class XQuest {
             }
         });
 
-        if (((1+this.state.stats.Lines) % 100 == 0 && Utility.getRandomInt(1, 4) == 1 && this.state.level >= 2) || this.state.stats.Lines+1 == 20)  {
+        if (((1+this.state.stats.Lines) % 100 == 0 && Utility.getRandomInt(1, 4) == 1 && this.state.level >= 2) || this.state.stats.Lines+1 == 200)  {
             const spaceship = new Spaceship(this);
             this.entities.push(spaceship);
         }
@@ -374,25 +368,21 @@ export class XQuest {
 
         if (this.state.invincible != 0) {
             this.state.invincible -= 1;
-            $('#GameWindow_Objects').append('<br><b>Invincible:</b> '+this.state.invincible);
         }
         if (this.state.warp != 0) {
             this.state.warp -= 1;
-            $('#GameWindow_Objects').append('<br><b>Warp:</b> '+this.state.warp);
         }
         if (this.state.multishot != 0) {
-            $('#GameWindow_Objects').append('<br><b>MultiShot</b>');
         }
         if (this.state.distortion != 0) {
             this.state.distortion -= 1;
             if (this.state.distortion == 0) {
                 this.startGameLoop(this.BaseSpeed);
             }
-            $('#GameWindow_Objects').append('<br><b>Distortion:</b> '+this.state.distortion);
         }
 
         if (this.state.nextLevelClass != -1) {
-            this.SetLevelClass(this.state.nextLevelClass);
+            this.setLevelClass(this.state.nextLevelClass);
             this.state.nextLevelClass = -1;
         }
     }
@@ -458,7 +448,7 @@ export class XQuest {
             if(this.CHEAT == false) {
                 this.state.saveGameStats(death);
 
-                this.UpdateStatistics();
+                this.menu.updateStatistics();
             }
         }
     }
@@ -483,38 +473,6 @@ export class XQuest {
         }
     }
 
-    UpdateStatistics() {
-        if (!this.state.saveFile || !this.state.saveFile.Totals) {
-            return;
-        }
-
-        const time = this.state.saveFile.Totals.Time;
-        let timeFormatted: string;
-
-        if(time < 600) {
-            timeFormatted = Utility.format(time, 1) + " Seconds";
-        } else if (time < 36000) {
-            timeFormatted = Utility.format(time/60, 1) + " Minutes";
-        } else {
-            timeFormatted = Utility.format(time / 3600, 1) + " Hours";
-        }
-
-        $('#Statistics').html(
-            '<b>Games Played:</b> '+Utility.format(this.state.saveFile.Totals.GamesPlayed)+'<br>'+
-            '<b>Score:</b> '+Utility.format(this.state.saveFile.Totals.Score)+'<br>'+
-            '<b>Lines:</b> '+Utility.format(this.state.saveFile.Totals.Lines)+'<br>'+
-            '<b>Times Moved:</b> '+Utility.format(this.state.saveFile.Totals.Moves)+'<br>'+
-            '<b>Shots Fired:</b> '+Utility.format(this.state.saveFile.Totals.ShotsFired)+'<br>'+
-            '<b>Shots Destroyed:</b> '+Utility.format(this.state.saveFile.Totals.ShotsDestroyed)+'<br>'+
-            '<b>Ships Destroyed:</b> '+Utility.format(this.state.saveFile.Totals.ShipsDestroyed)+'<br>'+
-            '<b>Powerups Collected:</b> '+Utility.format(this.state.saveFile.Totals.Powerups)+'<br>'+
-            '<b>Deaths To The Abyss:</b> '+Utility.format(this.state.saveFile.Totals.DeathAbyss)+'<br>'+
-            '<b>Deaths To The Ship:</b> '+Utility.format(this.state.saveFile.Totals.DeathShot)+'<br>'+
-            '<b>Deaths To The Wall:</b> '+Utility.format(this.state.saveFile.Totals.DeathWall)+'<br>'+
-            '<b>Time Played:</b> '+timeFormatted+'<br>'
-        );
-    }
-
     AddLine() {
         var newMap = [];
         for (let y = 1; y <= this.height; y++) {
@@ -522,6 +480,7 @@ export class XQuest {
         }
         this.map = newMap;
         this.map[this.height] = this.board.generateLine();
+        this.board.removeOneTileGaps();
         this.state.levelLines += 1;
 
         if (this.state.levelLines < this.board.getLevelLines(this.state.level)) {
@@ -531,12 +490,19 @@ export class XQuest {
         return false;
     }
 
-
-    SetLevelClass(level) {
-        for (var i = 1; i <= 9; i++) {
-            $('.Xbox').removeClass("d"+i);
-        }
-        $('.Xbox').addClass("d"+level);
+    setLevelClass(level: number) {
+        document.querySelectorAll('.Xbox').forEach((element) => {
+            element.classList.remove(`d1`);
+            element.classList.remove(`d2`);
+            element.classList.remove(`d3`);
+            element.classList.remove(`d4`);
+            element.classList.remove(`d5`);
+            element.classList.remove(`d6`);
+            element.classList.remove(`d7`);
+            element.classList.remove(`d8`);
+            element.classList.remove(`d9`);
+            element.classList.add(`d${level}`);
+        });
     }
 
     UpdateSpeed(speed) {
@@ -553,7 +519,6 @@ export class XQuest {
     UpdateMode(mode) {
         if (this.Active == true) {
             alert("Wait until a game is no longer active");
-            $('#mode').val(this.state.gameMode);
             return false;
         }
 
