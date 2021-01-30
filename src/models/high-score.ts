@@ -1,4 +1,4 @@
 export interface HighScore {
-    mode: string;
-    score: number;
+    score?: number;
+    time?: Date;
 }

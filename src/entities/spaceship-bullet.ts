@@ -5,16 +5,16 @@ import { Spaceship } from "./spaceship";
 
 export class SpaceshipBullet implements Entity {
     type: EntityType;
-    position: Point;
+    // position: Point;
     isHit: boolean;
     animationFrames: number;
 
     constructor(
         private game: XQuest,
-        public spaceship: Spaceship
+        public spaceship: Spaceship,
+        public position: Point
     ) {
         this.type = EntityType.Bullet;
-        this.position = new Point(spaceship.position.x + 1, spaceship.position.y + 1)
         this.animationFrames = 0;
     }
 

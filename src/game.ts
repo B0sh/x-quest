@@ -96,36 +96,6 @@ export class XQuest {
         }
     }
 
-
-    fireBullet() {
-        let bulletExists: boolean = false;
-        this.entities.forEach((entity) => {
-            if (entity instanceof PlayerBullet) {
-                bulletExists = true;
-            }
-        });
-
-        if (!this.Paused && this.Active && !bulletExists) {
-            SFX.Shoot.play();
-            this.state.stats.ShotsFired += 1;
-
-            if (this.state.multishot == 0) {
-                const bullet = new PlayerBullet(this, new Point(this.playerPosition.x, this.playerPosition.y));
-                this.entities.push(bullet);
-            } else {
-                const bulletLeft = new PlayerBullet(this, new Point(this.playerPosition.x - 1, this.playerPosition.y));
-                this.entities.push(bulletLeft);
-                const bullet = new PlayerBullet(this, new Point(this.playerPosition.x, this.playerPosition.y - 1));
-                this.entities.push(bullet);
-                const bulletRight = new PlayerBullet(this, new Point(this.playerPosition.x + 1, this.playerPosition.y));
-                this.entities.push(bulletRight);
-
-                this.state.multishot = 0;
-            }
-        }
-    }
-
-
     start() {
         if (this.Active == true) {
             if (this.state.levelLines > this.board.getLevelLines(this.state.level) - this.height) {
@@ -135,6 +105,7 @@ export class XQuest {
         }
 
         this.entities = [];
+        this.state.modifiers = this.menu.selectedModifiers.map(m => m.name);
 
         this.Active = true;
         this.Finished = false;
@@ -144,9 +115,8 @@ export class XQuest {
         this.state.distortion = 0;
         this.state.multishot = 0
         this.state.level = 1;
-        this.state.lives = 3;
         this.state.levelLines = 0;
-        this.state.power = null;
+        this.state.power = 'D';
         this.map = [];
         this.LineEntered = [];
         this.state.stats = {
@@ -176,6 +146,20 @@ export class XQuest {
             this.menu.toggleTab(1);
         }
 
+        if (this.state.hasModifier('Nightmare')) {
+            this.BaseSpeed = 60;
+        }
+        else {
+            this.BaseSpeed = 110;
+        }
+
+        if (this.state.hasModifier('Survivor')) {
+            this.state.lives = 1;
+        }
+        else {
+            this.state.lives = 3;
+        }
+
         /* Lets get this party started */
         this.startGameLoop(this.BaseSpeed);
         console.log('Game Started');
@@ -188,12 +172,15 @@ export class XQuest {
 
         this.state.warp = 0;
         this.state.invincible = 25;
-        if (this.state.distortion != 0) {
+
+        console.log('next level called');
+
+        if (this.state.hasModifier('Incline')) {
+            this.BaseSpeed -= 1;
             this.startGameLoop(this.BaseSpeed);
-            this.state.distortion = 0;
         }
 
-        if (this.state.isKillScreen()) {
+       if (this.state.isKillScreen()) {
             SFX.Killscreen.play();
         } else {
             SFX.LevelUp.play();
@@ -207,13 +194,11 @@ export class XQuest {
         this.entities = [];
         this.state.levelLines = 0;
         this.state.warp = 0;
+        this.state.distortion = 0;
+        this.state.multishot = 0;
         this.state.invincible = 0;
         this.state.power = null;
         this.state.levelLines = 0;
-        if (this.state.distortion != 0) {
-            this.startGameLoop(this.BaseSpeed);
-            this.state.distortion = 0;
-        }
 
         const mid = Math.floor((this.width - 1) / 2);
         this.playerPosition = new Point(mid, this.height - 1);
@@ -280,7 +265,40 @@ export class XQuest {
         }
     }
 
+    fireBullet() {
+        let bulletExists: boolean = false;
+        this.entities.forEach((entity) => {
+            if (entity instanceof PlayerBullet) {
+                bulletExists = true;
+            }
+        });
+
+        if (!this.Paused && this.Active && !bulletExists) {
+            SFX.Shoot.play();
+            this.state.stats.ShotsFired += 1;
+
+            if (this.state.multishot == 0) {
+                const bullet = new PlayerBullet(this, new Point(this.playerPosition.x, this.playerPosition.y));
+                this.entities.push(bullet);
+            } else {
+                const bulletLeft = new PlayerBullet(this, new Point(this.playerPosition.x - 1, this.playerPosition.y));
+                this.entities.push(bulletLeft);
+                const bullet = new PlayerBullet(this, new Point(this.playerPosition.x, this.playerPosition.y - 1));
+                this.entities.push(bullet);
+                const bulletRight = new PlayerBullet(this, new Point(this.playerPosition.x + 1, this.playerPosition.y));
+                this.entities.push(bulletRight);
+            }
+        }
+    }
+
     gameLoop() {
+        if (this.state.distortion != 0) {
+            this.state.distortion -= 1;
+            if (this.state.distortion % 2 == 1) {
+                return;
+            }
+        }
+
         this.AddLine();
 
         this.state.stats.Time += this.BaseSpeed / 1000;
@@ -299,7 +317,8 @@ export class XQuest {
             case roadChar: break;
             case 'P':
                 SFX.Bonus.play();
-                const score = (this.state.level*2)+2
+                let score = this.state.level * 2 + 2;
+                if (score > 20) score = 20;
                 this.state.stats.Score += score;
                 const pelletText = new PelletText(this, score);
                 this.addEntity(pelletText);
@@ -308,26 +327,22 @@ export class XQuest {
             case 'I':
                 SFX.Power.play();
                 this.state.power = 'I';
-                // this.state.invincible = 50;
                 this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
                 break;
             case 'W':
                 SFX.Power.play();
                 this.state.power = 'W';
-                // this.state.warp = 40;
                 this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
                 break;
             case 'D':
                 SFX.Power.play();
                 this.state.power = 'D';
-                // this.state.distortion = 25;
                 // this.startGameLoop(this.BaseSpeed*2);
                 this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
                 break;
             case 'M':
                 SFX.Power.play();
                 this.state.power = 'M';
-                // this.state.multishot = 1;
                 this.map[2] = Utility.setCharAt(this.map[2], this.playerPosition.x, "`");
                 break;
             case 'R':
@@ -357,7 +372,7 @@ export class XQuest {
             }
         });
 
-        if (((1+this.state.stats.Lines) % 100 == 0 && Utility.getRandomInt(1, 4) == 1 && this.state.level >= 2) || this.state.stats.Lines+1 == 200)  {
+        if (((1+this.state.stats.Lines) % 100 == 0 && Utility.getRandomInt(1, 4) == 1 && this.state.level >= 2) || this.state.stats.Lines+1 == 20)  {
             const spaceship = new Spaceship(this);
             this.entities.push(spaceship);
         }
@@ -373,13 +388,9 @@ export class XQuest {
             this.state.warp -= 1;
         }
         if (this.state.multishot != 0) {
+            this.state.multishot -= 1;
         }
-        if (this.state.distortion != 0) {
-            this.state.distortion -= 1;
-            if (this.state.distortion == 0) {
-                this.startGameLoop(this.BaseSpeed);
-            }
-        }
+
 
         if (this.state.nextLevelClass != -1) {
             this.setLevelClass(this.state.nextLevelClass);
@@ -391,8 +402,7 @@ export class XQuest {
         switch (this.state.power) {
             case 'D':
                 SFX.Power.play();
-                this.startGameLoop(this.BaseSpeed*2);
-                this.state.distortion = 25;
+                this.state.distortion = 50;
                 this.state.stats.Powerups += 1;
                 break;
             case 'W':
@@ -405,6 +415,11 @@ export class XQuest {
                 this.state.invincible = 50;
                 this.state.stats.Powerups += 1;
                 break;
+            case 'M':
+                SFX.Power.play();
+                this.state.multishot = 50;
+                this.state.stats.Powerups += 1;
+                break;
             case 'R':
                 const bullet = new RoadBullet(this, new Point(this.playerPosition.x, this.playerPosition.y - 1));
                 SFX.Shoot.play();
@@ -415,7 +430,6 @@ export class XQuest {
     }
 
     startGameLoop(speed: number) {
-        console.log("START GAME LOOP");
         if (this.timer && this.timer.interval == speed) {
             this.timer.start();
         } else if (this.timer) {
@@ -429,7 +443,6 @@ export class XQuest {
     }
 
     stopGameLoop() {
-        console.log("STOP");
         this.timer.stop();
     }
 
@@ -454,11 +467,9 @@ export class XQuest {
     }
 
     updateVolume(volume: number) {
-        volume = 0.05;
-        Howler.volume(volume);
+        Howler.volume(volume / 100);
         this.state.saveFile.Volume = volume;
         this.state.save();
-        console.log("Updated Volume");
     }
 
     togglePause() {
@@ -514,20 +525,5 @@ export class XQuest {
         this.width = parseInt(size);
         var l = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
         this.BaseLine = l.substr(0,this.width);
-    }
-
-    UpdateMode(mode) {
-        if (this.Active == true) {
-            alert("Wait until a game is no longer active");
-            return false;
-        }
-
-        if (mode == 'normal') {
-            this.state.gameMode = 'normal';
-            this.BaseSpeed = 110;
-        } else {
-            this.state.gameMode = 'nightmare';
-            this.BaseSpeed = 60;
-        }
     }
 }

@@ -139,8 +139,6 @@
 	Easter Egg?
 </div>
 <div class="TabWindow" style="display:inline;" tab="1">
-
-
 	<span style="font-size:22px;">You are a <span class="Xbox">X</span> that goes on a quest.</span><br>
 
 	&nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br>
@@ -165,27 +163,22 @@
 	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;">&nbsp;</span>: The Abyss<br>
 	<br>
 
-	X-Quest v1.3 by <a href="https://waldens.world">B0sh</a> &copy; 2014-2021</div>
-<div class="TabWindow" tab="2">
-	<b>Volume:</b> (<span id="volumeLevel" style="width:32px;">30</span>)
-		<input name="volume" type="range" min="0" max="100" step="5" value="30"
-			oninput="$('#volumeLevel').html($('[name=volume]').val());"
-			onchange="Game.updateVolume($('[name=volume]').val()); $('#volumeLevel').html($('[name=volume]').val());">
-	<br><br>
-
-	<b>Mode:</b>
-	<select id="mode" onchange="return Game.UpdateMode($('#mode').val());">
-		<option value="normal">Normal</option>
-		<option value="nightmare">Nightmare</option>
-	</select>
-	<br><br>
-
-	Changing any of the below for fun options below will result in stats not being tracked. Refreshing will reset these.<br><br>
-
-	<div id="stats_tracked"></div>
-
-	<b>Game Speed:</b> <input type="text" value="120" size="2" id="speed" onchange="Game.UpdateSpeed($('#speed').val());" /> (ms)
+	X-Quest v1.3 by <a href="https://waldens.world">B0sh</a> &copy; 2014-2021
 </div>
+
+<div class="TabWindow" tab="2">
+	<b>Volume:</b>
+		<input name="volume" type="range" min="0" max="100" step="1" value="30"
+			onchange="Game.updateVolume(this.value);">
+	<br><br>
+
+	<b>Modifiers:</b>
+
+	<div class="modifier-list">
+
+	</div>
+</div>
+
 <div class="TabWindow" tab="3">
 	<div id="highScoreList">Loading...</div>
 </div>

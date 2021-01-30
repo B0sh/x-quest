@@ -69,11 +69,7 @@ export class Board {
 
         let start: number; 
         let end: number;
-        if (this.game.state.gameMode == 'normal') {
-            start = 0;
-            end = this.game.width;
-        }
-        else if (this.game.state.gameMode == 'nightmare') {
+         if (this.game.state.hasModifier('Nightmare')) {
             start = 2;
             end = this.game.width - 2;
 
@@ -83,22 +79,28 @@ export class Board {
             line = Utility.setCharAt(line, this.game.width - 1, '<');
             line = Utility.setCharAt(line, this.game.width - 2, '<');
         }
+        else {
+            start = 0;
+            end = this.game.width;
+        }
 
+        const barebones: number = this.game.state.hasModifier('Barebones') ? 1.5 : 1;
+        const invasion: number = this.game.state.hasModifier('Invasion') ? 0.5 : 1;
         for (let i = start; i < end; i++) {
             if (this.lineLength[i] != 0) {
                 let road: string = "`";
 
-                if (Utility.getRandomInt(1, 1100) == 1) {
+                if (Utility.getRandomInt(1, 1100 * barebones) == 1) {
                     road = 'I';
                 } else if (Utility.getRandomInt(1, 300) == 1) {
                     road = 'P';
-                } else if (Utility.getRandomInt(1, 900) === 1) {
+                } else if (Utility.getRandomInt(1, 900 * barebones) === 1) {
                     road = 'D';
-                } else if (Utility.getRandomInt(1, 1000) === 1) {
+                } else if (Utility.getRandomInt(1, 1000 * barebones) === 1) {
                     road = 'R';
-                } else if (Utility.getRandomInt(1, 900) === 1 && level >= 6) {
+                } else if (Utility.getRandomInt(1, 900 * barebones) === 1 && level >= 6) {
                     road = 'W';
-                } else if (Utility.getRandomInt(1, 900) === 1 && level >= 3) {
+                } else if (Utility.getRandomInt(1, 900 * barebones * invasion) === 1 && level >= 3) {
                     road = 'M';
                 }
 

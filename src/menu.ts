@@ -1,9 +1,11 @@
 import { Changelog } from "./changelog";
 import { XQuest } from "./game";
+import { Modifier, MODIFIERS } from "./modifier";
 import Utility from "./utility";
 
 export class Menu {
     currentTab: number = 1;
+    selectedModifiers: Modifier[] = [];
 
     constructor(
         private game: XQuest
@@ -37,6 +39,10 @@ export class Menu {
         	this.killScreenEasterEgg();
         }
 
+        if (tab == 2) {
+            this.loadModifiers();
+        }
+
         if (tab == 4) {
             this.updateStatistics();
         }
@@ -46,6 +52,46 @@ export class Menu {
         }
 
         this.currentTab = tab;
+    }
+
+    loadModifiers() {
+        const element = document.querySelector('.modifier-list');
+        element.innerHTML = "";
+        MODIFIERS.forEach((modifier) => {
+            const checked: string = this.selectedModifiers.findIndex((sel) => sel.name == modifier.name) == -1 ? '' : 'checked';
+            element.innerHTML += `<div>
+                <input type="checkbox" onchange="Game.menu.updateModifier('${modifier.name}', this.checked);" ${checked} />
+                ${modifier.name} &mdash; +${modifier.scoreMultiplier * 100}% &mdash; ${modifier.description}
+            </div>`
+        });
+    }
+
+    updateModifier(modifierName: string, state: boolean) {
+        const index = this.selectedModifiers.findIndex((modifier) => modifier.name == modifierName);
+        if (state && index == -1) {
+            const modifier = MODIFIERS.find((modifier) => modifier.name == modifierName);
+
+            let valid: boolean = true;
+            if (modifier.invalidComboModifiers) {
+                this.selectedModifiers.forEach((selected) => {
+                    modifier.invalidComboModifiers.forEach((invalidName) => {
+                        if (selected.name == invalidName) {
+                            valid = false;
+                        }
+                    });
+                });
+            }
+
+            if (valid) {
+                this.selectedModifiers.push(modifier);
+            }
+            else {
+                alert("Modifier cannot be paired with " + modifier.invalidComboModifiers.join(' '));
+            }
+        }
+        else if (!state && index > -1) {
+            this.selectedModifiers.splice(index, 1)
+        }
     }
 
     updateStatistics() {
@@ -79,7 +125,6 @@ export class Menu {
             '<b>Deaths To The Wall:</b> '+Utility.format(saveFile.Totals.DeathWall)+'<br>'+
             '<b>Time Played:</b> '+timeFormatted+'<br>';
     }
-
 
     killScreenEasterEgg() {
         const temp = this.game.state.level;

@@ -1,12 +1,13 @@
 import { XQuest } from "./game";
 import { QuestStatistics } from "./models/quest-statistics";
 import { SaveFile } from "./models/save-file";
+import { Modifier } from "./modifier";
 
 export class State {
     level: number;
     levelLines: number;
     nextLevelClass: number;
-    gameMode: string;
+    modifiers: string[] = [];
 
     invincible: number = 0;
     distortion: number = 0;
@@ -22,6 +23,10 @@ export class State {
 
     }
 
+    hasModifier(modifier: string): boolean {
+        return this.modifiers.indexOf(modifier) !== -1; 
+    }
+
     isKillScreen() {
         return this.level > 63;
     }
@@ -29,9 +34,9 @@ export class State {
     currentHighScore(): number {
         if (!this.saveFile || !this.saveFile.records)
             return 0;
-        const currentRecord = this.saveFile.records.find((record) => record.mode == this.gameMode);
-        if (!currentRecord)
+        if (this.saveFile.records.length == 0)
             return 0;
+        const currentRecord = this.saveFile.records[0];
         return currentRecord.score;
     }
 
@@ -52,15 +57,16 @@ export class State {
             case 'Abyss': this.saveFile.Totals.DeathAbyss++; break;
         }
 
-        const currentRecord = this.saveFile.records?.find((record) => record.mode == this.gameMode);
-        if (!currentRecord) {
+        if (this.saveFile.records.length == 0) {
             this.saveFile.records.push({
-                mode: this.gameMode,
                 score: this.stats.Score
             });
         }
-        else if (currentRecord.score > this.stats.Score) {
-            currentRecord.score = this.stats.Score;
+        else {
+            const currentRecord = this.saveFile.records[0];
+            if (currentRecord.score > this.stats.Score) {
+                currentRecord.score = this.stats.Score;
+            }
         }
 
         this.save();
@@ -121,8 +127,6 @@ export class State {
             this.saveFile.records = [];
         }
         this.game.updateVolume(this.saveFile.Volume);
-        console.log(this.saveFile);
-
         console.log("Game Loaded");
     }
 }

@@ -13,7 +13,7 @@ export class Spaceship implements Entity {
     movementDirection: number;
     linesActive: number;
     hitAnimationLines: number;
-    bullet: SpaceshipBullet;
+    bullets: SpaceshipBullet[] = [];
 
     constructor (
         private game: XQuest
@@ -88,7 +88,7 @@ export class Spaceship implements Entity {
             this.position.x += this.movementDirection;
         }
 
-        if (!this.bullet && !flyAway && isInMiddle && Utility.getRandomInt(1, 4) == 1) {
+        if (this.bullets.length == 0 && !flyAway && isInMiddle && Utility.getRandomInt(1, 4) == 1) {
             this.fireBullet();
         }
 
@@ -102,7 +102,10 @@ export class Spaceship implements Entity {
     }
 
     unloadBullet(bullet: SpaceshipBullet) {
-        this.bullet = null;
+        let index: number = this.bullets.indexOf(bullet);
+        if (index > -1) {
+            this.bullets.splice(index, 1);
+        }
     }
 
     shot() {
@@ -110,9 +113,30 @@ export class Spaceship implements Entity {
     }
 
     fireBullet() {
-        const bullet = new SpaceshipBullet(this.game, this);
-        this.game.addEntity(bullet);
-        this.bullet = bullet;
+        let position: Point, bullet: SpaceshipBullet;
+
+        if (this.game.state.hasModifier('Matrix')) {
+            position = new Point(this.position.x , this.position.y + 1);
+            bullet = new SpaceshipBullet(this.game, this, position);
+            this.game.addEntity(bullet);
+            this.bullets.push(bullet);
+            
+            position = new Point(this.position.x + 1, this.position.y + 2);
+            bullet = new SpaceshipBullet(this.game, this, position);
+            this.game.addEntity(bullet);
+            this.bullets.push(bullet);
+
+            position = new Point(this.position.x + 2, this.position.y + 1);
+            bullet = new SpaceshipBullet(this.game, this, position);
+            this.game.addEntity(bullet);
+            this.bullets.push(bullet);
+        }
+        else {
+            position = new Point(this.position.x + 1, this.position.y + 1);
+            bullet = new SpaceshipBullet(this.game, this, position);
+            this.game.addEntity(bullet);
+            this.bullets.push(bullet);
+        }
         SFX.Shoot.play();
     }
 }

@@ -197,17 +197,25 @@ export class RenderEngine {
             this.selectedPhrase = null;
         }
 
-        // this.drawColoredText(2, this.game.options.height - 2, "Multi Shot", color, null)
         if (this.game.state.invincible > 0) {
             const dashes: string = "-".repeat(Math.ceil(this.game.state.invincible / 5));
-            this.drawColoredText(2, this.game.options.height - 1, "Invincibilty    " + dashes, color, null)
+            this.drawColoredText(2, this.game.options.height - 1, "Invincibilty    " + dashes, color, null);
         }
 
         if (this.game.state.distortion > 0) {
-            const dashes: string = "-".repeat(Math.ceil((this.game.state.distortion * 2) / 5));
-            this.drawColoredText(2, this.game.options.height - 1, "Distortion      " + dashes, color, null)
+            const dashes: string = "-".repeat(Math.ceil((this.game.state.distortion) / 5));
+            this.drawColoredText(2, this.game.options.height - 1, "Distortion      " + dashes, color, null);
         }
 
+        if (this.game.state.warp > 0) {
+            const dashes: string = "-".repeat(Math.ceil((this.game.state.warp) / 5));
+            this.drawColoredText(2, this.game.options.height - 1, "Warp            " + dashes, color, null);
+        }
+
+        if (this.game.state.multishot > 0) {
+            const dashes: string = "-".repeat(Math.ceil((this.game.state.multishot) / 5));
+            this.drawColoredText(2, this.game.options.height - 1, "Multi-Shot      " + dashes, color, null);
+        }
  
     }
 

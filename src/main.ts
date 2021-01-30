@@ -47,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	Game.state.load();
-	Game.UpdateMode('normal');
 
 	Game.UpdateSize(24);
 	Game.setLevelClass(1);
