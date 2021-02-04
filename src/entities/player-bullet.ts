@@ -1,20 +1,23 @@
-import { Entity, EntityType } from "./entity";
+import { ColliderEntity, Entity, EntityType } from "./entity";
 import { XQuest } from "../game";
-import { Point } from "../point";
+import { BoundingBox } from "../models/bounding-box";
 import { SFX } from "../sfx";
 import { Spaceship } from "./spaceship";
 import { SpaceshipBullet } from "./spaceship-bullet";
 import Utility from "../utility";
 import { Carrier } from "./carrier";
+import { DebugBox } from "./debug-box";
 
-export class PlayerBullet implements Entity {
+export class PlayerBullet implements ColliderEntity {
     type: EntityType;
+    collider: boolean = true;
 
     constructor(
         private game: XQuest,
-        public position: Point
+        public position: BoundingBox
     ) {
         this.type = EntityType.Bullet;
+        this.position.height = 2;
     }
 
     update() {
@@ -23,42 +26,21 @@ export class PlayerBullet implements Entity {
         if (this.position.y <= 0) {
             this.game.deleteEntity(this);
         }
-
-        this.game.entities.forEach((entity) => {
-            if (entity instanceof Spaceship) {
-                if (entity.position.y == this.position.y &&
-                    Utility.contains(this.position.x, entity.position.x, entity.position.x + 2)) {
-                    this.game.deleteEntity(this);
-                    entity.shot();
-                    this.game.state.stats.Score += 10;
-                    this.game.state.stats.ShipsDestroyed += 1;
-                    SFX.Explosion.play();
-                }
-            }
-
-            if (entity instanceof SpaceshipBullet) {
-                if (entity.position.x == this.position.x &&
-                    Utility.contains(this.position.y, entity.position.y - 1, entity.position.y + 1)) {
-                    this.game.deleteEntity(this);
-                    entity.shot();
-                    this.game.state.stats.Score += 3;
-                    this.game.state.stats.ShotsDestroyed += 1; 
-                    SFX.Explosion.play();
-                }
-            }
-
-            if (entity instanceof Carrier) {
-                if (entity.position.x == this.position.x &&
-                    Utility.contains(this.position.y, entity.position.y - 1, entity.position.y + 1)) {
-                    this.game.deleteEntity(this);
-                    entity.shot();
-                    // SFX.Explosion.play();
-                }
-            }
-        });
+    }
+    
+    collide(entity: Entity) {
+        if (entity instanceof DebugBox || entity instanceof SpaceshipBullet || entity instanceof Spaceship) {
+            this.game.deleteEntity(this);
+        }
     }
 
     draw() {
+        // for (let x = this.position.x; x < this.position.x + this.position.width; x++) {
+        //     for (let y = this.position.y; y < this.position.y + this.position.height; y++) {
+        //         this.game.renderEngine.renderObjectChar(x, y, "*");
+        //     }
+        // }
+
         this.game.renderEngine.renderObjectChar(this.position.x, this.position.y, "^");
     }
 

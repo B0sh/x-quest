@@ -56,6 +56,8 @@ export class Board {
     }
 
     generateLine(): string {
+        const NEW = false;
+
         let line: string = this.game.BaseLine;
 
         const level = this.game.state.level > 9 ? 9 : this.game.state.level;
@@ -109,21 +111,37 @@ export class Board {
                 /* Vertical line handler */
                 this.lineLength[i] -= 1;
 
-                let gap: number = Utility.getRandomInt(2, 6 - Math.floor(level / 4));
-                // gap = 60;
+                if (NEW) {
+                    if (this.lineLength[i] > 10 && this.lineReset[i] != 0) {
+                        this.lineReset[i] = 0;
 
-                if (this.lineLength[i] < gap && this.lineReset[i] != 0) {
-                    this.lineReset[i] = 0;
+                        const direction = Utility.getRandomInt(1, 2);
 
-                    const direction = Utility.getRandomInt(1, 2);
-
-                    if (i == start || direction == 1) {
-                        this.lineReset[i + 1] = 1;
-                        this.lineLength[i + 1] = Utility.getRandomInt(6, 22 - level);
+                        if (i == start || direction == 1) {
+                            this.lineReset[i + 1] = 1;
+                            this.lineLength[i + 1] = 15;
+                        }
+                        else if (i == end - 1 || direction == 2) {
+                            this.lineReset[i - 1] = 1;
+                            this.lineLength[i - 1] = 15;
+                        }
                     }
-                    else if (i == end - 1 || direction == 2) {
-                        this.lineReset[i - 1] = 1;
-                        this.lineLength[i - 1] = Utility.getRandomInt(6, 20 - level);
+                } else {
+                    const gap = Utility.getRandomInt(2, 6 - Math.floor(level / 4));
+
+                    if (this.lineLength[i] < gap && this.lineReset[i] != 0) {
+                        this.lineReset[i] = 0;
+
+                        const direction = Utility.getRandomInt(1, 2);
+
+                        if (i == start || direction == 1) {
+                            this.lineReset[i + 1] = 1;
+                            this.lineLength[i + 1] = Utility.getRandomInt(6, 22 - level);
+                        }
+                        else if (i == end - 1 || direction == 2) {
+                            this.lineReset[i - 1] = 1;
+                            this.lineLength[i - 1] = Utility.getRandomInt(6, 20 - level);
+                        }
                     }
                 }
             }
@@ -153,6 +171,7 @@ export class Board {
     }
 
     getLevelLines(level: number): number {
+        return 99999;
         switch (level) {
             case 1: return 101; break;
             case 2: return 151; break;

@@ -25,6 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
 				Game.usePowerup();
 				event.preventDefault();
 				break;
+			// case 'KeyP':
+			// 	Game.gameLoop();
+			// 	event.preventDefault()
+			// 	break
 			case 'Space':
 				if (!Game.Active) {
 					Game.start();

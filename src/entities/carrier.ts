@@ -1,12 +1,12 @@
-import { Entity, EntityType } from "./entity";
+import { ColliderEntity, Entity, EntityType } from "./entity";
 import { XQuest } from "../game";
-import { Point } from "../point";
 import { SFX } from "../sfx";
 import Utility from "../utility";
+import { BoundingBox } from "../models/bounding-box";
 
-export class Carrier implements Entity {
-    position: Point;
+export class Carrier implements ColliderEntity {
     type: EntityType;
+    position: BoundingBox;
     isHit: boolean;
     movementDirection: number;
     linesActive: number;
@@ -23,7 +23,6 @@ export class Carrier implements Entity {
         '                    `-------' 
     ];
 
-
     constructor (
         private game: XQuest
     ) {
@@ -34,14 +33,14 @@ export class Carrier implements Entity {
 
         if (Utility.getRandomInt(0, 1) == 0) {
             this.movementDirection = 1;
-            this.position = new Point(
+            this.position = new BoundingBox(
                 -30,
                 8
             );
         }
         else {
             this.movementDirection = -1;
-            this.position = new Point(
+            this.position = new BoundingBox(
                 this.game.width + 2,
                 8
             );
@@ -75,6 +74,10 @@ export class Carrier implements Entity {
     }
 
     unload() {
+
+    }
+
+    collide(entity: Entity) {
 
     }
 

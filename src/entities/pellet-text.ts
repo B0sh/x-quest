@@ -1,11 +1,12 @@
 import { Entity, EntityType } from "./entity";
 import { XQuest } from "../game";
-import { Point } from "../point";
+import { BoundingBox } from "../models/bounding-box";
 
 export class PelletText implements Entity {
     type: EntityType;
+    position: BoundingBox;
+
     animationFrames: number;
-    position: Point;
 
     constructor(
         private game: XQuest,
@@ -24,15 +25,19 @@ export class PelletText implements Entity {
 
     draw() {
         if (this.game.playerPosition.x + 6 > this.game.width) {
-            this.position = new Point(
+            this.position = new BoundingBox(
                 this.game.playerPosition.x - this.score.toString().length - 4,
-                this.game.playerPosition.y
+                this.game.playerPosition.y,
+                1,
+                1
             );
         }
         else {
-            this.position = new Point(
+            this.position = new BoundingBox(
                 this.game.playerPosition.x + 4,
-                this.game.playerPosition.y
+                this.game.playerPosition.y,
+                1,
+                1
             );
         }
 

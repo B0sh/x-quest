@@ -5,8 +5,8 @@ import { DisplayOptions } from 'rot-js/lib/display/types';
 import { Display } from 'rot-js';
 import { RenderEngine } from './render-engine';
 import { Board } from './board';
-import { Point } from './point';
-import { Entity, EntityType } from './entities/entity';
+import { BoundingBox } from './models/bounding-box';
+import { ColliderEntity, Entity, EntityType } from './entities/entity';
 import { Spaceship } from './entities/spaceship';
 import { PlayerBullet } from './entities/player-bullet';
 import { PelletText } from './entities/pellet-text';
@@ -15,6 +15,7 @@ import { Timer } from './timer';
 import { RoadBullet } from './entities/road-bullet';
 import { Carrier } from './entities/carrier';
 import { Menu } from './menu';
+import { DebugBox } from './entities/debug-box';
 
 var roadChar = '|';
 
@@ -46,7 +47,7 @@ export class XQuest {
     Paused: boolean = false;
     Restarting: boolean = false;
 
-    playerPosition: Point;
+    playerPosition: BoundingBox;
     BaseSpeed: number;
     CHEAT: boolean = false;
     CurrentTab = 1;
@@ -116,7 +117,7 @@ export class XQuest {
         this.state.multishot = 0
         this.state.level = 1;
         this.state.levelLines = 0;
-        this.state.power = 'D';
+        this.state.power = 'I';
         this.map = [];
         this.LineEntered = [];
         this.state.stats = {
@@ -137,7 +138,7 @@ export class XQuest {
 
         /* Player spawns in the middle location */
         const mid = Math.floor((this.width - 1) / 2);
-        this.playerPosition = new Point(mid, this.height - 1);
+        this.playerPosition = new BoundingBox(mid, this.height - 1);
 
         this.board.generateStartingLines();
 
@@ -150,7 +151,7 @@ export class XQuest {
             this.BaseSpeed = 60;
         }
         else {
-            this.BaseSpeed = 110;
+            this.BaseSpeed = 120;
         }
 
         if (this.state.hasModifier('Survivor')) {
@@ -201,7 +202,7 @@ export class XQuest {
         this.state.levelLines = 0;
 
         const mid = Math.floor((this.width - 1) / 2);
-        this.playerPosition = new Point(mid, this.height - 1);
+        this.playerPosition = new BoundingBox(mid, this.height - 1);
 
         this.board.generateStartingLines();
     }
@@ -219,7 +220,7 @@ export class XQuest {
             if (this.state.warp == 0) {
                 this.playerPosition.x += direction;
                 if (this.playerPosition.x > this.width-1 || this.playerPosition.x < 0) {
-                    this.Over('Wall');
+                    this.over('Wall');
                     return;
                 }
 
@@ -260,7 +261,7 @@ export class XQuest {
             var tileUnderPlayer = this.map[3].split('')[this.playerPosition.x];
 
             if (tileUnderPlayer == '@' &&  Tile2 == '@' && this.state.invincible == 0) {
-                this.Over('Abyss');
+                this.over('Abyss');
             }
         }
     }
@@ -273,21 +274,25 @@ export class XQuest {
             }
         });
 
-        if (!this.Paused && this.Active && !bulletExists) {
+        if (this.Active && !bulletExists) {
             SFX.Shoot.play();
             this.state.stats.ShotsFired += 1;
 
             if (this.state.multishot == 0) {
-                const bullet = new PlayerBullet(this, new Point(this.playerPosition.x, this.playerPosition.y));
+                const bullet = new PlayerBullet(this, new BoundingBox(this.playerPosition.x, this.playerPosition.y - 1));
                 this.entities.push(bullet);
             } else {
-                const bulletLeft = new PlayerBullet(this, new Point(this.playerPosition.x - 1, this.playerPosition.y));
+                const bulletLeft = new PlayerBullet(this, new BoundingBox(this.playerPosition.x - 1, this.playerPosition.y));
                 this.entities.push(bulletLeft);
-                const bullet = new PlayerBullet(this, new Point(this.playerPosition.x, this.playerPosition.y - 1));
+                const bullet = new PlayerBullet(this, new BoundingBox(this.playerPosition.x, this.playerPosition.y - 1));
                 this.entities.push(bullet);
-                const bulletRight = new PlayerBullet(this, new Point(this.playerPosition.x + 1, this.playerPosition.y));
+                const bulletRight = new PlayerBullet(this, new BoundingBox(this.playerPosition.x + 1, this.playerPosition.y));
                 this.entities.push(bulletRight);
             }
+            //? Potentially a bad idea to check collisions outside of game
+            //? loop, but this makes newly spawned bullets check for stuff inside
+            //? them on spawn
+            this.checkCollisions();
         }
     }
 
@@ -299,7 +304,7 @@ export class XQuest {
             }
         }
 
-        this.AddLine();
+        this.nextLine();
 
         this.state.stats.Time += this.BaseSpeed / 1000;
 
@@ -353,12 +358,12 @@ export class XQuest {
             // nightmare mode wall tiles
             case '<':
             case '>':
-                this.Over('Wall');
+                this.over('Wall');
                 return;
                 break;
             case '@':
                 if (this.state.invincible == 0) {
-                    this.Over('Abyss');
+                    this.over('Abyss');
                     return;
                 }
                 break;
@@ -377,9 +382,16 @@ export class XQuest {
             this.entities.push(spaceship);
         }
 
+        // if (this.state.stats.Lines == 1) {
+        //     const debugBox = new DebugBox(this);
+        //     this.entities.push(debugBox);
+        // }
+
         this.entities.forEach((entity) => {
             entity.update();
         });
+
+        this.checkCollisions();
 
         if (this.state.invincible != 0) {
             this.state.invincible -= 1;
@@ -398,6 +410,19 @@ export class XQuest {
         }
     }
 
+    checkCollisions() {
+        const colliders: ColliderEntity[] = (this.entities as ColliderEntity[]).filter((entity) => entity.collide);
+        const entityCount: number = colliders.length;
+        for (let i = 0; i < entityCount; i++) {
+            for (let j = i + 1; j < entityCount; j++) {
+                if (colliders[i].position.intersets(colliders[j].position)) {
+                    colliders[i].collide(colliders[j]);
+                    colliders[j].collide(colliders[i]);
+                }
+            }
+        }
+    }
+
     usePowerup() {
         switch (this.state.power) {
             case 'D':
@@ -412,7 +437,7 @@ export class XQuest {
                 break;
             case 'I':
                 SFX.Power.play();
-                this.state.invincible = 50;
+                this.state.invincible = 500;
                 this.state.stats.Powerups += 1;
                 break;
             case 'M':
@@ -421,7 +446,7 @@ export class XQuest {
                 this.state.stats.Powerups += 1;
                 break;
             case 'R':
-                const bullet = new RoadBullet(this, new Point(this.playerPosition.x, this.playerPosition.y - 1));
+                const bullet = new RoadBullet(this, new BoundingBox(this.playerPosition.x, this.playerPosition.y - 1));
                 SFX.Shoot.play();
                 this.entities.push(bullet);
                 break;
@@ -446,7 +471,7 @@ export class XQuest {
         this.timer.stop();
     }
 
-    Over(death: string) {
+    over(death: string) {
         this.state.lives --;
         SFX.GameOver.play();
         if (this.state.lives > 0) {
@@ -484,7 +509,7 @@ export class XQuest {
         }
     }
 
-    AddLine() {
+    nextLine() {
         var newMap = [];
         for (let y = 1; y <= this.height; y++) {
             newMap[y-1] = this.map[y];
@@ -514,11 +539,6 @@ export class XQuest {
             element.classList.remove(`d9`);
             element.classList.add(`d${level}`);
         });
-    }
-
-    UpdateSpeed(speed) {
-        this.BaseSpeed = speed;
-        console.log("Updated Speed");
     }
 
     UpdateSize(size) {

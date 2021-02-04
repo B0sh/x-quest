@@ -1,6 +1,6 @@
 import { Entity, EntityType } from "./entity";
 import { XQuest } from "../game";
-import { Point } from "../point";
+import { BoundingBox } from "../models/bounding-box";
 import Utility from "../utility";
 
 export class RoadBullet implements Entity {
@@ -8,7 +8,7 @@ export class RoadBullet implements Entity {
 
     constructor(
         private game: XQuest,
-        public position: Point
+        public position: BoundingBox
     ) {
         this.type = EntityType.Bullet;
     }

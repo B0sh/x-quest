@@ -1,12 +1,13 @@
-import { Entity, EntityType } from "./entity";
+import { ColliderEntity, Entity, EntityType } from "./entity";
 import { XQuest } from "../game";
-import { Point } from "../point";
+import { BoundingBox } from "../models/bounding-box";
 import { SFX } from "../sfx";
 import { SpaceshipBullet } from "./spaceship-bullet";
 import Utility from "../utility";
+import { PlayerBullet } from "./player-bullet";
 
-export class Spaceship implements Entity {
-    position: Point;
+export class Spaceship implements ColliderEntity {
+    position: BoundingBox;
     type: EntityType;
     isWinking: boolean;
     isHit: boolean;
@@ -26,17 +27,11 @@ export class Spaceship implements Entity {
 
         if (Utility.getRandomInt(0, 1) == 0) {
             this.movementDirection = 1;
-            this.position = new Point(
-                -2,
-                Utility.getRandomInt(1, 4)
-            );
+            this.position = new BoundingBox(-2, Utility.getRandomInt(1, 4), 3, 1);
         }
         else {
             this.movementDirection = -1;
-            this.position = new Point(
-                this.game.width + 2,
-                Utility.getRandomInt(1, 4)
-            );
+            this.position = new BoundingBox(this.game.width + 2, Utility.getRandomInt(1, 4), 3, 1);
         }
     }
 
@@ -97,6 +92,15 @@ export class Spaceship implements Entity {
         }
     }
 
+    collide(entity: Entity) {
+        if (entity instanceof PlayerBullet) {
+            this.isHit = true;
+            this.game.state.stats.Score += 10;
+            this.game.state.stats.ShipsDestroyed += 1;
+            SFX.Explosion.play();
+        }
+    }
+
     unload() {
 
     }
@@ -108,31 +112,27 @@ export class Spaceship implements Entity {
         }
     }
 
-    shot() {
-        this.isHit = true;
-    }
-
     fireBullet() {
-        let position: Point, bullet: SpaceshipBullet;
+        let position: BoundingBox, bullet: SpaceshipBullet;
 
         if (this.game.state.hasModifier('Matrix')) {
-            position = new Point(this.position.x , this.position.y + 1);
+            position = new BoundingBox(this.position.x , this.position.y + 1);
             bullet = new SpaceshipBullet(this.game, this, position);
             this.game.addEntity(bullet);
             this.bullets.push(bullet);
             
-            position = new Point(this.position.x + 1, this.position.y + 2);
+            position = new BoundingBox(this.position.x + 1, this.position.y + 2);
             bullet = new SpaceshipBullet(this.game, this, position);
             this.game.addEntity(bullet);
             this.bullets.push(bullet);
 
-            position = new Point(this.position.x + 2, this.position.y + 1);
+            position = new BoundingBox(this.position.x + 2, this.position.y + 1);
             bullet = new SpaceshipBullet(this.game, this, position);
             this.game.addEntity(bullet);
             this.bullets.push(bullet);
         }
         else {
-            position = new Point(this.position.x + 1, this.position.y + 1);
+            position = new BoundingBox(this.position.x + 1, this.position.y + 1);
             bullet = new SpaceshipBullet(this.game, this, position);
             this.game.addEntity(bullet);
             this.bullets.push(bullet);

@@ -1,21 +1,24 @@
-import { Entity, EntityType } from "./entity";
+import { ColliderEntity, Entity, EntityType } from "./entity";
 import { XQuest } from "../game";
-import { Point } from "../point";
+import { BoundingBox } from "../models/bounding-box";
 import { Spaceship } from "./spaceship";
+import { Player } from "./player";
+import { PlayerBullet } from "./player-bullet";
+import { SFX } from "../sfx";
 
-export class SpaceshipBullet implements Entity {
+export class SpaceshipBullet implements ColliderEntity {
     type: EntityType;
-    // position: Point;
-    isHit: boolean;
+    isHit: boolean = false;
     animationFrames: number;
 
     constructor(
         private game: XQuest,
         public spaceship: Spaceship,
-        public position: Point
+        public position: BoundingBox
     ) {
         this.type = EntityType.Bullet;
         this.animationFrames = 0;
+        this.position.height = 1;
     }
 
     update() {
@@ -33,9 +36,26 @@ export class SpaceshipBullet implements Entity {
             this.game.deleteEntity(this);
         }
 
-        if (this.position.equals(this.game.playerPosition) && this.game.state.invincible == 0) {
+        // if (this.position.equals(this.game.playerPosition) && this.game.state.invincible == 0) {
+        if (this.position.equals(this.game.playerPosition)) {
             this.game.deleteEntity(this);
-            this.game.Over('Spaceship');
+            this.game.over('Spaceship');
+        }
+    }
+
+    collide(entity: Entity) {
+        if (this.isHit) 
+            return;
+
+        if (entity instanceof Spaceship) {
+            this.game.deleteEntity(this);
+        }
+
+        if (entity instanceof PlayerBullet) {
+            this.game.state.stats.Score += 3;
+            this.game.state.stats.ShotsDestroyed += 1; 
+            SFX.Explosion.play()
+            this.isHit = true;
         }
     }
 
@@ -47,11 +67,15 @@ export class SpaceshipBullet implements Entity {
             return;
         }
 
-        this.game.renderEngine.renderObjectChar(this.position.x, this.position.y, "v");
-    }
+        for (let x = this.position.x; x < this.position.x + this.position.width; x++) {
+            for (let y = this.position.y; y < this.position.y + this.position.height; y++) {
+                this.game.renderEngine.renderObjectChar(x, y, "*");
+            }
+        }
 
-    shot() {
-        this.isHit = true;
+        this.game.renderEngine.renderObjectChar(this.position.x, this.position.y, "v");
+
+
     }
 
     unload() {
