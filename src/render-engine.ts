@@ -1,4 +1,4 @@
-import { RNG } from "rot-js";
+import { Color, RNG } from "rot-js";
 import { XQuest } from "./game";
 import Utility from "./utility";
 
@@ -12,6 +12,7 @@ export interface OverlayText {
 
 export class RenderEngine {
     roadColors: string[] = [ "#2196f3", "#40bfb5", "#40bf6f", "#98bf40", "#bf8e40", "#bf4040", "#bf408a", "#6140bf", "#ea4a3e" ];
+    roadColorsAlt: any[] = [ ];
     objectColors: string[] = [ "#eeff25", "#bf404a", "#c5b84c", "#3a47b3", "#4071bf", "#40bfbf", "#40bf75", "#9ebf40", "#15b5c1" ];
 
     selectedPhrase: string;
@@ -30,7 +31,11 @@ export class RenderEngine {
     restartAnimationSteps: number = 0;
 
     constructor(private game: XQuest) {
-        
+        const grey: any = [ 180, 180, 180 ];
+        this.roadColors.forEach((c: string, index) => {
+            const color = Color.fromString(c);
+            this.roadColorsAlt[index] = Color.toHex(Color.multiply(color, grey));
+        });
     }
 
     render() {
@@ -95,7 +100,7 @@ export class RenderEngine {
     }
 
     renderRoad() {
-        const color = this.roadColors[(this.game.state.level - 1) % 9];
+        let color: string = this.roadColors[(this.game.state.level - 1) % 9];
 
         let y: number = 0;
         for (let line of this.game.map.slice().reverse()) {
@@ -106,6 +111,13 @@ export class RenderEngine {
             line = Utility.replaceAll('@', ' ', line);
 
             for (let x = 0; x < line.length; x++) {
+                if (x % 2 == 0 || line[x] == this.endZoneChar) {
+                    color = this.roadColors[(this.game.state.level - 1) % 9];
+                }
+                else {
+                    color = this.roadColorsAlt[(this.game.state.level - 1) % 9];
+                }
+
                 this.game.display.draw(x + this.roadOffsetX, y + this.roadOffsetY, line[x], color, null);
             }
         }
@@ -183,7 +195,7 @@ export class RenderEngine {
         }
 
         if (this.game.Paused) {
-            this.drawCenteredText(Math.floor(this.game.options.height/2), "-- PAUSED --", color, null);
+            // this.drawCenteredText(Math.floor(this.game.options.height/2), "-- PAUSED --", color, null);
         }
 
         if (this.game.state.levelLines < 51 && this.game.state.level == 1) {
@@ -197,24 +209,29 @@ export class RenderEngine {
             this.selectedPhrase = null;
         }
 
+        let powerUpTextY = this.game.options.height - 1;
         if (this.game.state.invincible > 0) {
-            const dashes: string = "-".repeat(Math.ceil(this.game.state.invincible / 5));
-            this.drawColoredText(2, this.game.options.height - 1, "Invincibilty    " + dashes, color, null);
+            const dashes: string = "-".repeat(Math.min(Math.ceil(this.game.state.invincible / 5), 10));
+            this.drawColoredText(2, powerUpTextY, "Invincibilty    " + dashes, color, null);
+            powerUpTextY--;
         }
 
         if (this.game.state.distortion > 0) {
-            const dashes: string = "-".repeat(Math.ceil((this.game.state.distortion) / 5));
-            this.drawColoredText(2, this.game.options.height - 1, "Distortion      " + dashes, color, null);
+            const dashes: string = "-".repeat(Math.min(Math.ceil((this.game.state.distortion) / 5), 10));
+            this.drawColoredText(2, powerUpTextY, "Distortion      " + dashes, color, null);
+            powerUpTextY--;
         }
 
         if (this.game.state.warp > 0) {
-            const dashes: string = "-".repeat(Math.ceil((this.game.state.warp) / 5));
-            this.drawColoredText(2, this.game.options.height - 1, "Warp            " + dashes, color, null);
+            const dashes: string = "-".repeat(Math.min(Math.ceil((this.game.state.warp) / 5), 10));
+            this.drawColoredText(2, powerUpTextY, "Warp            " + dashes, color, null);
+            powerUpTextY--;
         }
 
-        if (this.game.state.multishot > 0) {
-            const dashes: string = "-".repeat(Math.ceil((this.game.state.multishot) / 5));
-            this.drawColoredText(2, this.game.options.height - 1, "Multi-Shot      " + dashes, color, null);
+        if (this.game.state.multishot > 0 && powerUpTextY != this.game.options.height - 4) {
+            const dashes: string = "-".repeat(Math.min(Math.ceil((this.game.state.multishot) / 5), 10));
+            this.drawColoredText(2, powerUpTextY, "Multi-Shot      " + dashes, color, null);
+            powerUpTextY--;
         }
  
     }

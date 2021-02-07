@@ -6,7 +6,8 @@ export const enum EntityType {
     Carrier,
     Bullet,
     Debug,
-    PelletText
+    PelletText,
+    ScoreText
 }
 
 export interface Entity {

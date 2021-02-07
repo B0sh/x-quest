@@ -15,7 +15,6 @@ import { Timer } from './timer';
 import { RoadBullet } from './entities/road-bullet';
 import { Carrier } from './entities/carrier';
 import { Menu } from './menu';
-import { DebugBox } from './entities/debug-box';
 
 var roadChar = '|';
 
@@ -77,7 +76,12 @@ export class XQuest {
     frameCount: number = 0;
     renderLoop() {
         this.frameCount++;
-        this.renderEngine.render();
+        if (this.isUpdating) {
+            // alert("CURRENTLY UPDATING" + this.frameCount);
+        }
+        else {
+            this.renderEngine.render();
+        }
 
         const self = this;
         window.requestAnimationFrame(() => {
@@ -114,10 +118,10 @@ export class XQuest {
         this.state.warp = 0;
         this.state.invincible = 0;
         this.state.distortion = 0;
-        this.state.multishot = 0
+        this.state.multishot = 0;
         this.state.level = 1;
         this.state.levelLines = 0;
-        this.state.power = 'I';
+        this.state.power = null;
         this.map = [];
         this.LineEntered = [];
         this.state.stats = {
@@ -174,14 +178,13 @@ export class XQuest {
         this.state.warp = 0;
         this.state.invincible = 25;
 
-        console.log('next level called');
-
         if (this.state.hasModifier('Incline')) {
             this.BaseSpeed -= 1;
             this.startGameLoop(this.BaseSpeed);
         }
+        this.board.onNextLevel();
 
-       if (this.state.isKillScreen()) {
+        if (this.state.isKillScreen()) {
             SFX.Killscreen.play();
         } else {
             SFX.LevelUp.play();
@@ -296,7 +299,11 @@ export class XQuest {
         }
     }
 
+    frameTime: number = 0;
+    isUpdating: boolean = false;
     gameLoop() {
+        this.isUpdating = true;
+        const t = performance.now();
         if (this.state.distortion != 0) {
             this.state.distortion -= 1;
             if (this.state.distortion % 2 == 1) {
@@ -382,14 +389,14 @@ export class XQuest {
             this.entities.push(spaceship);
         }
 
-        // if (this.state.stats.Lines == 1) {
-        //     const debugBox = new DebugBox(this);
-        //     this.entities.push(debugBox);
-        // }
+        if (this.state.stats.Lines == 1) {
+            // const debugBox = new Carrier(this);
+            // this.entities.push(debugBox);
+        }
 
-        this.entities.forEach((entity) => {
-            entity.update();
-        });
+        for (let i = this.entities.length; i > 0; i--) {
+            this.entities[i - 1].update();
+        }
 
         this.checkCollisions();
 
@@ -408,6 +415,8 @@ export class XQuest {
             this.setLevelClass(this.state.nextLevelClass);
             this.state.nextLevelClass = -1;
         }
+        this.frameTime = performance.now() - t;
+        this.isUpdating = false;
     }
 
     checkCollisions() {
@@ -437,7 +446,7 @@ export class XQuest {
                 break;
             case 'I':
                 SFX.Power.play();
-                this.state.invincible = 500;
+                this.state.invincible = 50;
                 this.state.stats.Powerups += 1;
                 break;
             case 'M':
@@ -468,6 +477,7 @@ export class XQuest {
     }
 
     stopGameLoop() {
+        this.isUpdating = false;
         this.timer.stop();
     }
 

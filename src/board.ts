@@ -1,16 +1,26 @@
 import { XQuest } from "./game";
 import Utility from "./utility";
 
+export const enum LevelType {
+    XQuest,
+    Sinusoidal,
+    Tightrope
+}
+
 export class Board {
     lineLength: number[] = [];
     lineReset: number[] = [];
     lineEntered: number[] = [];
 
-    constructor(private game: XQuest) {
+    levelType: LevelType = LevelType.XQuest;
+    sinFrequency: number[] = [];
 
+    constructor(private game: XQuest) {
     }
 
     generateStartingLines() {
+        this.onNextLevel();
+
         this.lineLength = [];
         this.lineReset = [];
         this.lineEntered = [];
@@ -55,15 +65,29 @@ export class Board {
         }
     }
 
-    generateLine(): string {
-        const NEW = false;
+    onNextLevel() {
+        const level = this.game.state.level;
 
+        if (level % 8 == 0) {
+            this.levelType = LevelType.Sinusoidal;
+            this.sinFrequency = [
+                9,
+                Utility.getRandomInt(15, 21),
+                Utility.getRandomInt(23, 27)
+            ];
+        }
+        else {
+            this.levelType = LevelType.XQuest;
+        }
+    }
+
+    generateLine(): string {
         let line: string = this.game.BaseLine;
 
         const level = this.game.state.level > 9 ? 9 : this.game.state.level;
 
         /* Randomly start a new line every once in a while (Higher line size = less new lines) */
-        if (Utility.getRandomInt(1, 30 + this.game.width) == 1) {
+        if (this.levelType == LevelType.XQuest && Utility.getRandomInt(1, 30 + this.game.width) == 1) {
             let lineIndex = Utility.getRandomInt(0, this.game.width - 1);
             this.lineReset[lineIndex] = 1;
             this.lineLength[lineIndex] = Utility.getRandomInt(6, 22 - level);
@@ -89,59 +113,43 @@ export class Board {
         const barebones: number = this.game.state.hasModifier('Barebones') ? 1.5 : 1;
         const invasion: number = this.game.state.hasModifier('Invasion') ? 0.5 : 1;
         for (let i = start; i < end; i++) {
-            if (this.lineLength[i] != 0) {
-                let road: string = "`";
+            if (this.levelType == LevelType.Sinusoidal) {
+                const s = (1 +
+                    Math.sin(this.game.state.stats.Lines / this.sinFrequency[0]) *
+                    Math.sin(this.game.state.stats.Lines / this.sinFrequency[1]) *
+                    Math.sin(this.game.state.stats.Lines / this.sinFrequency[2])
+                ) * this.game.width / 2;
+                if (i - 4 < s && i + 5 > s) {
+                    const road: string = this.roadTile(level, barebones, invasion);
+                    line = Utility.setCharAt(line, i, road);
+                }
+            }
 
-                if (Utility.getRandomInt(1, 1100 * barebones) == 1) {
-                    road = 'I';
-                } else if (Utility.getRandomInt(1, 300) == 1) {
-                    road = 'P';
-                } else if (Utility.getRandomInt(1, 900 * barebones) === 1) {
-                    road = 'D';
-                } else if (Utility.getRandomInt(1, 1000 * barebones) === 1) {
-                    road = 'R';
-                } else if (Utility.getRandomInt(1, 900 * barebones) === 1 && level >= 6) {
-                    road = 'W';
-                } else if (Utility.getRandomInt(1, 900 * barebones * invasion) === 1 && level >= 3) {
-                    road = 'M';
+            if (this.lineLength[i] != 0) {
+
+                if (this.levelType == LevelType.XQuest) {
+                    const road: string = this.roadTile(level, barebones, invasion);
+                    line = Utility.setCharAt(line, i, road);
                 }
 
-                line = Utility.setCharAt(line, i, road);
-
-                /* Vertical line handler */
                 this.lineLength[i] -= 1;
 
-                if (NEW) {
-                    if (this.lineLength[i] > 10 && this.lineReset[i] != 0) {
-                        this.lineReset[i] = 0;
+                const gap = Utility.getRandomInt(2, 6 - Math.floor(level / 4));
 
-                        const direction = Utility.getRandomInt(1, 2);
+                if (this.lineLength[i] < gap && this.lineReset[i] != 0) {
+                    this.lineReset[i] = 0;
 
-                        if (i == start || direction == 1) {
-                            this.lineReset[i + 1] = 1;
-                            this.lineLength[i + 1] = 15;
-                        }
-                        else if (i == end - 1 || direction == 2) {
-                            this.lineReset[i - 1] = 1;
-                            this.lineLength[i - 1] = 15;
-                        }
+                    let direction = Utility.getRandomInt(1, 2);
+                    if (i == start && direction == 1) direction = 2;
+                    if (i == end - 1 && direction == 2) direction = 1;
+
+                    if (direction == 1) {
+                        this.lineReset[i + 1] = 1;
+                        this.lineLength[i + 1] = Utility.getRandomInt(6, 22 - level);
                     }
-                } else {
-                    const gap = Utility.getRandomInt(2, 6 - Math.floor(level / 4));
-
-                    if (this.lineLength[i] < gap && this.lineReset[i] != 0) {
-                        this.lineReset[i] = 0;
-
-                        const direction = Utility.getRandomInt(1, 2);
-
-                        if (i == start || direction == 1) {
-                            this.lineReset[i + 1] = 1;
-                            this.lineLength[i + 1] = Utility.getRandomInt(6, 22 - level);
-                        }
-                        else if (i == end - 1 || direction == 2) {
-                            this.lineReset[i - 1] = 1;
-                            this.lineLength[i - 1] = Utility.getRandomInt(6, 20 - level);
-                        }
+                    else if (direction == 2) {
+                        this.lineReset[i - 1] = 1;
+                        this.lineLength[i - 1] = Utility.getRandomInt(6, 20 - level);
                     }
                 }
             }
@@ -157,6 +165,30 @@ export class Board {
         return line;
     }
 
+    private roadTile(level: number, barebones: number, invasion: number) {
+        let road: string = "`";
+
+        let levelTypeModifier: number = 1;
+        if (this.levelType == LevelType.Sinusoidal) {
+            levelTypeModifier = 1.5;
+        }
+
+        if (Utility.getRandomInt(1, 1100 * barebones * levelTypeModifier) == 1) {
+            road = 'I';
+        } else if (Utility.getRandomInt(1, 300 * levelTypeModifier) == 1) {
+            road = 'P';
+        } else if (Utility.getRandomInt(1, 900 * barebones * levelTypeModifier) === 1) {
+            road = 'D';
+        } else if (Utility.getRandomInt(1, 1000 * barebones * levelTypeModifier) === 1) {
+            road = 'R';
+        } else if (Utility.getRandomInt(1, 900 * barebones * levelTypeModifier) === 1 && level >= 6) {
+            road = 'W';
+        } else if (Utility.getRandomInt(1, 900 * barebones * invasion * levelTypeModifier) === 1 && level >= 3) {
+            road = 'M';
+        }
+        return road;
+    }
+
     removeOneTileGaps() {
         const yTop = this.game.height - 1;
         for (let x = 0; x < this.game.width; x++) {
@@ -166,12 +198,10 @@ export class Board {
             if (top != '@' && middle == '@' && bottom != '@') {
                 this.game.map[yTop - 1] = Utility.setCharAt(this.game.map[yTop-1], x, '=');
             }
-            // console.log(x, top, middle, bottom);
         }
     }
 
     getLevelLines(level: number): number {
-        return 99999;
         switch (level) {
             case 1: return 101; break;
             case 2: return 151; break;

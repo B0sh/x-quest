@@ -29,7 +29,9 @@ export class PlayerBullet implements ColliderEntity {
     }
     
     collide(entity: Entity) {
-        if (entity instanceof DebugBox || entity instanceof SpaceshipBullet || entity instanceof Spaceship) {
+        if (entity instanceof DebugBox ||
+            entity instanceof SpaceshipBullet ||
+            entity instanceof Spaceship) {
             this.game.deleteEntity(this);
         }
     }

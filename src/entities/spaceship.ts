@@ -5,15 +5,14 @@ import { SFX } from "../sfx";
 import { SpaceshipBullet } from "./spaceship-bullet";
 import Utility from "../utility";
 import { PlayerBullet } from "./player-bullet";
+import { ScoreText } from "./score-text";
 
 export class Spaceship implements ColliderEntity {
     position: BoundingBox;
     type: EntityType;
     isWinking: boolean;
-    isHit: boolean;
     movementDirection: number;
     linesActive: number;
-    hitAnimationLines: number;
     bullets: SpaceshipBullet[] = [];
 
     constructor (
@@ -22,8 +21,6 @@ export class Spaceship implements ColliderEntity {
         this.type = EntityType.Spaceship;
         this.isWinking = Utility.getRandomInt(1, 32) == 1;
         this.linesActive = 0;
-        this.isHit = false;
-        this.hitAnimationLines = 0;
 
         if (Utility.getRandomInt(0, 1) == 0) {
             this.movementDirection = 1;
@@ -36,13 +33,6 @@ export class Spaceship implements ColliderEntity {
     }
 
     draw() {
-        if (this.isHit) {
-            let x = this.position.x + this.game.renderEngine.roadOffsetX;
-            let y = this.position.y + this.game.renderEngine.roadOffsetY;
-            this.game.renderEngine.drawColoredText(x, y, "+10", null, null);
-            return;
-        }
-
         if (this.isWinking) {
             this.game.renderEngine.renderObjectChar(this.position.x + 0, this.position.y, "^");
             this.game.renderEngine.renderObjectChar(this.position.x + 1, this.position.y, "_");
@@ -57,13 +47,6 @@ export class Spaceship implements ColliderEntity {
 
     update() {
         this.linesActive++;
-        if (this.isHit) {
-            this.hitAnimationLines++;
-            if (this.hitAnimationLines == 10) {
-                this.game.deleteEntity(this);
-            }
-            return;
-        }
 
         const flyAway: boolean = this.linesActive > 160;
         const clampXLeft = 3;
@@ -94,10 +77,13 @@ export class Spaceship implements ColliderEntity {
 
     collide(entity: Entity) {
         if (entity instanceof PlayerBullet) {
-            this.isHit = true;
             this.game.state.stats.Score += 10;
             this.game.state.stats.ShipsDestroyed += 1;
             SFX.Explosion.play();
+            const position: BoundingBox = new BoundingBox(this.position.x, this.position.y);
+            const scoreText: ScoreText = new ScoreText(this.game, position, 10);
+            this.game.addEntity(scoreText);
+            this.game.deleteEntity(this);
         }
     }
 
