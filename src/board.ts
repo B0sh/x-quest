@@ -1,3 +1,4 @@
+import { RoadBullet } from "./entities/road-bullet";
 import { XQuest } from "./game";
 import Utility from "./utility";
 
@@ -32,6 +33,7 @@ export class Board {
             for (var i = 0; i < this.game.width; i++) {
                 // if the location is one of the 3 middle columns then make a line there
                 const isMid: number = Utility.contains(i, mid - 1, mid + 1) ? 1 : 0;
+
 
                 this.lineLength.push(isMid * 25);
                 this.lineReset.push(isMid);
@@ -140,8 +142,8 @@ export class Board {
                     this.lineReset[i] = 0;
 
                     let direction = Utility.getRandomInt(1, 2);
-                    if (i == start && direction == 1) direction = 2;
-                    if (i == end - 1 && direction == 2) direction = 1;
+                    if (i == start && direction == 2) direction = 1;
+                    if (i == end - 1 && direction == 1) direction = 2;
 
                     if (direction == 1) {
                         this.lineReset[i + 1] = 1;
@@ -187,6 +189,15 @@ export class Board {
             road = 'M';
         }
         return road;
+    }
+
+    finishRoadBullet(roadBullet: RoadBullet) {
+        if (this.levelType == LevelType.XQuest) {
+            const x = roadBullet.position.x;
+            this.lineReset[x] = 1;
+            this.lineLength[x] = 3;
+            this.lineEntered[x] = 0;
+        }
     }
 
     removeOneTileGaps() {

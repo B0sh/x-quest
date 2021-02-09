@@ -12,17 +12,30 @@ export class Carrier implements ColliderEntity {
     linesActive: number;
     hitAnimationLines: number;
 
-    textSprite: string[] = [
-        '                    /~~~~~|',
-        '               .__./\'\'\'\'\'\'|',
-        '._____________/   |/^^^^^^^\\',
-        '|             `==="\\_______/',
-        '`.             .___/^^^^^^^^\\',
-        '  `------------\'~~~\\________/',
-        '                  `........\\',
-        '                    `-------' 
-    ];
+    textSprite: string[] = [];
+    // ░▒▓█
+    // ╳
+    text: string = String.raw`
+   /==Y==Y==Y==Y==Y==\
+  //*)   ░░   ░░   ░░ \==\__
+ /***)   ░░   ░░   ░░    ___/  ..
+/;         \            ___/
+\\ ╳╳╳   ░░   ░░     ,,  ___/  ..
+\\----  ░░   ░░    ,, ____/  .. 
+       \-----__    ,,____/
+               \__----__/`;
 
+               /*
+              /=-Y-=-Y-=-Y-=\
+  /**)            \=-Y-=\___
+ /***)                   ___/  ..
+ /_____                   ___/
+      \\                ___/  ..
+       \\              ____/  ..
+        \-----__      ____/
+               \__----__/`;    
+
+               */
     constructor (
         private game: XQuest
     ) {
@@ -30,6 +43,7 @@ export class Carrier implements ColliderEntity {
         this.linesActive = 0;
         this.isHit = false;
         this.hitAnimationLines = 0;
+        this.textSprite = this.text.split(/\r?\n/);
 
         if (Utility.getRandomInt(0, 1) == 0) {
             this.movementDirection = 1;
@@ -45,6 +59,8 @@ export class Carrier implements ColliderEntity {
                 8
             );
         }
+        // this.position = new BoundingBox(1, 8);
+        // this.movementDirection= 1;
     }
 
     draw() {

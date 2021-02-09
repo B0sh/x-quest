@@ -19,7 +19,7 @@ export class Spaceship implements ColliderEntity {
         private game: XQuest
     ) {
         this.type = EntityType.Spaceship;
-        this.isWinking = Utility.getRandomInt(1, 32) == 1;
+        this.isWinking = Utility.getRandomInt(1, 36) == 1 && this.game.state.level > 4;
         this.linesActive = 0;
 
         if (Utility.getRandomInt(0, 1) == 0) {

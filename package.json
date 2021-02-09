@@ -2,7 +2,11 @@
   "name": "x-quest",
   "version": "1.4.0",
   "description": "",
-  "main": "rot.js",
+  "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/B0sh/x-quest"
+  },
   "scripts": {
     "start": "parcel index.html",
     "watch": "parcel index.html",
@@ -12,7 +16,6 @@
   "license": "ISC",
   "dependencies": {
     "howler": "^2.2.1",
-    "jquery": "^3.5.1",
     "parcel-plugin-static-files-copy": "^2.5.1",
     "rot-js": "^2.1.5"
   },

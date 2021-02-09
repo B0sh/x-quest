@@ -75,7 +75,7 @@ export class RenderEngine {
             this.game.display.draw(this.game.options.width - 1, y, "\\", "#FFFFFF", null);
         }
 
-        this.drawCenteredText(0, 'X-Quest v' + this.game.version);
+        this.drawCenteredText(0, 'X-Quest v' + XQuest.version);
 
         const score = this.game.state.stats?.Score;
         const currentRecord = this.game.state.currentHighScore();
@@ -125,13 +125,12 @@ export class RenderEngine {
 
     renderObjects() {
         const color = this.objectColors[(this.game.state.level - 1) % 9];
-        const powerUps = [ "P", "W", "M", "I", "D", "R" ];
 
         let y = 0;
         for (let line of this.game.map.slice().reverse()) {
             y ++;
             for (let x = 0; x < line.length; x++) {
-                if (powerUps.includes(line[x]))
+                if (XQuest.powerUps.includes(line[x]))
                 this.game.display.draw(x + this.roadOffsetX, y + this.roadOffsetY, line[x], color, null);
             }
         }
@@ -154,8 +153,7 @@ export class RenderEngine {
         if (this.game.Finished) {
             const overlayText: OverlayText[] = [
                 { centered: true, y:14, text:"Game Over" },
-                { x: 2, y:15, text:"    Score: "+Utility.format(this.game.state.stats.Score)+"              " },
-                { x: 2, y:16, text:"    Lines: "+Utility.format(this.game.state.stats.Lines)+"              " },
+                { x: 2, y:16, text:"    Score: " +Utility.format(this.game.state.stats.Score)+"              " },
                 { x: 2, y:17, text:"    Level: "+Utility.format(this.game.state.level)+"              " }
             ];
             this.renderTextOverlay(overlayText);
@@ -195,7 +193,7 @@ export class RenderEngine {
         }
 
         if (this.game.Paused) {
-            // this.drawCenteredText(Math.floor(this.game.options.height/2), "-- PAUSED --", color, null);
+            this.drawCenteredText(Math.floor(this.game.options.height/2) + 1, "-- PAUSED --", color, null);
         }
 
         if (this.game.state.levelLines < 51 && this.game.state.level == 1) {
@@ -237,7 +235,7 @@ export class RenderEngine {
     }
 
     renderTextBehindObjects() {
-        if (this.game.state.levelLines >= this.game.board.getLevelLines(this.game.state.level)) {
+        if (this.game.state.levelLines >= this.game.board.getLevelLines(this.game.state.level) && !this.game.Restarting) {
             let lineCount: number = Math.floor((this.game.state.levelLines - this.game.board.getLevelLines(this.game.state.level)) / 3);
             let dashTimer: string = "-".repeat(lineCount);
 

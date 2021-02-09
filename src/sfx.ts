@@ -2,6 +2,11 @@ import { Howler, Howl } from 'howler';
 import Utility from './utility';
 
 export class SFX {
+    static readonly Menu: Howl = new Howl({ 
+        src: [ "menu.mp3" ],
+        loop: true
+    });
+
 	static readonly Noscore: Howl = new Howl({
         src: [ "noscore.wav" ]
     });

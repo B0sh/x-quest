@@ -14,18 +14,23 @@ import { Howler } from 'howler';
 import { Timer } from './timer';
 import { RoadBullet } from './entities/road-bullet';
 import { Carrier } from './entities/carrier';
+import { Layout } from './layout';
 import { Menu } from './menu';
 
 var roadChar = '|';
 
 export class XQuest {
-    version: string = '1.4';
+    static readonly version: string = '1.4';
+    static readonly powerUps: string[] = [ "P", "W", "M", "I", "D", "R" ];
+    static readonly onTPK: boolean = false;
+    static readonly onWW: boolean = false;
 
     display: Display;
     state: State;
     renderEngine: RenderEngine;
     board: Board;
     timer: Timer;
+    layout: Layout;
     menu: Menu;
 
     options: DisplayOptions = {
@@ -49,7 +54,6 @@ export class XQuest {
     playerPosition: BoundingBox;
     BaseSpeed: number;
     CHEAT: boolean = false;
-    CurrentTab = 1;
     BaseLine: string;
 
 
@@ -64,12 +68,13 @@ export class XQuest {
         this.state = new State(this);
         this.renderEngine = new RenderEngine(this);
         this.board = new Board(this);
+        this.layout = new Layout(this);
         this.menu = new Menu(this);
     }
 
     init() {
         document.getElementsByClassName('TEMPGAMESPOT')[0].prepend(this.display.getContainer())
-        this.menu.initTabEvents();
+        this.layout.initTabEvents();
         this.renderLoop();
     }
 
@@ -110,7 +115,7 @@ export class XQuest {
         }
 
         this.entities = [];
-        this.state.modifiers = this.menu.selectedModifiers.map(m => m.name);
+        this.state.modifiers = this.layout.selectedModifiers.map(m => m.name);
 
         this.Active = true;
         this.Finished = false;
@@ -146,11 +151,6 @@ export class XQuest {
 
         this.board.generateStartingLines();
 
-        /* If you're on the high score screen and a new game starts don't let it submit */
-        if (this.CurrentTab == 6 || this.CurrentTab == 7) {
-            this.menu.toggleTab(1);
-        }
-
         if (this.state.hasModifier('Nightmare')) {
             this.BaseSpeed = 60;
         }
@@ -162,7 +162,7 @@ export class XQuest {
             this.state.lives = 1;
         }
         else {
-            this.state.lives = 3;
+            this.state.lives = 1;
         }
 
         /* Lets get this party started */
@@ -277,7 +277,7 @@ export class XQuest {
             }
         });
 
-        if (this.Active && !bulletExists) {
+        if (this.Active && !this.Paused && !this.Restarting && !bulletExists) {
             SFX.Shoot.play();
             this.state.stats.ShotsFired += 1;
 
@@ -297,6 +297,57 @@ export class XQuest {
             //? them on spawn
             this.checkCollisions();
         }
+    }
+
+    usePowerup() {
+        if (this.Active && !this.Paused && !this.Restarting) {
+            switch (this.state.power) {
+                case 'D':
+                    SFX.Power.play();
+                    this.state.distortion = 50;
+                    this.state.stats.Powerups += 1;
+                    break;
+                case 'W':
+                    SFX.Power.play();
+                    this.state.warp = 50;
+                    this.state.stats.Powerups += 1;
+                    break;
+                case 'I':
+                    SFX.Power.play();
+                    this.state.invincible = 50;
+                    this.state.stats.Powerups += 1;
+                    break;
+                case 'M':
+                    SFX.Power.play();
+                    this.state.multishot = 50;
+                    this.state.stats.Powerups += 1;
+                    break;
+                case 'R':
+                    const bullet = new RoadBullet(this, new BoundingBox(this.playerPosition.x, this.playerPosition.y - 1));
+                    SFX.Shoot.play();
+                    this.entities.push(bullet);
+                    break;
+            }
+            this.state.power = null;
+        }
+    }
+
+    startGameLoop(speed: number) {
+        if (this.timer && this.timer.interval == speed) {
+            this.timer.start();
+        } else if (this.timer) {
+            this.timer.stop();
+            this.timer = new Timer(this.gameLoop.bind(this), speed);
+            this.timer.start();
+        } else {
+            this.timer = new Timer(this.gameLoop.bind(this), speed);
+            this.timer.start();
+        }
+    }
+
+    stopGameLoop() {
+        this.isUpdating = false;
+        this.timer.stop();
     }
 
     frameTime: number = 0;
@@ -410,7 +461,6 @@ export class XQuest {
             this.state.multishot -= 1;
         }
 
-
         if (this.state.nextLevelClass != -1) {
             this.setLevelClass(this.state.nextLevelClass);
             this.state.nextLevelClass = -1;
@@ -432,54 +482,6 @@ export class XQuest {
         }
     }
 
-    usePowerup() {
-        switch (this.state.power) {
-            case 'D':
-                SFX.Power.play();
-                this.state.distortion = 50;
-                this.state.stats.Powerups += 1;
-                break;
-            case 'W':
-                SFX.Power.play();
-                this.state.warp = 50;
-                this.state.stats.Powerups += 1;
-                break;
-            case 'I':
-                SFX.Power.play();
-                this.state.invincible = 50;
-                this.state.stats.Powerups += 1;
-                break;
-            case 'M':
-                SFX.Power.play();
-                this.state.multishot = 50;
-                this.state.stats.Powerups += 1;
-                break;
-            case 'R':
-                const bullet = new RoadBullet(this, new BoundingBox(this.playerPosition.x, this.playerPosition.y - 1));
-                SFX.Shoot.play();
-                this.entities.push(bullet);
-                break;
-        }
-        this.state.power = null;
-    }
-
-    startGameLoop(speed: number) {
-        if (this.timer && this.timer.interval == speed) {
-            this.timer.start();
-        } else if (this.timer) {
-            this.timer.stop();
-            this.timer = new Timer(this.gameLoop.bind(this), speed);
-            this.timer.start();
-        } else {
-            this.timer = new Timer(this.gameLoop.bind(this), speed);
-            this.timer.start();
-        }
-    }
-
-    stopGameLoop() {
-        this.isUpdating = false;
-        this.timer.stop();
-    }
 
     over(death: string) {
         this.state.lives --;
@@ -496,7 +498,7 @@ export class XQuest {
             if(this.CHEAT == false) {
                 this.state.saveGameStats(death);
 
-                this.menu.updateStatistics();
+                this.layout.updateStatistics();
             }
         }
     }
