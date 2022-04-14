@@ -1,213 +1,228 @@
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>X-Quest</title>
-        <link rel='shortcut icon' type='image/x-icon' href='xquest-favicon.png' />
-        <script src='./src/main.ts'></script>
-	</head>
-	<body>
-		<style>
-		.c1,.c2,.c3,.c4,.c5,.c6,.c7,.c8,.c9,.header{font-weight:bold;}
+<script type="module" src='./src/main.ts'></script>
 
-		.c1 { color: #2196f3; }
-		.c2 { color: #40bfb5; }
-		.c3 { color: #40bf6f; }
-		.c4 { color: #98bf40; }
-		.c5 { color: #bf8e40; }
-		.c6 { color: #bf4040; }
-		.c7 { color: #bf408a; }
-		.c8 { color: #6140bf; }
-		.c9 { color: #ea4a3e; }
+<style>
+    .c1, .c2, .c3, .c4, .c5, .c6, .c7, .c8, .c9,
+    .d1, .d2, .d3, .d4, .d5, .d6, .d7, .d8, .d9, .header {
+        font-weight: bold;
+    }
 
-		.d1,.d2,.d3,.d4,.d5,.d6,.d7,.d8,.d9{font-weight:bold; }
+    .c1 { color: #2196f3; }
+    .c2 { color: #40bfb5; }
+    .c3 { color: #40bf6f; }
+    .c4 { color: #98bf40; }
+    .c5 { color: #bf8e40; }
+    .c6 { color: #bf4040; }
+    .c7 { color: #bf408a; }
+    .c8 { color: #6140bf; }
+    .c9 { color: #ea4a3e; }
 
-		/* .d1 { color: #1100da; filter: invert(100%);}
-		.d2 { color: #40bfb5; filter: invert(100%);}
-		.d3 { color: #c5b84c; filter: invert(100%);}
-		.d4 { color: #98bf40; filter: invert(100%);}
-		.d5 { color: #bf8e40; filter: invert(100%);}
-		.d6 { color: #bf4040; filter: invert(100%);}
-		.d7 { color: #bf408a;filter: invert(100%); }
-		.d8 { color: #6140bf; filter: invert(100%);}
-		.d9 { color: #ea4a3e;filter: invert(100%); } */
+    .d1 { color: #eeff25; }
+    .d2 { color: #bf404a; }
+    .d3 { color: #c5b84c; }
+    .d4 { color: #3a47b3; }
+    .d5 { color: #4071bf; }
+    .d6 { color: #40bfbf; }
+    .d7 { color: #40bf75; }
+    .d8 { color: #9ebf40; }
+    .d9 { color: #15b5c1; }
 
-		.d1 { color: #eeff25; }
-		.d2 { color: #bf404a; }
-		.d3 { color: #c5b84c; }
-		.d4 { color: #3a47b3; }
-		.d5 { color: #4071bf; }
-		.d6 { color: #40bfbf; }
-		.d7 { color: #40bf75; }
-		.d8 { color: #9ebf40; }
-		.d9 { color: #15b5c1; }
+    .x-quest {
+        border: 1px solid black;
+        font-family: monospace;
+        font-size: 14px;
+        margin: 0px;
+        background-color: black;
+        color: white;
+        width: 1000px;
+        height: 600px;
+        padding: 16px !important;
+    }
 
-		body{
-			font-family:monospace;
-			font-size:14px;
-			margin:0px;
-			background-color: black;
-			color: white;
-		}
-		.Window {
-			float:left;
-			min-height:400px;
-		}
-		.header {
-			font-size:20px;
-		}
-		.TabContainer tab {
-			float:left;
-			width:147px;
-			text-align:center;
-			margin-bottom:10px;
-			font-size:20px;
-			padding-top:4px;
-			padding-bottom:4px;
-			color:white;
-			cursor:pointer;
-			font-weight:bold;
-			user-select: none;
+    .tab-content {
+        display: none;
+        width: 480px;
+    }
 
-			border-right:1px solid white;
-			border-bottom:1px solid white;
-		}
-		.TabContainer .selected {
-			color:black;
-			background: white;
-		}
-		.TabWindow {
-			display:none;
-		}
+    .window {
+        float: left;
+        min-height: 400px;
+    }
 
-		#ScoreWindow {
-			width: 200px;
-			text-align:left;
-		}
+    .header {
+        font-size: 20px;
+    }
 
-		#GameInfo {
-			width:750px;
-			text-align:left;
-		}
+    .GameWindow {
+        line-height: 1;
+        font-size: 20px;
+    }
 
-		.GameWindow {
-			line-height: 1;
-			font-size:20px;
-		}
+    .x-quest a {
+        color: #3366BB !important;
+        font-weight: bold !important;
+        text-decoration: underline;
+    }
 
-		a {
-			color: #3366BB;
-			font-weight:bold;
-		}
+    .Xbox {
+        font-size: 20px;
+    }
 
-		.Xbox {
-			font-size:20px;
-		}
+    .volume-input {
+        vertical-align: middle;
+    }
 
-		.no_display_level_1,
-		.no_display_level_2,
-		.no_display_level_3,
-		.no_display_level_4,
-		.no_display_level_5,
-		.no_display_level_6,
-		.no_display_level_7,
-		.no_display_level_8,
-		.no_display_level_9 {
-			display: none;
-		}
-		</style>
-		<audio id="Sound" src="" style="display:none;"></audio>
+    #Changelog {
+        overflow:scroll;
+        overflow-x:hidden;
+        height: 600px;
+        width: 468px;
+    }
 
-	<div style="width:1200px;">
-		<div class="TabContainer">
-			<tab id="0" style="width:398px;"> X-Quest v1.3 </tab>
-			<tab id="1" class="selected">Instructions</tab>
-			<tab id="2">Options</tab>
-			<tab id="3">High Scores</tab>
-			<tab id="4">Statistics</tab>
-			<tab id="5">Changelog</tab>
-		</div>
-	</div>
+    .no_display_level_1,
+    .no_display_level_2,
+    .no_display_level_3,
+    .no_display_level_4,
+    .no_display_level_5,
+    .no_display_level_6,
+    .no_display_level_7,
+    .no_display_level_8,
+    .no_display_level_9 {
+        display: none;
+    }
 
-	<div id="container" style="width:1200px;text-align:center;">
-	<div id="outer_container">
-		<div class="Window" style="width:400px;">
-			<div class="TEMPGAMESPOT"></div>
-		</div>
+    .test {
+        width: 20px;
+        height: 20px;
+        margin: 8px;
+        float: left;
+    }
+</style>
 
-		<div class="Window" id="GameInfo">
-<div class="TabWindow" tab="0">
-	Easter Egg?
+<audio id="Sound" style="display:none;"></audio>
+
+<div class="tab-container" style="width: 900px;">
+    <div class="tab active-tab" id="tab_1">
+        X-Quest
+    </div>
+    <div class="tab" id="tab_2">
+        Options
+    </div>
+    <div class="tab" id="tab_3">
+        High Scores
+    </div>
+    <div class="tab" id="tab_4">
+        Statistics
+    </div>
+    <div class="tab" id="tab_5">
+        Changelog
+    </div>
+
+    <div class="x-quest" id="optionspage" style="width: 900px; background: black;">
+        <div class="window" style="width: 390px; padding-right: 20px;">
+            <div class="x-quest-board"></div>
+        </div>
+
+        <div class="window" style="text-align: left; width: 450px;">
+            <div class="tab-content" tab="0">
+                Easter Egg?
+            </div>
+            <div class="tab-content" style="display:inline;" tab="1">
+                <span style="font-size: 22px;">You are an <span class="Xbox">X</span> that goes on a quest.</span><br>
+
+                &nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br>
+
+                <b style="font-size: 18px;">Controls:</b><br>
+                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;"><span class="no_display_iPad">Left/Right,
+                    </span>A/D</span>: Move<br>
+                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;"><span class="no_display_iPad">Up, </span>W</span>:
+                Shoot<br>
+                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">E</span>: Use Powerup<br>
+                <br>
+
+                <b style="font-size: 18px;">Collect:</b><br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox">$</span>: Score<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox">I</span>: Invincibility<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox">M</span>: Multi-Shot<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox">D</span>: Time Distortion<br>
+                <span class="no_display_level_3">
+                    &nbsp;&nbsp;&nbsp;<span class="Xbox">R</span>: Road Shot<br>
+                </span>
+                <span class="no_display_level_6">
+                    &nbsp;&nbsp;&nbsp;<span class="Xbox">W</span>: Warp across the abyss<br>
+                </span>
+                <br>
+
+                <b style="font-size: 18px;">Watch out:</b><br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox"><_> </span>: spaceship<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox">v</span>: its bullets<br>
+                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">&nbsp;</span>: The Abyss<br>
+                <br>
+
+                X-Quest v1.4 by <a href="https://waldens.world/games">B0sh</a> &copy; 2014-2021
+            </div>
+
+            <div class="tab-content" tab="6">
+                <span style="font-size: 22px;">You are an <span class="Xbox">X</span> that goes on a quest.</span><br>
+
+                &nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br>
+
+                <div style="margin: 0 auto; width: 70%; font-weight: bold;">
+                    <div style="text-align: center; font-size: 18px; width: 100%">Game Over</div><br />
+
+                    Score: <span class="game-over-score"></span> &nbsp;&nbsp;&nbsp;&nbsp;
+                    <img src="https://sprites.tpkrpg.net/misc/MinigamePoint.png" style="width:24px;height:24px;vertical-align:middle">
+                    <span class="game-over-minigame-points"></span> &nbsp;&nbsp;&nbsp;&nbsp;
+                    <span class="game-over-event-currency"></span><br /><br />
+
+                    <div style="text-align: center; font-size: 18px; width: 100%;">
+                        Your Statistics
+                    </div><br />
+
+                    Game Time: <span class="game-over-game-time"></span><br />
+                    Level: <span class="game-over-level"></span><br />
+                    Powerups Used: <span class="game-over-powerups-used"></span><br />
+                    Spaceship Hits: <span class="game-over-spaceship-hits"></span><br />
+                    Bullet Hits: <span class="game-over-bullet-hits"></span><br /><br />
+                    <span class="game-over-cause-of-death"></span>
+
+                    <br /><br />
+
+                    <div class="game-over-modifier-header" style="display: none; text-align: center; font-size: 18px; width: 100%;">
+                        Your Modifiers
+                    </div><br />
+
+                    <div class="game-over-modifiers">
+
+                    </div>
+                </div>
+            </div>
+            <div class="tab-content" tab="2">
+                / / / &nbsp; X-Quest Modifiers &nbsp; \ \ \<br /><br />
+
+                Increase your minigame point rate with modifiers!<br /><br />
+
+                <div class="modifier-list">
+
+                </div><br /><br />
+
+                / / / &nbsp; X-Quest Settings &nbsp; \ \ \<br /><br />
+                <b>Volume:</b>
+                <input name="volume" class="volume-input" type="range" min="0" max="100" step="1" value="30"
+                    onchange="Game.layout.updateVolume(this.value); Game.state.save();" />
+                <br><br>
+            </div>
+            <div class="tab-content" id="HighScores" tab="3">
+
+            </div>
+            <div class="tab-content" id="Statistics" tab="4">
+
+            </div>
+            <div class="tab-content" tab="5" id="Changelog">
+
+            </div>
+            <div class="tab-content" tab="7" id="Error">
+
+            </div>
+        </div>
+    </div>
 </div>
-<div class="TabWindow" style="display:inline;" tab="1">
-	<span style="font-size:22px;">You are a <span class="Xbox">X</span> that goes on a quest.</span><br>
-
-	&nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br>
-
-	<b style="font-size: 18px;">Controls:</b><br>
-	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;"><span class="no_display_iPad">Left/Right, </span>A/D</span>: Move<br>
-	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;"><span class="no_display_iPad">Up, </span>W</span>: Shoot<br>
-	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;">E</span>: Use Powerup<br>
-	<br>
-
-	<b style="font-size: 18px;">Collect:</b><br>
-	&nbsp;&nbsp;&nbsp;<span class="Xbox">D</span>: Distortion Powerup<br>
-	&nbsp;&nbsp;&nbsp;<span class="Xbox">I</span>: Invincibility Powerup<br>
-	&nbsp;&nbsp;&nbsp;<span class="Xbox">P</span>: Score Pellet<br>
-	<span class="no_display_level_3">&nbsp;&nbsp;&nbsp;<span class="Xbox">M</span>: Muli Shot!<br></span>
-	<span class="no_display_level_6">&nbsp;&nbsp;&nbsp;<span class="Xbox">W</span>: Warp across the abyss<br></span>
-	<br>
-
-	<b style="font-size: 18px;">Watch out:</b><br>
-	&nbsp;&nbsp;&nbsp;<span class="Xbox"><_></span>: spaceship<br>
-	&nbsp;&nbsp;&nbsp;<span class="Xbox">v</span>: it's bullets<br>
-	&nbsp;&nbsp;&nbsp;<span style="font-size:20px;">&nbsp;</span>: The Abyss<br>
-	<br>
-
-	X-Quest v1.3 by <a href="https://waldens.world">B0sh</a> &copy; 2014-2021
-</div>
-
-<div class="TabWindow" tab="2">
-	<b>Volume:</b>
-		<input name="volume" type="range" min="0" max="100" step="1" value="30"
-			onchange="Game.updateVolume(this.value);">
-	<br><br>
-
-	<b>Modifiers:</b>
-
-	<div class="modifier-list">
-
-	</div>
-</div>
-
-<div class="TabWindow" tab="3">
-	<div id="highScoreList">Loading...</div>
-</div>
-<div class="TabWindow" id="Statistics" tab="4">
-
-</div>
-<div class="TabWindow" tab="5" id="Changelog"style="overflow:scroll;overflow-x:hidden;height:350px;width:740px;">
-</div>
-<div class="TabWindow" tab="6" id="HighScoreEnter">
-
-	Congratulations on your HIGH SCORE!<br><br>
-
-	Would you like to submit it to the FUN-ONLY X-Quest High score list?<br><br>
-
-	<form method="POST">
-		<b>Nickname:</b> (Registering not enforced)<br>
-		<input type="text" value="" name="nickname" id="username" /><br>
-		<input type="submit" value="Send It Away" onclick="Game.SendHighScore(); return false;" />
-	</form>
-
-</div>
-<div class="TabWindow" tab="7" id="HighScoreSubmit">
-
-
-</div>
-
-		</div>
-	</div>
-</div>
-
-	</body>
-</html>

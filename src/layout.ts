@@ -1,10 +1,24 @@
+import { Howler } from "howler";
 import { Changelog } from "./changelog";
 import { XQuest } from "./game";
 import { Modifier, MODIFIERS } from "./modifier";
+import { State } from "./state";
+import TPKRequest from "./tpk";
 import Utility from "./utility";
 
+export const enum Tab {
+    EasterEgg = 0,
+    Instructions = 1,
+    Options = 2,
+    HighScore = 3,
+    Statistics = 4,
+    Changelog = 5,
+    GameOverStatistics = 6,
+    FatalError = 7,
+}
+
 export class Layout {
-    currentTab: number = 1;
+    currentTab: number = Tab.Instructions;
     selectedModifiers: Modifier[] = [];
 
     constructor(
@@ -14,44 +28,78 @@ export class Layout {
     }
 
     initTabEvents() {
-        document.querySelectorAll('tab').forEach((element: Element) => {
-            const id = element.getAttribute('id');
+        document.querySelectorAll('.tab').forEach((element: Element) => {
+            const id = element.getAttribute('id').replace('tab_', '');
             element.addEventListener('click', () => {
                 this.toggleTab(Number(id));
             });
         });
     }
 
-    toggleTab(tab: number){
-        for (let i = 0; i <= 5; i++) {
-            (document.querySelector(`[tab="${i}"]`) as HTMLElement).style.display = 'none';
-            document.querySelector(`[id="${i}"]`).classList.remove('selected');
+    toggleTab(tab: number) {
+        if (this.game.Crashed) {
+            tab = Tab.FatalError;
         }
 
-        (document.querySelector(`[tab="${tab}"]`) as HTMLElement).style.display = 'inline-block';
-        document.querySelector(`[id="${tab}"]`).classList.add('selected');
+        for (let i = 0; i <= 9; i++) {
+            const contentElement = document.querySelector(`[tab="${i}"]`) as HTMLElement;
+            if (contentElement)
+                contentElement.style.display = 'none';
+            const tabElement = document.querySelector(`[id="tab_${i}"]`);
+            if (tabElement)
+                tabElement.classList.remove('active-tab');
+        }
 
-        // if (tab == 3) {
-        // 	Game.LoadHighScore();
-        // }
+        let element: any;
+        element = document.querySelector(`[tab="${tab}"]`) as HTMLElement;
+        if (element)
+            element.style.display = 'inline-block';
 
-        if (tab == 0) {
+        element = document.querySelector(`[id="tab_${tab}"]`);
+        if (element)
+            element.classList.add('active-tab');
+
+        if (tab == Tab.EasterEgg) {
         	this.killScreenEasterEgg();
         }
 
-        if (tab == 2) {
+        if (tab == Tab.Options) {
             this.loadModifiers();
         }
 
-        if (tab == 4) {
-            this.updateStatistics();
+        if (tab == Tab.HighScore) {
+            this.loadHighScores();
         }
 
-        if (tab == 5) {
+        if (tab == Tab.Statistics) {
+            this.loadStatistics();
+        }
+
+        if (tab == Tab.Changelog) {
             document.querySelector("#Changelog").innerHTML = Changelog.createChangelog();
         }
 
         this.currentTab = tab;
+    }
+
+    loadHighScores(scoreList: string = 'overall') {
+        const element = document.querySelector('#HighScores');
+        element.innerHTML = 'Loading...';
+        TPKRequest.loadHighScores(scoreList).then((content: any) => {
+            element.innerHTML = content;
+        }).catch((error) => {
+            this.game.handleError(error);
+        });
+    }
+
+    loadStatistics() {
+        const element = document.querySelector('#Statistics');
+        element.innerHTML = 'Loading...';
+        TPKRequest.loadStatistics().then((content: any) => {
+            element.innerHTML = content;
+        }).catch((error) => {
+            this.game.handleError(error);
+        });
     }
 
     loadModifiers() {
@@ -59,10 +107,65 @@ export class Layout {
         element.innerHTML = "";
         MODIFIERS.forEach((modifier) => {
             const checked: string = this.selectedModifiers.findIndex((sel) => sel.name == modifier.name) == -1 ? '' : 'checked';
-            element.innerHTML += `<div>
-                <input type="checkbox" onchange="Game.menu.updateModifier('${modifier.name}', this.checked);" ${checked} />
-                ${modifier.name} &mdash; +${modifier.scoreMultiplier * 100}% &mdash; ${modifier.description}
+            element.innerHTML += `<div style="clear: both;">
+                <input type="checkbox" class="test" onchange="Game.layout.updateModifier('${modifier.name}', this.checked); Game.state.save();" ${checked} />
+                <span class="d1">${modifier.name}</span> &mdash; <span class="d1">+${modifier.scoreMultiplier * 100}%</span> &mdash; ${modifier.description}
             </div>`
+        });
+    }
+
+    loadGameOverStatistics(state: State, death: string, minigamePoints: number, eventCurrency: number) {
+        this.toggleTab(Tab.GameOverStatistics);
+
+        document.querySelector('.game-over-score').innerHTML = Utility.format(state.stats.Score);
+
+        if (minigamePoints != null) {
+            document.querySelector('.game-over-minigame-points').innerHTML = '+' + Utility.format(minigamePoints);
+        }
+        else {
+            document.querySelector('.game-over-minigame-points').innerHTML = 'Loading...';
+        }
+
+        if (eventCurrency != null) {
+          document.querySelector('.game-over-event-currency').innerHTML = '<img src="https://sprites.tpkrpg.net/items/439.png" style="width:24px;height:24px;vertical-align:middle">&nbsp; +' + Utility.format(eventCurrency);
+        }
+
+        const seconds = Utility.padStart(Math.floor(state.stats.Time) % 60, 2, '0');
+        const minutes = Utility.padStart(Math.floor((state.stats.Time - state.stats.Time % 60) / 60), 2, '0');
+        document.querySelector('.game-over-game-time').innerHTML = minutes + ':' + seconds;
+        document.querySelector('.game-over-level').innerHTML = Utility.format(state.level);
+        document.querySelector('.game-over-powerups-used').innerHTML = Utility.format(state.stats.PowerupsUsed);
+        document.querySelector('.game-over-spaceship-hits').innerHTML = Utility.format(state.stats.ShipsDestroyed);
+        document.querySelector('.game-over-bullet-hits').innerHTML = Utility.format(state.stats.ShotsDestroyed);
+
+        if (death == 'Abyss') {
+            document.querySelector('.game-over-cause-of-death').innerHTML = 'Death by Abyss';
+        }
+        if (death == 'Wall') {
+            document.querySelector('.game-over-cause-of-death').innerHTML = 'Death by Wall';
+        }
+        if (death == 'Spaceship') {
+            document.querySelector('.game-over-cause-of-death').innerHTML = 'Death by Spaceship';
+        }
+        if (death == 'Carrier') {
+            document.querySelector('.game-over-cause-of-death').innerHTML = 'Death by Carrier';
+        }
+
+        let element: HTMLElement = document.querySelector('.game-over-modifier-header');
+        if (state.modifiers.length > 0) {
+            element.style.display = 'block';
+        }
+        else {
+            element.style.display = 'none';
+        }
+        element = document.querySelector('.game-over-modifiers');
+        element.innerHTML = "";
+        MODIFIERS.forEach((modifier) => {
+            if (state.hasModifier(modifier.name)) {
+                element.innerHTML += `<div>
+                    <span class="d1">${modifier.name}</span> &mdash; <span class="d1">+${modifier.scoreMultiplier * 100}%</span> &mdash; ${modifier.description}
+                </div>`
+            }
         });
     }
 
@@ -87,6 +190,7 @@ export class Layout {
             }
             else {
                 alert("Modifier cannot be paired with " + modifier.invalidComboModifiers.join(' '));
+                return;
             }
         }
         else if (!state && index > -1) {
@@ -94,36 +198,53 @@ export class Layout {
         }
     }
 
-    updateStatistics() {
-        const saveFile = this.game.state.saveFile;
-        if (!saveFile || !saveFile.Totals) {
-            return;
+    updateVolume(volume: number) {
+        Howler.volume(volume / 100);
+        this.game.state.volume = volume;
+        //@ts-ignore
+        document.querySelector('.volume-input').value = volume;
+    }
+
+    updateInstructions(level: number) {
+        const levelClass: number = level % 9;
+        document.querySelectorAll('.Xbox').forEach((element) => {
+            element.classList.remove(`d1`);
+            element.classList.remove(`d2`);
+            element.classList.remove(`d3`);
+            element.classList.remove(`d4`);
+            element.classList.remove(`d5`);
+            element.classList.remove(`d6`);
+            element.classList.remove(`d7`);
+            element.classList.remove(`d8`);
+            element.classList.remove(`d9`);
+            element.classList.add(`d${levelClass}`);
+        });
+
+
+        for (let i = 1; i <= 9; i++) {
+            document.querySelectorAll(`.no_display_level_${i}`).forEach((element) => {
+                if (level < i) {
+                    //@ts-ignore
+                    element.style.display = 'none';
+                }
+                else {
+                    //@ts-ignore
+                    element.style.display = 'inherit';
+                }
+            });
         }
+    }
 
-        const time = saveFile.Totals.Time;
-        let timeFormatted: string;
+    onError(error: Error) {
+        this.toggleTab(Tab.FatalError);
 
-        if(time < 600) {
-            timeFormatted = Utility.format(time, 1) + " Seconds";
-        } else if (time < 36000) {
-            timeFormatted = Utility.format(time/60, 1) + " Minutes";
-        } else {
-            timeFormatted = Utility.format(time / 3600, 1) + " Hours";
-        }
+        let text = `<div style="font-size: 20px;">
+            / / / <b class="c6">X-Quest has crashed.</b> \\ \\ \\
+        </div>
+        &nbsp;&nbsp;&nbsp;&nbsp;Oh, and you must refresh to continue.<br /><br />`;
+        text += error.message;
 
-        document.querySelector('#Statistics').innerHTML = '' +
-            '<b>Games Played:</b> '+Utility.format(saveFile.Totals.GamesPlayed)+'<br>'+
-            '<b>Score:</b> '+Utility.format(saveFile.Totals.Score)+'<br>'+
-            '<b>Lines:</b> '+Utility.format(saveFile.Totals.Lines)+'<br>'+
-            '<b>Times Moved:</b> '+Utility.format(saveFile.Totals.Moves)+'<br>'+
-            '<b>Shots Fired:</b> '+Utility.format(saveFile.Totals.ShotsFired)+'<br>'+
-            '<b>Shots Destroyed:</b> '+Utility.format(saveFile.Totals.ShotsDestroyed)+'<br>'+
-            '<b>Ships Destroyed:</b> '+Utility.format(saveFile.Totals.ShipsDestroyed)+'<br>'+
-            '<b>Powerups Collected:</b> '+Utility.format(saveFile.Totals.Powerups)+'<br>'+
-            '<b>Deaths To The Abyss:</b> '+Utility.format(saveFile.Totals.DeathAbyss)+'<br>'+
-            '<b>Deaths To The Ship:</b> '+Utility.format(saveFile.Totals.DeathShot)+'<br>'+
-            '<b>Deaths To The Wall:</b> '+Utility.format(saveFile.Totals.DeathWall)+'<br>'+
-            '<b>Time Played:</b> '+timeFormatted+'<br>';
+        (document.querySelector(`[tab="7"]`) as HTMLElement).innerHTML = text;
     }
 
     killScreenEasterEgg() {
@@ -143,8 +264,8 @@ export class Layout {
 
         text += "Kill Screen Level: " + this.game.state.level;
         text += "<br>Lines: " + totalLines;
-        text += "<br>Base Clock: " + this.game.BaseSpeed + "ms";
-        text += "<br>Time: " + totalLines * this.game.BaseSpeed / 1000 / 60 + " minutes"
+        text += "<br>Base Clock: " + this.game.gameClockMs + "ms";
+        text += "<br>Time: " + totalLines * this.game.gameClockMs / 1000 / 60 + " minutes"
         this.game.state.level = temp;
 
         (document.querySelector(`[tab="0"]`) as HTMLElement).innerHTML = text;

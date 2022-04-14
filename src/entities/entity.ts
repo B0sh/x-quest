@@ -4,6 +4,7 @@ export const enum EntityType {
     Player,
     Spaceship,
     Carrier,
+    CarrierShield,
     Bullet,
     Debug,
     PelletText,

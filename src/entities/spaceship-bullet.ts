@@ -33,17 +33,21 @@ export class SpaceshipBullet implements ColliderEntity {
     }
 
     collide(entity: Entity) {
-        if (entity instanceof Spaceship) {
-            this.game.deleteEntity(this);
-        }
+        // if (entity instanceof Spaceship) {
+        //     this.game.deleteEntity(this);
+        // }
 
         if (entity instanceof PlayerBullet) {
             this.game.state.stats.Score += 3;
             this.game.state.stats.ShotsDestroyed += 1; 
-            SFX.Explosion.play();
+            SFX.ExplosionBullet.play();
             const position: BoundingBox = new BoundingBox(this.position.x, this.position.y);
             const scoreText: ScoreText = new ScoreText(this.game, position, 3);
             this.game.addEntity(scoreText);
+            this.game.deleteEntity(this);
+        }
+
+        if (entity instanceof SpaceshipBullet) {
             this.game.deleteEntity(this);
         }
     }

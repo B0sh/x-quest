@@ -11,16 +11,16 @@ export interface OverlayText {
 }
 
 export class RenderEngine {
-    roadColors: string[] = [ "#2196f3", "#40bfb5", "#40bf6f", "#98bf40", "#bf8e40", "#bf4040", "#bf408a", "#6140bf", "#ea4a3e" ];
+    roadColors: string[] = [ "#2196f3", "#40bfb5", "#40cf5f", "#D9D170", "#bf8e40", "#bf4040", "#bf408a", "#B4009E", "#ea4a3e" ];
     roadColorsAlt: any[] = [ ];
-    objectColors: string[] = [ "#eeff25", "#bf404a", "#c5b84c", "#3a47b3", "#4071bf", "#40bfbf", "#40bf75", "#9ebf40", "#15b5c1" ];
+    objectColors: string[] = [ "#eeff25", "#bf404a", "#c5b84c", "#7F86E8", "#4071bf", "#40bfbf", "#40bf75", "#9ebf40", "#15b5c1" ];
 
     selectedPhrase: string;
     positivePhrases: string[] = [
         "Good Luck!", "Having fun yet?", "Have fun!", "Kill 'em", "You can do it!",
         "Run run run", "Don't die", "Stay on the road", "Stay positive", "I'm gonna do an internet!",
         "The time has come", "Your quest begins", "pow pow kachow", "pop click woosh", "Exhilaration",
-        "You are an X", "You go on a quest", "Do well", "chicka chic pow", "Embody Luxury", "Precision", "Craftsmanship",
+        "You are an X", "You go on a quest", "Do well", "chicka chic pow", "Precision", "Craftsmanship", "pew pew"
     ];
 
     roadChar: string = String.fromCharCode(0x2502);
@@ -45,10 +45,10 @@ export class RenderEngine {
             this.renderRoad();
             this.renderTextBehindObjects();
             this.renderObjects();
+        }
 
-            if (this.game.state.isKillScreen()) {
-                this.renderKillScreenArtifacts();
-            }
+        if (this.game.state.isKillScreen() || this.game.Crashed) {
+            this.renderKillScreenArtifacts();
         }
 
         this.renderUI();
@@ -66,6 +66,11 @@ export class RenderEngine {
         }
     }
 
+    renderObjectChar(x: number, y: number, char: string) {
+        const color = this.objectColors[(this.game.state.level - 1) % 9];
+        this.game.display.draw(x + this.roadOffsetX, y + this.roadOffsetY, char, color, null);
+    }
+
     renderUI() {
         const roadColor = this.roadColors[((this.game.state.level ?? 1) - 1) % 9];
         const objectColor = this.objectColors[((this.game.state.level ?? 1) - 1) % 9];
@@ -78,7 +83,7 @@ export class RenderEngine {
         this.drawCenteredText(0, 'X-Quest v' + XQuest.version);
 
         const score = this.game.state.stats?.Score;
-        const currentRecord = this.game.state.currentHighScore();
+        const currentRecord = this.game.state.highScore;
         this.drawColoredText(2, 1, "Score", null, null);
         this.drawColoredText(2, 2, Utility.padStart(score, 6, "."), "#fff", null);
 
@@ -139,32 +144,51 @@ export class RenderEngine {
             entity.draw();
         }
 
-        this.game.display.draw(this.game.playerPosition.x + this.roadOffsetX, this.game.playerPosition.y + this.roadOffsetY, "X", color, null);
-    }
-
-    renderObjectChar(x: number, y: number, char: string) {
-        const color = this.objectColors[(this.game.state.level - 1) % 9];
-        this.game.display.draw(x + this.roadOffsetX, y + this.roadOffsetY, char, color, null);
+        let pX = this.game.playerPosition.x + this.roadOffsetX;
+        let pY = this.game.playerPosition.y + this.roadOffsetY;
+        this.game.display.draw(pX, pY, 'X', color, null);
+        if (this.game.state.invincible > 0) {
+            if (Math.floor((this.game.state.invincible - 1) / 5) % 2 == 1) {
+                this.game.display.draw(pX + 2, pY, '/', '#444', null);
+                this.game.display.draw(pX - 2, pY, '/', '#444', null);
+            }
+            else {
+                this.game.display.draw(pX + 2, pY, '\\', '#444', null);
+                this.game.display.draw(pX - 2, pY, '\\', '#444', null);
+            }
+        }
     }
 
     renderText() {
         const color = this.objectColors[(this.game.state.level - 1) % 9];
 
         if (this.game.Finished) {
+
+            let percentDone: number = Math.min(1 - Math.floor(this.game.gameOverDelayUntil - performance.now()) / 4000, 1);
+            let dashTimer: string = "-".repeat(percentDone * this.game.width);
+
             const overlayText: OverlayText[] = [
-                { centered: true, y:14, text:"Game Over" },
-                { x: 2, y:16, text:"    Score: " +Utility.format(this.game.state.stats.Score)+"              " },
-                { x: 2, y:17, text:"    Level: "+Utility.format(this.game.state.level)+"              " }
+                { y: 13, centered: true, text: "Game Over" },
+                { y: 15, centered: true, text: "X failed its quest.", color: 'white' },
+                { x: 3, y: 16, text: Utility.padEnd(dashTimer, this.game.width, ' ') , color: 'white'},
             ];
+
+            if (this.game.gameOverDelayUntil && this.game.gameOverDelayUntil < performance.now()) {
+                overlayText.push({ y: 17, centered: true, text: "Press Space", color: 'white' });
+                overlayText.push({ y: 18, centered: true, text: "to restart.", color: 'white' });
+            }
+
             this.renderTextOverlay(overlayText);
+            this.game.display.draw(5, 15, "X", color, null);
             return;
         }
 
-        if (!this.game.Finished && !this.game.Active) {
+        if (!this.game.state.loading && !this.game.Finished && !this.game.Active && !this.game.Crashed) {
             const overlayText: OverlayText[] = [
                 { centered: true, y: 15, text: "Press Space" },
                 { centered: true, y: 16, text: "to start." },
             ];
+
             this.renderTextOverlay(overlayText);
             return;
         }
@@ -235,7 +259,7 @@ export class RenderEngine {
     }
 
     renderTextBehindObjects() {
-        if (this.game.state.levelLines >= this.game.board.getLevelLines(this.game.state.level) && !this.game.Restarting) {
+        if (this.game.state.levelLines >= this.game.board.getLevelLines(this.game.state.level) && !this.game.Restarting && !this.game.Finished) {
             let lineCount: number = Math.floor((this.game.state.levelLines - this.game.board.getLevelLines(this.game.state.level)) / 3);
             let dashTimer: string = "-".repeat(lineCount);
 
@@ -250,11 +274,11 @@ export class RenderEngine {
                 { x: 3, y: 16, text: Utility.padEnd(dashTimer, this.game.width, ' ') , color: 'white'},
             ];
 
-            if (this.game.state.level == 3) {
+            if (this.game.state.level == 2) {
                 overlayText.push({ y: 17, centered: true, text: "Look out for", color: 'white' });
-                overlayText.push({ y: 18, centered: true, text: "M - MultiShot", color: 'white' });
+                overlayText.push({ y: 18, centered: true, text: "R - Road Shot", color: 'white' });
             }
-            else if (this.game.state.level == 6) {
+            else if (this.game.state.level == 5) {
                 overlayText.push({ y: 17, centered: true, text: "Look out for", color: 'white' });
                 overlayText.push({ y: 18, centered: true, text: "W - Warp", color: 'white' });
             }
@@ -289,9 +313,14 @@ export class RenderEngine {
     }
 
     renderKillScreenArtifacts() {
-        RNG.setSeed(Math.floor(this.game.state.stats.Lines / 4));
-
-        const toY = (this.game.state.level - 61.5) * 3
+        let toY: number;
+        if (this.game.Crashed) {
+            RNG.setSeed(Math.floor(this.game.frameCount / 20));
+            toY = 30;
+        } else {
+            RNG.setSeed(Math.floor(this.game.state.lines / 4));
+            toY = (this.game.state.level - 61.5) * 3
+        }
 
         for (let y = 0; y < toY; y++)
         {

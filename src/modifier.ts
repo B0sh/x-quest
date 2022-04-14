@@ -20,7 +20,7 @@ export const MODIFIERS: Modifier[] = [
     },
     {
         name: 'Invasion',
-        description: 'Spaceships become more aggressive. MultiShot more common.',
+        description: 'Spaceships spawn in swarms. Multi-Shot more common.',
         scoreMultiplier: 0.5
     },
     {

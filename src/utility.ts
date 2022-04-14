@@ -36,7 +36,7 @@ export default class Utility {
         return x >= min && x <= max;
     }
 
-    static format(x: number, digits: number = 0) {
+    static format(x: number, digits: number = 0): string {
         return Number(x).toLocaleString('en-US', {
             minimumFractionDigits: digits
         });

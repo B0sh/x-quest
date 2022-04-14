@@ -7,6 +7,7 @@ import { SpaceshipBullet } from "./spaceship-bullet";
 import Utility from "../utility";
 import { Carrier } from "./carrier";
 import { DebugBox } from "./debug-box";
+import { CarrierShield } from "./carrier-shield";
 
 export class PlayerBullet implements ColliderEntity {
     type: EntityType;
@@ -31,7 +32,8 @@ export class PlayerBullet implements ColliderEntity {
     collide(entity: Entity) {
         if (entity instanceof DebugBox ||
             entity instanceof SpaceshipBullet ||
-            entity instanceof Spaceship) {
+            entity instanceof Spaceship ||
+            entity instanceof CarrierShield) {
             this.game.deleteEntity(this);
         }
     }

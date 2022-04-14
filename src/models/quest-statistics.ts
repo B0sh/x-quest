@@ -1,9 +1,8 @@
 export interface QuestStatistics {
     GamesPlayed?: number;
     Score: number;
-    Lines: number;
     ShipsDestroyed: number;
-    Powerups: number;
+    PowerupsUsed: number;
     Moves: number;
     Time: number;
     ShotsFired: number;

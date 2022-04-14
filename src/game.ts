@@ -14,15 +14,16 @@ import { Howler } from 'howler';
 import { Timer } from './timer';
 import { RoadBullet } from './entities/road-bullet';
 import { Carrier } from './entities/carrier';
-import { Layout } from './layout';
+import { Layout, Tab } from './layout';
 import { Menu } from './menu';
+import TPKRequest from './tpk';
 
 var roadChar = '|';
 
 export class XQuest {
     static readonly version: string = '1.4';
-    static readonly powerUps: string[] = [ "P", "W", "M", "I", "D", "R" ];
-    static readonly onTPK: boolean = false;
+    static readonly powerUps: string[] = [ '$', 'P', 'W', 'M', 'I', 'D', 'R' ];
+    static readonly onTPK: boolean = true;
     static readonly onWW: boolean = false;
 
     display: Display;
@@ -37,10 +38,11 @@ export class XQuest {
         width: 30,
         height: 30,
         fontSize: 20,
-        fontStyle: "bold",
-        fontFamily: 'monospace',
+        fontStyle: 'bold',
+        fontFamily: 'courier new',
     } as DisplayOptions;
-    width: number = 25;
+
+    width: number = 24;
     height: number = 22;
 
     messages: string[] = [];
@@ -50,15 +52,18 @@ export class XQuest {
     Finished: boolean = false;
     Paused: boolean = false;
     Restarting: boolean = false;
+    Crashed: boolean = false;
 
     playerPosition: BoundingBox;
-    BaseSpeed: number;
-    CHEAT: boolean = false;
+    gameClockMs: number;
     BaseLine: string;
-
+    gameOverDelayUntil: number = null;
+    frameTime: number = 0;
+    nextGameSyncTime: number = 0;
+    isUpdating: boolean = false;
 
     entities: Entity[] = [];
-    
+
     // TO REPLACE
     LineEntered: any[] = [];
 
@@ -73,8 +78,9 @@ export class XQuest {
     }
 
     init() {
-        document.getElementsByClassName('TEMPGAMESPOT')[0].prepend(this.display.getContainer())
+        document.getElementsByClassName('x-quest-board')[0].prepend(this.display.getContainer())
         this.layout.initTabEvents();
+        this.layout.updateInstructions(1);
         this.renderLoop();
     }
 
@@ -106,6 +112,13 @@ export class XQuest {
         }
     }
 
+    unloadEntities() {
+        this.entities.forEach((entity) => {
+            entity.unload();
+        });
+        this.entities = [ ];
+    }
+
     start() {
         if (this.Active == true) {
             if (this.state.levelLines > this.board.getLevelLines(this.state.level) - this.height) {
@@ -114,27 +127,39 @@ export class XQuest {
             return;
         }
 
-        this.entities = [];
+        if (this.state.loading || (this.gameOverDelayUntil && this.gameOverDelayUntil > performance.now())) {
+            return;
+        }
+
+        if (this.layout.currentTab == Tab.GameOverStatistics) {
+            this.layout.toggleTab(Tab.Instructions);
+        }
+
+        this.unloadEntities();
         this.state.modifiers = this.layout.selectedModifiers.map(m => m.name);
 
         this.Active = true;
         this.Finished = false;
         this.Paused = false;
+        this.Restarting = false;
+        this.syncNextAt = performance.now() + 10000;
+        this.state.gameId = 0;
         this.state.warp = 0;
         this.state.invincible = 0;
         this.state.distortion = 0;
         this.state.multishot = 0;
         this.state.level = 1;
+        this.state.lines = 0;
         this.state.levelLines = 0;
         this.state.power = null;
         this.map = [];
         this.LineEntered = [];
+        this.gameOverDelayUntil = null;
         this.state.stats = {
             Score: 0,
-            Lines: 0,
             ShipsDestroyed: 0,
             ShotsDestroyed: 0,
-            Powerups: 0,
+            PowerupsUsed: 0,
             Moves: 0,
             ShotsFired: 0,
             Time: 0,
@@ -143,35 +168,38 @@ export class XQuest {
             DeathShot: 0,
         };
 
-        this.state.nextLevelClass = 1;
-
-        /* Player spawns in the middle location */
         const mid = Math.floor((this.width - 1) / 2);
         this.playerPosition = new BoundingBox(mid, this.height - 1);
 
         this.board.generateStartingLines();
+        this.layout.updateInstructions(this.state.level);
 
         if (this.state.hasModifier('Nightmare')) {
-            this.BaseSpeed = 60;
+            this.gameClockMs = 60;
         }
         else {
-            this.BaseSpeed = 120;
+            this.gameClockMs = 120;
         }
 
         if (this.state.hasModifier('Survivor')) {
             this.state.lives = 1;
         }
         else {
-            this.state.lives = 1;
+            this.state.lives = 3;
         }
 
+        TPKRequest.startGame(this.state).then((result: any) => {
+            this.state.gameId = result.game_id;
+        }).catch((error) => {
+            this.handleError(error);
+        });
+
         /* Lets get this party started */
-        this.startGameLoop(this.BaseSpeed);
+        this.startGameLoop(this.gameClockMs);
         console.log('Game Started');
     }
 
     nextLevel() {
-        this.state.nextLevelClass = this.state.level % 9 + 1;
         this.state.level++;
         this.state.levelLines = 0;
 
@@ -179,10 +207,12 @@ export class XQuest {
         this.state.invincible = 25;
 
         if (this.state.hasModifier('Incline')) {
-            this.BaseSpeed -= 1;
-            this.startGameLoop(this.BaseSpeed);
+            this.gameClockMs -= 1;
+            this.startGameLoop(this.gameClockMs);
         }
+
         this.board.onNextLevel();
+        this.layout.updateInstructions(this.state.level);
 
         if (this.state.isKillScreen()) {
             SFX.Killscreen.play();
@@ -193,14 +223,18 @@ export class XQuest {
 
     restartLevel() {
         this.Restarting = false;
-        this.startGameLoop(this.BaseSpeed);
-                
-        this.entities = [];
+        this.startGameLoop(this.gameClockMs);
+
+        this.unloadEntities();
         this.state.levelLines = 0;
         this.state.warp = 0;
         this.state.distortion = 0;
         this.state.multishot = 0;
-        this.state.invincible = 0;
+        if (this.state.level == 1) {
+            this.state.invincible = 0;
+        } else {
+            this.state.invincible = 25;
+        }
         this.state.power = null;
         this.state.levelLines = 0;
 
@@ -210,18 +244,19 @@ export class XQuest {
         this.board.generateStartingLines();
     }
 
-    move(direction): void {
+    move(direction: string): void {
         if (this.Active && !this.Paused && !this.Restarting) {
+            let xMovement: number = 0;
             switch(direction) {
-                case 'right': direction = 1; break;
-                case 'left': direction = -1; break;
+                case 'right': xMovement = 1; break;
+                case 'left': xMovement = -1; break;
             }
 
             var Tile2 = this.map[2].split('')[this.playerPosition.x];
 
             // if you don't have warp mode on the move is pretty simple
             if (this.state.warp == 0) {
-                this.playerPosition.x += direction;
+                this.playerPosition.x += xMovement;
                 if (this.playerPosition.x > this.width-1 || this.playerPosition.x < 0) {
                     this.over('Wall');
                     return;
@@ -232,7 +267,7 @@ export class XQuest {
             } else {
                 var foundPosition = false;
                 while (!foundPosition) {
-                    this.playerPosition.x += direction;
+                    this.playerPosition.x += xMovement;
                     const tileUnderPlayer = this.map[3].split('')[this.playerPosition.x];
 
                     // only check whats above you becuse athats the area you are moving to
@@ -278,12 +313,12 @@ export class XQuest {
         });
 
         if (this.Active && !this.Paused && !this.Restarting && !bulletExists) {
-            SFX.Shoot.play();
             this.state.stats.ShotsFired += 1;
 
             if (this.state.multishot == 0) {
                 const bullet = new PlayerBullet(this, new BoundingBox(this.playerPosition.x, this.playerPosition.y - 1));
                 this.entities.push(bullet);
+                SFX.Shoot.play();
             } else {
                 const bulletLeft = new PlayerBullet(this, new BoundingBox(this.playerPosition.x - 1, this.playerPosition.y));
                 this.entities.push(bulletLeft);
@@ -291,6 +326,7 @@ export class XQuest {
                 this.entities.push(bullet);
                 const bulletRight = new PlayerBullet(this, new BoundingBox(this.playerPosition.x + 1, this.playerPosition.y));
                 this.entities.push(bulletRight);
+                SFX.MultiShot.play();
             }
             //? Potentially a bad idea to check collisions outside of game
             //? loop, but this makes newly spawned bullets check for stuff inside
@@ -305,22 +341,22 @@ export class XQuest {
                 case 'D':
                     SFX.Power.play();
                     this.state.distortion = 50;
-                    this.state.stats.Powerups += 1;
+                    this.state.stats.PowerupsUsed += 1;
                     break;
                 case 'W':
                     SFX.Power.play();
                     this.state.warp = 50;
-                    this.state.stats.Powerups += 1;
+                    this.state.stats.PowerupsUsed += 1;
                     break;
                 case 'I':
                     SFX.Power.play();
                     this.state.invincible = 50;
-                    this.state.stats.Powerups += 1;
+                    this.state.stats.PowerupsUsed += 1;
                     break;
                 case 'M':
                     SFX.Power.play();
                     this.state.multishot = 50;
-                    this.state.stats.Powerups += 1;
+                    this.state.stats.PowerupsUsed += 1;
                     break;
                 case 'R':
                     const bullet = new RoadBullet(this, new BoundingBox(this.playerPosition.x, this.playerPosition.y - 1));
@@ -350,8 +386,6 @@ export class XQuest {
         this.timer.stop();
     }
 
-    frameTime: number = 0;
-    isUpdating: boolean = false;
     gameLoop() {
         this.isUpdating = true;
         const t = performance.now();
@@ -364,7 +398,7 @@ export class XQuest {
 
         this.nextLine();
 
-        this.state.stats.Time += this.BaseSpeed / 1000;
+        this.state.stats.Time += this.gameClockMs / 1000;
 
         /* Create lines by the player for scoring purposes */
         for (let x=0; x<this.width; x++) {
@@ -378,7 +412,7 @@ export class XQuest {
         switch (Tile) {
             case '|': break;
             case roadChar: break;
-            case 'P':
+            case '$':
                 SFX.Bonus.play();
                 let score = this.state.level * 2 + 2;
                 if (score > 20) score = 20;
@@ -427,23 +461,7 @@ export class XQuest {
                 break;
         }
 
-        /* Randomly generate spaceships every 100 lines at 1/4 chance */
-        let spaceshipExists: boolean = false;
-        this.entities.forEach((entity) => {
-            if (entity.type == EntityType.Spaceship) {
-                spaceshipExists = true;
-            }
-        });
-
-        if (((1+this.state.stats.Lines) % 100 == 0 && Utility.getRandomInt(1, 4) == 1 && this.state.level >= 2) || this.state.stats.Lines+1 == 20)  {
-            const spaceship = new Spaceship(this);
-            this.entities.push(spaceship);
-        }
-
-        if (this.state.stats.Lines == 1) {
-            // const debugBox = new Carrier(this);
-            // this.entities.push(debugBox);
-        }
+        this.spawnShips();
 
         for (let i = this.entities.length; i > 0; i--) {
             this.entities[i - 1].update();
@@ -461,12 +479,49 @@ export class XQuest {
             this.state.multishot -= 1;
         }
 
-        if (this.state.nextLevelClass != -1) {
-            this.setLevelClass(this.state.nextLevelClass);
-            this.state.nextLevelClass = -1;
-        }
+        this.checkForGameSync();
+
         this.frameTime = performance.now() - t;
         this.isUpdating = false;
+    }
+
+    spawnShips() {
+        const loadingZone = this.state.levelLines >= this.board.getLevelLines(this.state.level);
+        let spaceshipExists: boolean = false;
+        let carrierExists: boolean = false;
+        this.entities.forEach((entity) => {
+            if (entity.type == EntityType.Spaceship) {
+                spaceshipExists = true;
+            }
+
+            if (entity.type == EntityType.Carrier) {
+                carrierExists = true;
+            }
+        });
+
+        if (!carrierExists && !loadingZone &&
+            (
+                (this.state.level == 8 && this.state.levelLines == 50) ||
+                (this.state.level > 8 && this.state.level % 8 == 0 && this.state.levelLines == 100 && Utility.getRandomInt(1, 3) == 1) ||
+                (this.state.level > 8 && this.state.level % 8 != 0 && this.state.levelLines == 100 && Utility.getRandomInt(1, 16) == 1)
+            )) {
+            const carrier = new Carrier(this);
+            this.entities.push(carrier);
+            carrier.spawnShields();
+            carrierExists = true;
+        }
+
+        if (!carrierExists && !loadingZone &&
+            (
+                (this.state.level == 2 && this.state.levelLines == 50) ||
+                (this.state.level > 2 && this.state.lines % 100 == 0 && Utility.getRandomInt(1, 4) == 1) ||
+                (this.state.hasModifier('Invasion') && this.state.level > 2 && this.state.lines % 100 == 3 && Utility.getRandomInt(1, 4) == 1) ||
+                (this.state.hasModifier('Invasion') && this.state.level > 2 && this.state.lines % 100 == 6 && Utility.getRandomInt(1, 4) == 1) ||
+                (this.state.hasModifier('Invasion') && this.state.level > 2 && this.state.lines % 100 == 9 && Utility.getRandomInt(1, 4) == 1)
+            ))  {
+            const spaceship = new Spaceship(this);
+            this.entities.push(spaceship);
+        }
     }
 
     checkCollisions() {
@@ -482,6 +537,18 @@ export class XQuest {
         }
     }
 
+    xcheck: string = "";
+    syncNextAt: number = 0;
+    checkForGameSync() {
+        if (performance.now() > this.syncNextAt) {
+            this.syncNextAt = performance.now() + 20000;
+            TPKRequest.gameStateSync(this.state, this.xcheck).then((result: any) => {
+                this.xcheck = result.xcheck;
+            }).catch((error: Error) => {
+                this.handleError(error);
+            });
+        }
+    }
 
     over(death: string) {
         this.state.lives --;
@@ -495,18 +562,15 @@ export class XQuest {
             this.Finished = true;
             this.stopGameLoop();
 
-            if(this.CHEAT == false) {
-                this.state.saveGameStats(death);
+            this.gameOverDelayUntil = performance.now() + 4000;
 
-                this.layout.updateStatistics();
-            }
+            this.layout.loadGameOverStatistics(this.state, death, null, null);
+            TPKRequest.finishGame(this.state, death).then((result: any) => {
+                this.layout.loadGameOverStatistics(this.state, death, result.minigame_points, result.event_currency);
+            }).catch((error: Error) => {
+                this.handleError(error);
+            });
         }
-    }
-
-    updateVolume(volume: number) {
-        Howler.volume(volume / 100);
-        this.state.saveFile.Volume = volume;
-        this.state.save();
     }
 
     togglePause() {
@@ -516,9 +580,21 @@ export class XQuest {
                 this.stopGameLoop();
             } else {
                 this.Paused = false;
-                this.startGameLoop(this.BaseSpeed);
+                this.startGameLoop(this.gameClockMs);
             }
         }
+    }
+
+    handleError(error: Error) {
+        if (this.Active == true) {
+            this.Active = false;
+            this.stopGameLoop();
+        }
+
+        this.Crashed = true;
+        this.state.level = 99;
+
+        this.layout.onError(error);
     }
 
     nextLine() {
@@ -532,30 +608,9 @@ export class XQuest {
         this.state.levelLines += 1;
 
         if (this.state.levelLines < this.board.getLevelLines(this.state.level)) {
-            this.state.stats.Lines += 1;
+            this.state.lines += 1;
         }
 
         return false;
-    }
-
-    setLevelClass(level: number) {
-        document.querySelectorAll('.Xbox').forEach((element) => {
-            element.classList.remove(`d1`);
-            element.classList.remove(`d2`);
-            element.classList.remove(`d3`);
-            element.classList.remove(`d4`);
-            element.classList.remove(`d5`);
-            element.classList.remove(`d6`);
-            element.classList.remove(`d7`);
-            element.classList.remove(`d8`);
-            element.classList.remove(`d9`);
-            element.classList.add(`d${level}`);
-        });
-    }
-
-    UpdateSize(size) {
-        this.width = parseInt(size);
-        var l = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@";
-        this.BaseLine = l.substr(0,this.width);
     }
 }

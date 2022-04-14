@@ -1,8 +1,12 @@
 export class Changelog {
     static readonly versionHistory: string[][] = [
         [
-            'v1.4',
-            'TPK Remake'
+            'v1.4 TPK Edition',
+            'Feburary 22nd 2021',
+            'All new X-Engine with rendering',
+            'New spaceships, levels, powerups, and sound effects',
+            'Game modifiers to increase difficulty',
+            'Earn minigame points and set high scores with your TPK account',
         ],
         [
             'v1.3',
@@ -39,7 +43,7 @@ export class Changelog {
             'Fixed sound effects'
         ],
         [
-            '<a href="x-quest.v0.95.php">v0.95</a>',
+            '<a href="https://waldens.world/projects/x-quest/x-quest.v0.95.php">v0.95</a>',
             'August 3rd 2016',
             'Added a high score list.'
         ],

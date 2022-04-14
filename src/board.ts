@@ -84,7 +84,7 @@ export class Board {
     }
 
     generateLine(): string {
-        let line: string = this.game.BaseLine;
+        let line: string = "@".repeat(this.game.width);
 
         const level = this.game.state.level > 9 ? 9 : this.game.state.level;
 
@@ -117,9 +117,9 @@ export class Board {
         for (let i = start; i < end; i++) {
             if (this.levelType == LevelType.Sinusoidal) {
                 const s = (1 +
-                    Math.sin(this.game.state.stats.Lines / this.sinFrequency[0]) *
-                    Math.sin(this.game.state.stats.Lines / this.sinFrequency[1]) *
-                    Math.sin(this.game.state.stats.Lines / this.sinFrequency[2])
+                    Math.sin(this.game.state.lines / this.sinFrequency[0]) *
+                    Math.sin(this.game.state.lines / this.sinFrequency[1]) *
+                    Math.sin(this.game.state.lines / this.sinFrequency[2])
                 ) * this.game.width / 2;
                 if (i - 4 < s && i + 5 > s) {
                     const road: string = this.roadTile(level, barebones, invasion);
@@ -178,15 +178,15 @@ export class Board {
         if (Utility.getRandomInt(1, 1100 * barebones * levelTypeModifier) == 1) {
             road = 'I';
         } else if (Utility.getRandomInt(1, 300 * levelTypeModifier) == 1) {
-            road = 'P';
+            road = '$';
         } else if (Utility.getRandomInt(1, 900 * barebones * levelTypeModifier) === 1) {
             road = 'D';
-        } else if (Utility.getRandomInt(1, 1000 * barebones * levelTypeModifier) === 1) {
-            road = 'R';
+        } else if (Utility.getRandomInt(1, 1000 * barebones * invasion * levelTypeModifier) === 1) {
+            road = 'M';
         } else if (Utility.getRandomInt(1, 900 * barebones * levelTypeModifier) === 1 && level >= 6) {
             road = 'W';
-        } else if (Utility.getRandomInt(1, 900 * barebones * invasion * levelTypeModifier) === 1 && level >= 3) {
-            road = 'M';
+        } else if (Utility.getRandomInt(1, 900 * barebones * levelTypeModifier) === 1 && level >= 3) {
+            road = 'R';
         }
         return road;
     }

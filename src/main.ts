@@ -1,64 +1,63 @@
 import Utility from "./utility";
 import { XQuest } from "./game";
 import { InputUtility } from "./input-utility";
+import { Spaceship } from "./entities/spaceship";
+import { Carrier } from "./entities/carrier";
 
 let Game = new XQuest();
 (window as any).Game = Game;
 
 document.addEventListener('DOMContentLoaded', () => {
-	Game.init();
-	InputUtility.initListeners((event: KeyboardEvent) => {
-		switch (event.code) {
-			case 'KeyD': case 'KeyL': case 'ArrowRight':
-				Game.move('right');
-				event.preventDefault();
-				break; //Left arrow or "d" or "l"
-			case 'KeyA': case 'KeyJ': case 'ArrowLeft':
-				Game.move('left');
-				event.preventDefault();
-				break; //Right arrow or "a" or "j"
-			case 'KeyW': case 'KeyI': case 'ArrowUp':
-				Game.fireBullet();
-				event.preventDefault();
-				break; //Up arrow or "w" or i
-			case 'KeyE': 
-				Game.usePowerup();
-				event.preventDefault();
-				break;
-			// case 'KeyP':
-			// 	Game.gameLoop();
-			// 	event.preventDefault()
-			// 	break
-			case 'Space':
-				if (!Game.Active) {
-					Game.start();
-				} else if (Game.state.levelLines >= Game.board.getLevelLines(Game.state.level)){
-					Game.nextLevel();	
-				} else if (!Game.Restarting) {
-					Game.togglePause();
-				}
-				event.preventDefault();
+    Game.init();
 
-				break;
-			default: return true;
-		}
-	});
+    InputUtility.initListeners((event: KeyboardEvent) => {
+        if (Game.Crashed) {
+            return true;
+        }
 
-	if (Utility.isiPad()) {
-		document.querySelectorAll('.no_display_iPad').forEach((element: any) => {
-			element.style.display ='none';
-		});
-	}
+        switch (event.code) {
+            case 'KeyD': case 'KeyL': case 'ArrowRight':
+                Game.move('right');
+                event.preventDefault();
+                break;
+            case 'KeyA': case 'KeyJ': case 'ArrowLeft':
+                Game.move('left');
+                event.preventDefault();
+                break;
+            case 'KeyW': case 'KeyI': case 'ArrowUp':
+                Game.fireBullet();
+                event.preventDefault();
+                break;
+            case 'KeyE': case 'KeyO': case 'Numpad0':
+                Game.usePowerup();
+                event.preventDefault();
+                break;
+            case 'Space':
+                if (!Game.Active) {
+                    Game.start();
+                } else if (Game.state.levelLines >= Game.board.getLevelLines(Game.state.level)){
+                    Game.nextLevel();	
+                } else if (!Game.Restarting) {
+                    Game.togglePause();
+                }
+                event.preventDefault();
 
-	Game.state.load();
+                break;
+            default: return true;
+        }
+    });
 
-	Game.UpdateSize(24);
-	Game.setLevelClass(1);
+    if (Utility.isiPad()) {
+        document.querySelectorAll('.no_display_iPad').forEach((element: any) => {
+            element.style.display ='none';
+        });
+    }
 
-	Game.map = [];
-	for(let i = 0; i <= Game.height; i++) {
-		Game.map[i] = '@@@@@@@@@@@@@@@';
-	}
+    Game.state.load();
 
+    Game.map = [];
+    for(let i = 0; i <= Game.height; i++) {
+        Game.map[i] = '@'.repeat(Game.width);
+    }
 });
 

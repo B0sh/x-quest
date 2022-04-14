@@ -22,13 +22,30 @@ export class Spaceship implements ColliderEntity {
         this.isWinking = Utility.getRandomInt(1, 36) == 1 && this.game.state.level > 4;
         this.linesActive = 0;
 
+        for (let i = 0; i <= 100; i++) {
+            this.setInitialPosition();
+
+            let validInitialPosition = true;
+            this.game.entities.forEach((entity) => {
+                if (entity.type == EntityType.Spaceship && entity.position.intersets(this.position)) {
+                    validInitialPosition = false;
+                }
+            });
+
+            if (validInitialPosition) {
+                return;
+            }
+        }
+    }
+
+    setInitialPosition() {
         if (Utility.getRandomInt(0, 1) == 0) {
             this.movementDirection = 1;
-            this.position = new BoundingBox(-2, Utility.getRandomInt(1, 4), 3, 1);
+            this.position = new BoundingBox(-4, Utility.getRandomInt(1, 4), 3, 1);
         }
         else {
             this.movementDirection = -1;
-            this.position = new BoundingBox(this.game.width + 2, Utility.getRandomInt(1, 4), 3, 1);
+            this.position = new BoundingBox(this.game.width + 1, Utility.getRandomInt(1, 4), 3, 1);
         }
     }
 
@@ -70,7 +87,7 @@ export class Spaceship implements ColliderEntity {
             this.fireBullet();
         }
 
-        if (this.position.x == -3 || this.position.x == this.game.width + 3) {
+        if (this.position.x < -4 || this.position.x == this.game.width + 3) {
             this.game.deleteEntity(this);
         }
     }

@@ -1,12 +1,12 @@
 import { XQuest } from "./game";
 import { QuestStatistics } from "./models/quest-statistics";
-import { SaveFile } from "./models/save-file";
 import { Modifier } from "./modifier";
+import TPKRequest from "./tpk";
 
 export class State {
     level: number;
+    lines: number;
     levelLines: number;
-    nextLevelClass: number;
     modifiers: string[] = [];
 
     invincible: number = 0;
@@ -17,116 +17,49 @@ export class State {
     power: string = null;
 
     stats: QuestStatistics;
-    saveFile: SaveFile;
+    volume: number = 0;
+    highScore: number = 0;
+    gameId: number;
+    loading: boolean = true;
 
-    constructor(private game: XQuest) {
-
-    }
+    constructor(private game: XQuest) { }
 
     hasModifier(modifier: string): boolean {
         return this.modifiers.indexOf(modifier) !== -1; 
+    }
+
+    hasSelectedModifier(modifier: string): boolean {
+        return this.game.layout.selectedModifiers.map((m) => m.name).indexOf(modifier) !== -1; 
     }
 
     isKillScreen() {
         return this.level > 63;
     }
 
-    currentHighScore(): number {
-        if (!this.saveFile || !this.saveFile.records)
-            return 0;
-        if (this.saveFile.records.length == 0)
-            return 0;
-        const currentRecord = this.saveFile.records[0];
-        return currentRecord.score;
-    }
-
-    saveGameStats(death: string) {
-        this.saveFile.Totals.GamesPlayed += 1;
-        this.saveFile.Totals.Score += this.stats.Score;
-        this.saveFile.Totals.Lines += this.stats.Lines;
-        this.saveFile.Totals.ShipsDestroyed += this.stats.ShipsDestroyed;
-        this.saveFile.Totals.Powerups += this.stats.Powerups;
-        this.saveFile.Totals.Moves += this.stats.Moves;
-        this.saveFile.Totals.Time += this.stats.Time;
-        this.saveFile.Totals.ShotsFired += this.game.state.stats.ShotsFired;
-        this.saveFile.Totals.ShotsDestroyed += this.game.state.stats.ShotsDestroyed;
-
-        switch(death) {
-            case 'Spaceship': this.saveFile.Totals.DeathShot++; break;
-            case 'Wall': this.saveFile.Totals.DeathWall++; break;
-            case 'Abyss': this.saveFile.Totals.DeathAbyss++; break;
-        }
-
-        if (this.saveFile.records.length == 0) {
-            this.saveFile.records.push({
-                score: this.stats.Score
-            });
-        }
-        else {
-            const currentRecord = this.saveFile.records[0];
-            if (currentRecord.score > this.stats.Score) {
-                currentRecord.score = this.stats.Score;
-            }
-        }
-
-        this.save();
-    }
-
-    newSaveFile() {
-        this.saveFile = {
-            Version: this.game.version,
-            Volume: 0.3,
-            Totals:  {
-                GamesPlayed: 0,
-                Score: 0,
-                Lines: 0,
-                ShipsDestroyed: 0,
-                Powerups: 0,
-                Moves: 0,
-                Time: 0,
-                ShotsFired: 0,
-                ShotsDestroyed: 0,
-                DeathAbyss: 0,
-                DeathShot: 0,
-                DeathWall: 0,
-            },
-            records: []
-        };
-    }
-
     save() {
-        try {
-            localStorage.setItem("XQuest", JSON.stringify(this.saveFile));
-        }
-        catch(e) {
-            alert("Save Failed!");
-            console.log(e);
-        }
+        TPKRequest.saveGame(this).then(() => {
+            console.log("Finished saving");
+        }).catch((error: Error) => {
+            this.game.handleError(error);
+        });
     }
 
     load() {
-        let saveFile: any;
-        try {
-            saveFile = localStorage.getItem("XQuest");
+        TPKRequest.loadGame().then((result: any) => {
+            this.game.layout.updateVolume(result.volume);
+            this.highScore = result.high_score;
 
-            if (!saveFile) {
-                this.newSaveFile();
-                this.save();
-                this.load();
-                return false;
-            }
-        }
-        catch(err) {
-            alert("Cannot access localStorage - browser may not support localStorage, or storage may be corrupt");
-            return false;
-        }
+            this.game.layout.updateModifier('Nightmare', result.mod_nightmare == 1);
+            this.game.layout.updateModifier('Incline', result.mod_incline == 1);
+            this.game.layout.updateModifier('Invasion', result.mod_invasion == 1);
+            this.game.layout.updateModifier('Matrix', result.mod_matrix == 1);
+            this.game.layout.updateModifier('Survivor', result.mod_survivor == 1);
+            this.game.layout.updateModifier('Barebones', result.mod_barebones == 1);
 
-        this.saveFile = JSON.parse(saveFile);
-        //save file validation
-        if (!this.saveFile.records) {
-            this.saveFile.records = [];
-        }
-        this.game.updateVolume(this.saveFile.Volume);
-        console.log("Game Loaded");
+            this.game.layout.loadModifiers();
+            this.loading = false;
+        }).catch((error: Error) => {
+            this.game.handleError(error);
+        });
     }
 }

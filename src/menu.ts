@@ -7,7 +7,6 @@ export class Menu {
     ) { }
     
     enterMenu() {
-        console.log("ENTER");
         SFX.Menu.play();
     }
 
