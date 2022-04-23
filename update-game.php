@@ -1,7 +1,8 @@
 <?php
 require_once 'xquest.php';
 
-if (isSet($_POST['game_id']) &&
+if (isSet($_POST['user_id']) && 
+    isSet($_POST['game_id']) &&
     isSet($_POST['score']) &&
     isSet($_POST['level']) &&
     isSet($_POST['lines']) &&
@@ -17,9 +18,9 @@ if (isSet($_POST['game_id']) &&
     isSet($_POST['mod_matrix']) &&
     isSet($_POST['mod_barebones']) &&
     isSet($_POST['mod_survivor']) &&
-    isSet($_POST['version']) &&
-    isSet($_POST['xcheck'])) {
+    isSet($_POST['version'])) {
 
+    $user_id = Text($_POST['user_id'])->in();
     $score = Text($_POST['score'])->num();
     $game_id = Text($_POST['game_id'])->num();
     $level = Text($_POST['level'])->num();
@@ -42,7 +43,7 @@ if (isSet($_POST['game_id']) &&
     try {
         $SelectQuery = $PDO->prepare("SELECT * FROM `xquest_games` WHERE `user_id`=? AND `end_timestamp` IS NULL AND `id`=? LIMIT 1");
         $SelectQuery->execute([
-            $user['user_id'],
+            $user_id,
             $game_id
         ]);
         $SelectQuery->setFetchMode(PDO::FETCH_ASSOC);
@@ -79,7 +80,7 @@ if (isSet($_POST['game_id']) &&
         $errors .= 'version invalid|';
     }
     if ($_SESSION['xquest_xcheck'] != $xcheck) {
-        $error .= 'xcheck invalid|';
+        $errors .= 'xcheck invalid|';
     }
 
     if ($errors == '') $errors = NULL;
@@ -88,23 +89,25 @@ if (isSet($_POST['game_id']) &&
         $_SESSION['xquest_xcheck'] = generateXCheck();
 
         $Insert = $PDO->prepare("
-            INSERT INTO  `xquest_logs` (`user_id`, `game_id`, `score`, `level`, `timestamp`, `sent_xcheck`, `next_xcheck`, `flags`)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO  `xquest_logs` (`user_id`, `game_id`, `score`, `level`, `timestamp`, `sent_xcheck`, `next_xcheck`, `flags`, `ip`)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $Insert->execute([
-            $user['user_id'], 
+            $user_id, 
             $game_id, 
             $score,
             $level,
             time(),
             intval($xcheck),
             intval($_SESSION['xquest_xcheck']),
-            $errors
+            $errors,
+            Text($_SERVER['REMOTE_ADDR'])->in()
         ]);
     } catch (PDOException $e) {
         handleError($e);
     }
 
+    header("Content-Type: application/json");
     echo json_encode([
         'xcheck' => $_SESSION['xquest_xcheck']
     ]);

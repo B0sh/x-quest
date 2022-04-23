@@ -56,6 +56,7 @@ export class State {
     load() {
         this.requests.loadGame().then((result: Savefile) => {
             this.game.layout.updateVolume(result.volume);
+            this.game.layout.updateOffline(result.offline);
             this.highScore = result.high_score;
             this.userId = result.user_id;
             this.username = result.user_name;

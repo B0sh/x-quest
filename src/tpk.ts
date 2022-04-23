@@ -123,7 +123,7 @@ export default class TPKRequest extends Requests {
         });
     }
 
-    loadHighScores(scoreList: string) {
+    loadHighScores(state: State, scoreList: string) {
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('GET', `/x-quest/high-scores.php?list=${scoreList}`);

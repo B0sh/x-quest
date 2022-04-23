@@ -51,6 +51,7 @@ if (isSet($_POST['mod_nightmare']) ||
         handleError($e);
     }
 
+    header("Content-Type: application/json");
     echo json_encode([
         'saved' => true
     ]);

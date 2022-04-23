@@ -91,10 +91,11 @@ export class Layout {
     }
 
     loadHighScores(scoreList: string = 'overall') {
-        const element = document.querySelector('#HighScores');
-        element.innerHTML = 'Loading...';
-        this.requests.loadHighScores(scoreList).then((content: any) => {
+        const element = document.querySelector('.highscore-content');
+        element.innerHTML = '';
+        this.requests.loadHighScores(this.game.state, scoreList).then((content: any) => {
             element.innerHTML = content;
+            this.updateLevelColors();
         }).catch((error) => {
             this.game.handleError(error);
         });
@@ -116,6 +117,7 @@ export class Layout {
                 }
             }
             (document.querySelector(`.stats-table`) as HTMLElement).style.visibility = "unset";
+            this.updateLevelColors();
         }).catch((error) => {
             this.game.handleError(error);
         });
@@ -128,12 +130,14 @@ export class Layout {
             const checked: string = this.selectedModifiers.findIndex((sel) => sel.name == modifier.name) == -1 ? '' : 'checked';
             element.innerHTML += `<div style="clear: both;">
                 <input type="checkbox" class="checkbox" onchange="Game.layout.updateModifier('${modifier.name}', this.checked); Game.state.save();" ${checked} />
-                <span class="d1">${modifier.name}</span> &mdash; <span class="d1">+${modifier.scoreMultiplier * 100}%</span> &mdash; ${modifier.description}
+                <span class="level-class">${modifier.name}</span> &mdash; <span class="level-class">+${modifier.scoreMultiplier * 100}%</span> &mdash; ${modifier.description}
             </div>`
         });
 
         document.querySelector('.userid-input').innerHTML = this.game.state.userId;
         document.querySelector('.username-input').innerHTML = this.game.state.username;
+
+        this.updateLevelColors();
     }
 
     loadGameOverStatistics(state: State, death: string, minigamePoints: number, eventCurrency: number) {
@@ -188,10 +192,12 @@ export class Layout {
         MODIFIERS.forEach((modifier) => {
             if (state.hasModifier(modifier.name)) {
                 element.innerHTML += `<div>
-                    <span class="d1">${modifier.name}</span> &mdash; <span class="d1">+${modifier.scoreMultiplier * 100}%</span> &mdash; ${modifier.description}
+                    <span class="level-class">${modifier.name}</span> &mdash; <span class="level-class">+${modifier.scoreMultiplier * 100}%</span> &mdash; ${modifier.description}
                 </div>`
             }
         });
+
+        this.updateLevelColors();
     }
 
     updateModifier(modifierName: string, state: boolean) {
@@ -230,9 +236,19 @@ export class Layout {
         document.querySelector('.volume-input').value = volume;
     }
 
-    updateInstructions(level: number) {
-        const levelClass: number = level % 9;
-        document.querySelectorAll('.Xbox').forEach((element) => {
+    updateOffline(offline: boolean) {
+        console.log(offline);
+        this.game.state.offline = offline;
+        document.querySelector<HTMLInputElement>('.offline-input').checked = offline;
+    }
+
+    updateLevelColors(level?: number) {
+        level = this.game.state.level ? this.game.state.level : 1;
+        let levelClass: number = level % 9;
+        if (levelClass == 0)
+            levelClass = 9;
+
+        document.querySelectorAll('.level-class').forEach((element) => {
             element.classList.remove(`d1`);
             element.classList.remove(`d2`);
             element.classList.remove(`d3`);
@@ -245,16 +261,13 @@ export class Layout {
             element.classList.add(`d${levelClass}`);
         });
 
-
         for (let i = 1; i <= 9; i++) {
-            document.querySelectorAll(`.no_display_level_${i}`).forEach((element) => {
+            document.querySelectorAll<HTMLElement>(`.no_display_level_${i}`).forEach((element) => {
                 if (level < i) {
-                    //@ts-ignore
                     element.style.display = 'none';
                 }
                 else {
-                    //@ts-ignore
-                    element.style.display = 'inherit';
+                    element.style.display = 'unset';
                 }
             });
         }

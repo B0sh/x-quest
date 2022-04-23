@@ -29,6 +29,7 @@ export default class WWRequest extends Requests {
                 mod_nightmare: 0,
                 mod_survivor: 0,
                 current_minigame_points: null,
+                game_log: [],
             };
             localStorage.setItem("x-quest-save", JSON.stringify(newSave));
             return Promise.resolve(newSave);
@@ -51,99 +52,119 @@ export default class WWRequest extends Requests {
     }
 
     startGame(state: State) {
-        return Promise.resolve({ saved: true });
-        const data = new FormData();
-        data.append('version', XQuest.version);
-        data.append('mod_nightmare', state.hasModifier('Nightmare').toString());
-        data.append('mod_incline', state.hasModifier('Incline').toString());
-        data.append('mod_invasion', state.hasModifier('Invasion').toString());
-        data.append('mod_matrix', state.hasModifier('Matrix').toString());
-        data.append('mod_barebones', state.hasModifier('Barebones').toString());
-        data.append('mod_survivor', state.hasModifier('Survivor').toString());
+        const data = {
+            user_id: state.userId,
+
+            version: XQuest.version,
+            mod_nightmare: state.hasModifier('Nightmare').toString(),
+            mod_incline: state.hasModifier('Incline').toString(),
+            mod_invasion: state.hasModifier('Invasion').toString(),
+            mod_matrix: state.hasModifier('Matrix').toString(),
+            mod_barebones: state.hasModifier('Barebones').toString(),
+            mod_survivor: state.hasModifier('Survivor').toString(),
+            
+            date: new Date(),
+        };
 
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('POST', `${this.apiUrl}/start-game`, true);
+            req.withCredentials = true;
             req.onload = () => {
                 return WWRequest.onSuccess(req, resolve, reject);
             };
             req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
-            req.send(data);
+            req.send(this.postData(data));
         });
     }
 
     finishGame(state: State, death: string) {
-        return Promise.resolve({ });
-        const data = new FormData();
-        data.append('cause_of_death', death);
-        data.append('game_id', state.gameId.toString());
-        data.append('score', state.stats.Score.toString());
-        data.append('level', state.level.toString());
-        data.append('lines', state.lines.toString());
-        data.append('shots_fired', state.stats.ShotsFired.toString());
-        data.append('ships_destroyed', state.stats.ShipsDestroyed.toString());
-        data.append('shots_destroyed', state.stats.ShotsDestroyed.toString());
-        data.append('powerups_used', state.stats.PowerupsUsed.toString());
-        data.append('moves', state.stats.Moves.toString());
-        data.append('game_time', Math.floor(state.stats.Time).toString());
-        data.append('version', XQuest.version);
-        data.append('mod_nightmare', state.hasModifier('Nightmare').toString());
-        data.append('mod_incline', state.hasModifier('Incline').toString());
-        data.append('mod_invasion', state.hasModifier('Invasion').toString());
-        data.append('mod_matrix', state.hasModifier('Matrix').toString());
-        data.append('mod_barebones', state.hasModifier('Barebones').toString());
-        data.append('mod_survivor', state.hasModifier('Survivor').toString());
+        const data = {
+            user_id: state.userId,
+
+            cause_of_death: death,
+            game_id: state.gameId.toString(),
+            score: state.stats.Score.toString(),
+            level: state.level.toString(),
+            lines: state.lines.toString(),
+            shots_fired: state.stats.ShotsFired.toString(),
+            ships_destroyed: state.stats.ShipsDestroyed.toString(),
+            shots_destroyed: state.stats.ShotsDestroyed.toString(),
+            powerups_used: state.stats.PowerupsUsed.toString(),
+            moves: state.stats.Moves.toString(),
+            game_time: Math.floor(state.stats.Time).toString(),
+            version: XQuest.version,
+            mod_nightmare: state.hasModifier('Nightmare').toString(),
+            mod_incline: state.hasModifier('Incline').toString(),
+            mod_invasion: state.hasModifier('Invasion').toString(),
+            mod_matrix: state.hasModifier('Matrix').toString(),
+            mod_barebones: state.hasModifier('Barebones').toString(),
+            mod_survivor: state.hasModifier('Survivor').toString(),
+            
+            timestamp: Math.floor(new Date().getTime() / 1000),
+        };
+
+        const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
+        save.game_log.push(data);
+        localStorage.setItem("x-quest-save", JSON.stringify(save));
 
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('POST', `${this.apiUrl}/finish-game`);
+            req.withCredentials = true;
             req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
             req.onload = () => {
                 return WWRequest.onSuccess(req, resolve, reject);
             };
-            req.send(data);
+            req.send(this.postData(data));
         });
     }
 
     gameStateSync(state: State, xcheck: string) {
-        return Promise.resolve({});
-        const data = new FormData();
-        data.append('game_id', state.gameId.toString());
-        data.append('score', state.stats.Score.toString());
-        data.append('level', state.level.toString());
-        data.append('lines', state.lines.toString());
-        data.append('shots_fired', state.stats.ShotsFired.toString());
-        data.append('ships_destroyed', state.stats.ShipsDestroyed.toString());
-        data.append('shots_destroyed', state.stats.ShotsDestroyed.toString());
-        data.append('powerups_used', state.stats.PowerupsUsed.toString());
-        data.append('moves', state.stats.Moves.toString());
-        data.append('game_time', Math.floor(state.stats.Time).toString());
-        data.append('xcheck', xcheck);
-        data.append('version', XQuest.version);
-        data.append('mod_nightmare', state.hasModifier('Nightmare').toString());
-        data.append('mod_incline', state.hasModifier('Incline').toString());
-        data.append('mod_invasion', state.hasModifier('Invasion').toString());
-        data.append('mod_matrix', state.hasModifier('Matrix').toString());
-        data.append('mod_barebones', state.hasModifier('Barebones').toString());
-        data.append('mod_survivor', state.hasModifier('Survivor').toString());
+        const data = {
+            user_id: state.userId.toString(),
+
+            game_id: state.gameId.toString(),
+            score: state.stats.Score.toString(),
+            level: state.level.toString(),
+            lines: state.lines.toString(),
+            shots_fired: state.stats.ShotsFired.toString(),
+            ships_destroyed: state.stats.ShipsDestroyed.toString(),
+            shots_destroyed: state.stats.ShotsDestroyed.toString(),
+            powerups_used: state.stats.PowerupsUsed.toString(),
+            moves: state.stats.Moves.toString(),
+            game_time: Math.floor(state.stats.Time).toString(),
+            xcheck: xcheck,
+            version: XQuest.version,
+            mod_nightmare: state.hasModifier('Nightmare').toString(),
+            mod_incline: state.hasModifier('Incline').toString(),
+            mod_invasion: state.hasModifier('Invasion').toString(),
+            mod_matrix: state.hasModifier('Matrix').toString(),
+            mod_barebones: state.hasModifier('Barebones').toString(),
+            mod_survivor: state.hasModifier('Survivor').toString(),
+        };
 
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('POST', `${this.apiUrl}/update-game`);
+            req.withCredentials = true;
             req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
             req.onload = () => {
                 return WWRequest.onSuccess(req, resolve, reject);
             };
-            req.send(data);
+            req.send(this.postData(data));
         });
     }
 
-    loadHighScores(scoreList: string) {
-        const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
-        const userId = save.user_id;
+    loadHighScores(state: State, scoreList: string) {
+        let userId = '';
+        if (!state.offline) {
+            userId = state.userId;    
+        }
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('GET', `${this.apiUrl}/high-scores?user_id=${userId}&list=${scoreList}`);
+            req.withCredentials = true;
             req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
             req.onload = () => {
                 WWRequest.checkHeaders(req);
@@ -154,6 +175,8 @@ export default class WWRequest extends Requests {
     }
 
     loadStatistics(state: State): Promise<GameStatistics> {
+        const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
+        const userId = save.user_id;
         if (state.offline) {
             const stats: GameStatistics = {
                 t_games: 0,
@@ -171,14 +194,28 @@ export default class WWRequest extends Requests {
                 t_death_spaceship: 0,
                 t_death_wall: 0
             };
+            save.game_log.forEach((game) => {
+                stats.t_games += 1;
+                stats.t_score += Number(game.score);
+                stats.t_level += Number(game.level);
+                stats.t_lines += Number(game.lines);
+                stats.t_game_time += Number(game.game_time);
+                stats.t_ships_destroyed += Number(game.ships_destroyed);
+                stats.t_shots_destroyed += Number(game.shots_destroyed);
+                stats.t_shots_fired += Number(game.shots_fired);
+                stats.t_powerups_used += Number(game.powerups_used);
+                stats.t_moves += Number(game.moves);
+                stats.t_death_abyss += game.cause_of_death == "Abyss" ? 1 : 0;
+                stats.t_death_spaceship += game.cause_of_death == "Spaceship" ? 1 : 0;
+                stats.t_death_wall += game.cause_of_death == "Wall" ? 1 : 0;
+            });
             return Promise.resolve(stats);
         }
         else {
-            const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
-            const userId = save.user_id;
             return new Promise((resolve, reject) => {
                 const req = new XMLHttpRequest();
                 req.open('GET', `${this.apiUrl}/statistics?user_id=${userId}`);
+                req.withCredentials = true;
                 req.onerror = (e: any) => { 
                     reject(WWRequest.onError(`Network Error: ${e}`));
                 };
@@ -204,6 +241,14 @@ export default class WWRequest extends Requests {
                 return reject(WWRequest.onError(req.response));
             }
         }
+    }
+
+    private postData(object: any): FormData {
+        const formData: FormData = new FormData();
+        for (let property in object) {
+            formData.append(property, object[property]);
+        }
+        return formData;
     }
 
     static onError(message: string) {

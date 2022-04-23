@@ -180,46 +180,49 @@
                 X-Quest uses autoplaying game sounds in the browser. Please click a menu option above to start the game.
             </div>
             <div class="tab-content" tab="1">
-                <span style="font-size: 22px;">You are an <span class="Xbox">X</span> that goes on a quest.</span><br>
+                <span style="font-size: 22px;">You are an <span class="Xbox level-class">X</span> that goes on a quest.</span><br>
 
                 &nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br>
                 <br>
 
                 <b style="font-size: 18px;">Controls:</b><br>
-                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">← →, A D</span>: Move<br>
-                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">↑, W</span>:
+                &nbsp;&nbsp;&nbsp;<span class="Xbox">← →, A D</span>: Move<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox">↑, W</span>:
                 Shoot<br>
-                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">↓, E</span>: Use Powerup<br>
-                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">Space</span>: Pause<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox">↓, E</span>: Use Powerup<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox">Space</span>: Pause<br>
                 <br><br>
 
                 <b style="font-size: 18px;">Collect:</b><br>
-                &nbsp;&nbsp;&nbsp;<span class="Xbox">$</span>: Score<br>
-                &nbsp;&nbsp;&nbsp;<span class="Xbox">I</span>: Invincibility<br>
-                &nbsp;&nbsp;&nbsp;<span class="Xbox">M</span>: Multi-Shot<br>
-                &nbsp;&nbsp;&nbsp;<span class="Xbox">D</span>: Time Distortion<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox level-class">$</span>: Score<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox level-class">I</span>: Invincibility<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox level-class">M</span>: Multi-Shot<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox level-class">D</span>: Time Distortion<br>
                 <span class="no_display_level_3">
-                    &nbsp;&nbsp;&nbsp;<span class="Xbox">R</span>: Road Shot<br>
+                    &nbsp;&nbsp;&nbsp;<span class="Xbox level-class">R</span>: Road Shot<br>
                 </span>
                 <span class="no_display_level_6">
-                    &nbsp;&nbsp;&nbsp;<span class="Xbox">W</span>: Warp across the abyss<br>
+                    &nbsp;&nbsp;&nbsp;<span class="Xbox level-class">W</span>: Warp across the abyss<br>
                 </span>
                 <br>
                 <br>
 
                 <b style="font-size: 18px;">Watch out:</b><br>
-                &nbsp;&nbsp;&nbsp;<span class="Xbox"><_> </span>: spaceship<br>
-                &nbsp;&nbsp;&nbsp;<span class="Xbox">v</span>: its bullets<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox level-class"><_> </span>: spaceship<br>
+                &nbsp;&nbsp;&nbsp;<span class="Xbox level-class">v</span>: its bullets<br>
+                <span class="no_display_level_8">
+                    &nbsp;&nbsp;&nbsp;<span class="Xbox level-class">???</span>: Carrier<br>
+                </span>
                 &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">&nbsp;</span>: The Abyss<br>
                 <br><br>
 
-                X-Quest v1.4 by <a href="https://waldens.world/games">Walden's World Games</a> &copy; 2014-2022
+                X-Quest v1.5 by <a href="https://waldens.world/games">Walden's World Games</a> &copy; 2014-2022
             </div>
 
             <div class="tab-content" tab="6">
-                <span style="font-size: 22px;">You are an <span class="Xbox">X</span> that goes on a quest.</span><br>
+                <span style="font-size: 22px;">You are an <span class="Xbox level-class">X</span> that goes on a quest.</span><br>
 
-                &nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br>
+                &nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br><br>
 
                 <b style="font-size: 18px;">Game Over</b><br />
 
@@ -260,7 +263,7 @@
                 / / / &nbsp; X-Quest Modifiers &nbsp; \ \ \<br /><br />
 
                 Increase your minigame point rate with modifiers!<br /><br />
-
+**FIX NIGHTMARE INCLINE SELECTION**
                 <div class="modifier-list">
 
                 </div><br /><br />
@@ -271,7 +274,7 @@
                     onchange="Game.layout.updateVolume(this.value); Game.state.save();" />
                 <br><br>
 
-                <input type="checkbox" class="checkbox offline-input" onchange="" />
+                <input type="checkbox" class="checkbox offline-input" onchange="Game.layout.updateOffline(this.checked); Game.state.save();" />
                 <b>Offline Play</b> &mdash; In offline mode your game data and high scores will not be submitted to Walden's World.<br><br>
 
                 <b>Username:</b>
@@ -281,54 +284,58 @@
                 <div name="user-id" class="userid-input" ></div><br><br>
             </div>
             <div class="tab-content" id="HighScores" tab="3">
+                / / / &nbsp; X-Quest High Scores &nbsp; \ \ \<br /><br />
 
+                Join the Discord to discuss the game!<br><br>
+
+                <div class="highscore-content"></div>
             </div>
             <div class="tab-content" id="Statistics" tab="4">
                 / / / &nbsp; X-Quest Statistics &nbsp; \ \ \<br><br>
                 <table class="stats-table">
                     <tbody>
                         <tr>
-                            <td class="d1" style="width: 204px;">Total Games:</td>
+                            <td class="level-class" style="width: 204px;">Total Games:</td>
                             <td stat="t_games"></td>
                         </tr>
                         <tr>
-                            <td class="d1">Score:</td>
+                            <td class="level-class">Score:</td>
                             <td stat="t_score"></td>
                         </tr>
                         <tr>
-                            <td class="d1">Minigame Points:</td>
+                            <td class="level-class">Minigame Points:</td>
                             <td stat="t_minigame_points"></td>
                         </tr>
                         <tr>
-                            <td class="d1">Powerups Used:</td>
+                            <td class="level-class">Powerups Used:</td>
                             <td stat="t_powerups_used"></td>
                         </tr>
                         <tr>
-                            <td class="d1">Spaceships Destroyed:</td>
+                            <td class="level-class">Spaceships Destroyed:</td>
                             <td stat="t_ships_destroyed"></td>
                         </tr>
                         <tr>
-                            <td class="d1">Shots Destroyed:</td>
+                            <td class="level-class">Shots Destroyed:</td>
                             <td stat="t_shots_destroyed"></td>
                         </tr>
                         <tr>
-                            <td class="d1">Shots Fired:</td>
+                            <td class="level-class">Shots Fired:</td>
                             <td stat="t_shots_fired"></td>
                         </tr>
                         <tr>
-                            <td class="d1">Deaths to Abyss:</td>
+                            <td class="level-class">Deaths to Abyss:</td>
                             <td stat="t_death_abyss"></td>
                         </tr>
                         <tr>
-                            <td class="d1">Deaths to Spaceship:</td>
+                            <td class="level-class">Deaths to Spaceship:</td>
                             <td stat="t_death_spaceship"></td>
                         </tr>
                         <tr>
-                            <td class="d1">Deaths to Wall:</td>
+                            <td class="level-class">Deaths to Wall:</td>
                             <td stat="t_death_wall"></td>
                         </tr>
                         <tr>
-                            <td class="d1">Game Time:</td>
+                            <td class="level-class">Game Time:</td>
                             <td stat="t_game_time"></td>
                         </tr>
                     </tbody>

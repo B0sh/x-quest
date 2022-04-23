@@ -22,7 +22,7 @@ import { IntroCutscene } from './intro';
 var roadChar = '|';
 
 export class XQuest {
-    static readonly version: string = '1.4';
+    static readonly version: string = '1.5';
     static readonly powerUps: string[] = [ '$', 'P', 'W', 'M', 'I', 'D', 'R' ];
     static readonly onTPK: boolean = true;
     static readonly onWW: boolean = false;
@@ -88,7 +88,7 @@ export class XQuest {
     init() {
         document.getElementsByClassName('x-quest-board')[0].prepend(this.display.getContainer())
         this.layout.initTabEvents();
-        this.layout.updateInstructions(1);
+        this.layout.updateLevelColors(1);
         this.renderLoop();
 
         Utility.isAudioEnabled().then((result) => {
@@ -203,7 +203,7 @@ export class XQuest {
         this.playerPosition = new BoundingBox(mid, this.height - 1);
 
         this.board.generateStartingLines();
-        this.layout.updateInstructions(this.state.level);
+        this.layout.updateLevelColors(this.state.level);
 
         if (this.state.hasModifier('Nightmare')) {
             this.gameClockMs = 60;
@@ -243,7 +243,7 @@ export class XQuest {
         }
 
         this.board.onNextLevel();
-        this.layout.updateInstructions(this.state.level);
+        this.layout.updateLevelColors(this.state.level);
 
         if (this.state.isKillScreen()) {
             SFX.Killscreen.play();

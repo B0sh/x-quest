@@ -271,8 +271,8 @@ export class RenderEngine {
             }
 
             const overlayText: OverlayText[] = [
-                { y: 14, centered: true, text: "COMPLETED", color: 'white' },
-                { y: 15, centered: true, text: "Level " + this.game.state.level, color: 'white' },
+                { y: 14, centered: true, text: "", color: 'white' },
+                { y: 15, centered: true, text: "Level " + this.game.state.level + " Clear", color: 'white' },
                 { x: 3, y: 16, text: Utility.padEnd(dashTimer, this.game.width, ' ') , color: 'white'},
             ];
 
@@ -283,6 +283,10 @@ export class RenderEngine {
             else if (this.game.state.level == 5) {
                 overlayText.push({ y: 17, centered: true, text: "Look out for", color: 'white' });
                 overlayText.push({ y: 18, centered: true, text: "W - Warp", color: 'white' });
+            }
+            else if (this.game.state.level % 8 == 7) {
+                overlayText.push({ y: 17, centered: true, text: "Look out for", color: 'white' });
+                overlayText.push({ y: 18, centered: true, text: "Carrier Spaceship", color: 'white' });
             }
             else {
                 overlayText.push({ y: 17, centered: true, text: "Press Space", color: 'white' });

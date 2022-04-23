@@ -1,7 +1,7 @@
 <?php
 require_once 'xquest.php';
 
-$userId = isSet($_POST['user_id']) ? Text($_POST['user_id'])->in() : '-';
+$userId = isSet($_GET['user_id']) ? Text($_GET['user_id'])->in() : '-';
 
 try {
     $SelectQuery = $PDO->prepare("

@@ -35,6 +35,7 @@ try {
     handleError($e);
 }
 
+header("Content-Type: application/json");
 echo json_encode([
     'current_minigame_points' => $user['minigame_points'],
     'volume' => $xquest['volume'],

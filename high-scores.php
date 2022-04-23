@@ -1,7 +1,7 @@
 <?php
 require_once 'xquest.php';
 
-$user_id = isSet($_POST['user_id']) ? Text($_POST['user_id'])->in() : '-';
+$user_id = isSet($_GET['user_id']) ? Text($_GET['user_id'])->in() : '-';
 $list = Text($_GET['list'])->in();
 
 try {
@@ -39,22 +39,20 @@ catch (PDOException $e) {
     handleError($e);
 }
 ?>
-/ / / &nbsp; X-Quest High Scores &nbsp; \ \ \<br /><br />
 
-Join the Discord to discuss the game!<br><br>
 
 <?php if ($list == 'overall') { ?>
-<b class="d1">Overall</b> |
+<b class="level-class">Overall</b> |
 <?php } else { ?>
 <a href="" onclick="Game.layout.loadHighScores('overall'); return false;">Overall</a> |
 <?php } ?> 
 <?php if ($list == 'nightmare') { ?>
-<b class="d1">Nightmare</b> |
+<b class="level-class">Nightmare</b> |
 <?php } else { ?>
 <a href="" onclick="Game.layout.loadHighScores('nightmare'); return false;">Nightmare</a> |
 <?php } ?>
 <?php if ($list == 'incline') { ?>
-<b class="d1">Incline</b>
+<b class="level-class">Incline</b>
 <?php } else { ?>
 <a href="" onclick="Game.layout.loadHighScores('incline'); return false;">Incline</a>
 <?php } ?><br /><br />
@@ -62,12 +60,12 @@ Join the Discord to discuss the game!<br><br>
 <table>
     <thead>
         <tr>
-            <th class="d1" style="width: 20px;"></th>
-            <th class="d1" style="min-width: 120px;">Name</th>
-            <th class="d1" style="width: 50px;">Score</th>
-            <th class="d1" style="width: 50px;">Level</th>
-            <th class="d1" style="width: 100px;">Game Time</th>
-            <th class="d1" style="width: 100px;">Date Of</th>
+            <th class="level-class" style="width: 20px;"></th>
+            <th class="level-class" style="min-width: 120px;">Name</th>
+            <th class="level-class" style="width: 50px;">Score</th>
+            <th class="level-class" style="width: 50px;">Level</th>
+            <th class="level-class" style="width: 100px;">Game Time</th>
+            <th class="level-class" style="width: 100px;">Date Of</th>
         </tr>
     </thead>
     <tbody>
@@ -77,15 +75,27 @@ Join the Discord to discuss the game!<br><br>
             {
                 try {
                     if ($list == 'nightmare') {
-                        $SelectQuery = $PDO->prepare("SELECT * FROM `xquest_games` WHERE `user_id`=? AND `mod_nightmare`=1 ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1");
+                        $SelectQuery = $PDO->prepare("
+                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
+                            FROM `xquest_games` WHERE `user_id`=? AND `mod_nightmare`=1 ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1
+                        ");
                     }
                     else if ($list == 'incline') {
-                        $SelectQuery = $PDO->prepare("SELECT * FROM `xquest_games` WHERE `user_id`=? AND `mod_incline`=1 ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1");
+                        $SelectQuery = $PDO->prepare("
+                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
+                            FROM `xquest_games` WHERE `user_id`=? AND `mod_incline`=1 ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1
+                        ");
                     }
                     else {
-                        $SelectQuery = $PDO->prepare("SELECT * FROM `xquest_games` WHERE `user_id`=? ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1");
+                        $SelectQuery = $PDO->prepare("
+                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
+                            FROM `xquest_games` WHERE `user_id`=? ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1
+                        ");
                     }
-                    $SelectQuery->execute([ $Score['user_id'] ]);
+                    $SelectQuery->execute([
+                        $Score['user_id'],
+                        $Score['user_id'],
+                    ]);
                     $SelectQuery->setFetchMode(PDO::FETCH_ASSOC);
                     $Score = $SelectQuery->fetch();
                 } catch (PDOException $e) {
@@ -103,7 +113,7 @@ Join the Discord to discuss the game!<br><br>
                     </tr>
                 ";
 
-                if ($Score['user_id'] == $user['user_id']) {
+                if ($Score['user_id'] == $user_id) {
                     $placed = true;
                 }
             }
@@ -112,19 +122,19 @@ Join the Discord to discuss the game!<br><br>
                 try {
                     if ($list == 'nightmare') {
                         $SelectQuery = $PDO->prepare("
-                            SELECT `xquest_games`.*, (SELECT `username` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
+                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
                             FROM `xquest_games` WHERE `user_id`=? AND `mod_nightmare`=1 ORDER BY score DESC LIMIT 1
                         ");
                     }
                     else if ($list == 'incline') {
                         $SelectQuery = $PDO->prepare("
-                            SELECT `xquest_games`.*, (SELECT `username` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
+                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
                             FROM `xquest_games` WHERE `user_id`=? AND `mod_incline`=1 ORDER BY score DESC LIMIT 1
                         ");
                     }
                     else {
                         $SelectQuery = $PDO->prepare("
-                            SELECT `xquest_games`.*, (SELECT `username` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
+                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
                             FROM `xquest_games` WHERE `user_id`=? ORDER BY score DESC LIMIT 1
                         ");
                     }

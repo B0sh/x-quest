@@ -13,4 +13,6 @@ export interface Savefile {
 
     // TPK Exclusive
     current_minigame_points: number;
+
+    game_log: any[];
 }

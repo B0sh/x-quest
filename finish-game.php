@@ -1,7 +1,7 @@
 <?php
 require_once 'xquest.php';
 
-if (isSet($_POST['user_id']) ||
+if (isSet($_POST['user_id']) && strlen($_POST['user_id']) == 36 && (
     isSet($_POST['game_id']) ||
     isSet($_POST['score']) ||
     isSet($_POST['level']) ||
@@ -20,8 +20,9 @@ if (isSet($_POST['user_id']) ||
     isSet($_POST['mod_barebones']) ||
     isSet($_POST['mod_survivor']) ||
     isSet($_POST['version']) ||
-    isSet($_POST['timestamp'])) {
+    isSet($_POST['timestamp']))) {
 
+    $user_id = isSet($_POST['user_id']) ? Text($_POST['user_id'])->in() : '-';
     $score = Text($_POST['score'])->num();
     $game_id = Text($_POST['game_id'])->num();
     $level = Text($_POST['level'])->num();
@@ -44,7 +45,7 @@ if (isSet($_POST['user_id']) ||
     try {
         $SelectQuery = $PDO->prepare("SELECT * FROM `xquest_games` WHERE `user_id`=? AND `end_timestamp` IS NULL AND `id`=? LIMIT 1");
         $SelectQuery->execute([
-            $user['user_id'],
+            $user_id,
             $game_id
         ]);
         $SelectQuery->setFetchMode(PDO::FETCH_ASSOC);
@@ -108,7 +109,8 @@ if (isSet($_POST['user_id']) ||
                `mod_survivor`=?,
                `end_timestamp`=?,
                `version`=?,
-               `flags`=?
+               `flags`=?,
+               `ip`=?
             WHERE `id`=? LIMIT 1
         ");
         $Update->execute([
@@ -132,12 +134,14 @@ if (isSet($_POST['user_id']) ||
             time(),
             $version,
             $errors,
-            $game_id
+            $game_id,
+            Text($_SERVER['REMOTE_ADDR'])->in()
         ]);
     } catch (PDOException $e) {
         handleError($e);
     }
 
+    header("Content-Type: application/json");
     echo json_encode([
         'minigame_points' => $minigame_points
     ]);
