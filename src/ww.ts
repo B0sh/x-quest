@@ -2,12 +2,24 @@ import { XQuest } from "./game";
 import { Savefile } from "./models/game-save";
 import { Requests } from "./requests";
 import { State } from "./state";
+import { v4 as uuidv4 } from 'uuid';
+import { GameStatistics } from "./models/game-statistics";
 
 export default class WWRequest extends Requests {
+    apiUrl: string = 'http://localhost/x-quest';
+
+    private generateUserId(): string {
+        console.log(uuidv4())
+        return uuidv4();
+    }
+
     loadGame(): Promise<Savefile> {
         const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
         if (!save) {
             const newSave: Savefile = {
+                user_id: this.generateUserId(),
+                user_name: "",
+                offline: false,
                 high_score: 0,
                 volume: 50,
                 mod_barebones: 0,
@@ -27,6 +39,7 @@ export default class WWRequest extends Requests {
     saveGame(state: State) {
         const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
         save.volume = state.volume,
+        save.offline = state.offline;
         save.mod_barebones = state.hasSelectedModifier('Barebones') ? 1 : 0,
         save.mod_incline = state.hasSelectedModifier('Incline') ? 1 : 0,
         save.mod_invasion = state.hasSelectedModifier('Invasion') ? 1 : 0,
@@ -50,7 +63,7 @@ export default class WWRequest extends Requests {
 
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
-            req.open('POST', '/x-quest/start-game.php', true);
+            req.open('POST', `${this.apiUrl}/start-game`, true);
             req.onload = () => {
                 return WWRequest.onSuccess(req, resolve, reject);
             };
@@ -83,7 +96,7 @@ export default class WWRequest extends Requests {
 
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
-            req.open('POST', '/x-quest/finish-game.php');
+            req.open('POST', `${this.apiUrl}/finish-game`);
             req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
             req.onload = () => {
                 return WWRequest.onSuccess(req, resolve, reject);
@@ -116,7 +129,7 @@ export default class WWRequest extends Requests {
 
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
-            req.open('POST', '/x-quest/update-game.php');
+            req.open('POST', `${this.apiUrl}/update-game`);
             req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
             req.onload = () => {
                 return WWRequest.onSuccess(req, resolve, reject);
@@ -126,10 +139,11 @@ export default class WWRequest extends Requests {
     }
 
     loadHighScores(scoreList: string) {
-        return Promise.resolve({});
+        const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
+        const userId = save.user_id;
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
-            req.open('GET', `/x-quest/high-scores.php?list=${scoreList}`);
+            req.open('GET', `${this.apiUrl}/high-scores?user_id=${userId}&list=${scoreList}`);
             req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
             req.onload = () => {
                 WWRequest.checkHeaders(req);
@@ -139,18 +153,41 @@ export default class WWRequest extends Requests {
         });
     }
 
-    loadStatistics() {
-        return Promise.resolve({});
-        return new Promise((resolve, reject) => {
-            const req = new XMLHttpRequest();
-            req.open('GET', '/x-quest/statistics.php');
-            req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
-            req.onload = () => {
-                WWRequest.checkHeaders(req);
-                return req.status === 200 ? resolve(req.response) : reject(WWRequest.onError(req.statusText))
+    loadStatistics(state: State): Promise<GameStatistics> {
+        if (state.offline) {
+            const stats: GameStatistics = {
+                t_games: 0,
+                t_score: 0,
+                t_level: 0,
+                t_lines: 0,
+                t_game_time: 0,
+                t_minigame_points: 0,
+                t_ships_destroyed: 0,
+                t_shots_destroyed: 0,
+                t_shots_fired: 0,
+                t_powerups_used: 0,
+                t_moves: 0,
+                t_death_abyss: 0,
+                t_death_spaceship: 0,
+                t_death_wall: 0
             };
-            req.send();
-        });
+            return Promise.resolve(stats);
+        }
+        else {
+            const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
+            const userId = save.user_id;
+            return new Promise((resolve, reject) => {
+                const req = new XMLHttpRequest();
+                req.open('GET', `${this.apiUrl}/statistics?user_id=${userId}`);
+                req.onerror = (e: any) => { 
+                    reject(WWRequest.onError(`Network Error: ${e}`));
+                };
+                req.onload = () => {
+                    return WWRequest.onSuccess(req, resolve, reject);
+                };
+                req.send();
+            });
+        }
     }
 
     static onSuccess(req: any, resolve: any, reject: any) {
@@ -174,8 +211,8 @@ export default class WWRequest extends Requests {
     }
 
     static checkHeaders(request: XMLHttpRequest) {
-        if (request.getResponseHeader('AJAX_REDIRECT') !== null) {
-            window.location.href = request.getResponseHeader('AJAX_REDIRECT');
-        }
+        // if (request.getResponseHeader('AJAX_REDIRECT') !== null) {
+        //     window.location.href = request.getResponseHeader('AJAX_REDIRECT');
+        // }
     }
 }

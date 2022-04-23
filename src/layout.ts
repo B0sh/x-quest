@@ -1,10 +1,10 @@
 import { Howler } from "howler";
 import { Changelog } from "./changelog";
 import { XQuest } from "./game";
+import { GameStatistics } from "./models/game-statistics";
 import { Modifier, MODIFIERS } from "./modifier";
 import { Requests } from "./requests";
 import { State } from "./state";
-import TPKRequest from "./tpk";
 import Utility from "./utility";
 
 export const enum Tab {
@@ -16,7 +16,8 @@ export const enum Tab {
     Changelog = 5,
     GameOverStatistics = 6,
     FatalError = 7,
-    EasterEgg = 8,
+    Register = 8,
+    EasterEgg = 9,
 }
 
 export class Layout {
@@ -71,7 +72,7 @@ export class Layout {
         }
 
         if (tab == Tab.Options) {
-            this.loadModifiers();
+            this.loadOptions();
         }
 
         if (tab == Tab.HighScore) {
@@ -100,16 +101,27 @@ export class Layout {
     }
 
     loadStatistics() {
-        const element = document.querySelector('#Statistics');
-        element.innerHTML = 'Loading...';
-        this.requests.loadStatistics().then((content: any) => {
-            element.innerHTML = content;
+        (document.querySelector(`.stats-table`) as HTMLElement).style.visibility = "hidden";
+        this.requests.loadStatistics(this.game.state).then((stats: GameStatistics) => {
+            for (const stat in stats) {
+                const element = document.querySelector(`[stat="${stat}"]`);
+                if (element) {
+                    const value = stats[stat] ? stats[stat] : 0;
+                    if (stat == 't_game_time') {
+                        element.innerHTML = Utility.sec2hms(value);
+                    }
+                    else {
+                        element.innerHTML = Utility.format(value);
+                    }
+                }
+            }
+            (document.querySelector(`.stats-table`) as HTMLElement).style.visibility = "unset";
         }).catch((error) => {
             this.game.handleError(error);
         });
     }
 
-    loadModifiers() {
+    loadOptions() {
         const element = document.querySelector('.modifier-list');
         element.innerHTML = "";
         MODIFIERS.forEach((modifier) => {
@@ -119,6 +131,9 @@ export class Layout {
                 <span class="d1">${modifier.name}</span> &mdash; <span class="d1">+${modifier.scoreMultiplier * 100}%</span> &mdash; ${modifier.description}
             </div>`
         });
+
+        document.querySelector('.userid-input').innerHTML = this.game.state.userId;
+        document.querySelector('.username-input').innerHTML = this.game.state.username;
     }
 
     loadGameOverStatistics(state: State, death: string, minigamePoints: number, eventCurrency: number) {

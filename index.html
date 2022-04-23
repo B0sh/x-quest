@@ -270,12 +270,69 @@
                 <input name="volume" class="volume-input" type="range" min="0" max="100" step="1" value="30"
                     onchange="Game.layout.updateVolume(this.value); Game.state.save();" />
                 <br><br>
+
+                <input type="checkbox" class="checkbox offline-input" onchange="" />
+                <b>Offline Play</b> &mdash; In offline mode your game data and high scores will not be submitted to Walden's World.<br><br>
+
+                <b>Username:</b>
+                <div name="username" class="username-input"></div>
+
+                <b>UserID:</b>
+                <div name="user-id" class="userid-input" ></div><br><br>
             </div>
             <div class="tab-content" id="HighScores" tab="3">
 
             </div>
             <div class="tab-content" id="Statistics" tab="4">
-
+                / / / &nbsp; X-Quest Statistics &nbsp; \ \ \<br><br>
+                <table class="stats-table">
+                    <tbody>
+                        <tr>
+                            <td class="d1" style="width: 204px;">Total Games:</td>
+                            <td stat="t_games"></td>
+                        </tr>
+                        <tr>
+                            <td class="d1">Score:</td>
+                            <td stat="t_score"></td>
+                        </tr>
+                        <tr>
+                            <td class="d1">Minigame Points:</td>
+                            <td stat="t_minigame_points"></td>
+                        </tr>
+                        <tr>
+                            <td class="d1">Powerups Used:</td>
+                            <td stat="t_powerups_used"></td>
+                        </tr>
+                        <tr>
+                            <td class="d1">Spaceships Destroyed:</td>
+                            <td stat="t_ships_destroyed"></td>
+                        </tr>
+                        <tr>
+                            <td class="d1">Shots Destroyed:</td>
+                            <td stat="t_shots_destroyed"></td>
+                        </tr>
+                        <tr>
+                            <td class="d1">Shots Fired:</td>
+                            <td stat="t_shots_fired"></td>
+                        </tr>
+                        <tr>
+                            <td class="d1">Deaths to Abyss:</td>
+                            <td stat="t_death_abyss"></td>
+                        </tr>
+                        <tr>
+                            <td class="d1">Deaths to Spaceship:</td>
+                            <td stat="t_death_spaceship"></td>
+                        </tr>
+                        <tr>
+                            <td class="d1">Deaths to Wall:</td>
+                            <td stat="t_death_wall"></td>
+                        </tr>
+                        <tr>
+                            <td class="d1">Game Time:</td>
+                            <td stat="t_game_time"></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
             <div class="tab-content" tab="5" id="Changelog">
 
@@ -283,7 +340,10 @@
             <div class="tab-content" tab="7" id="Error">
 
             </div>
-            <div class="tab-content" tab="8">
+            <div class="tab-content" tab="8" id="Register">
+
+            </div>
+            <div class="tab-content" tab="9">
                 Easter Egg?
             </div>
         </div>

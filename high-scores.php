@@ -1,6 +1,7 @@
 <?php
 require_once 'xquest.php';
 
+$user_id = isSet($_POST['user_id']) ? Text($_POST['user_id'])->in() : '-';
 $list = Text($_GET['list'])->in();
 
 try {
@@ -39,6 +40,8 @@ catch (PDOException $e) {
 }
 ?>
 / / / &nbsp; X-Quest High Scores &nbsp; \ \ \<br /><br />
+
+Join the Discord to discuss the game!<br><br>
 
 <?php if ($list == 'overall') { ?>
 <b class="d1">Overall</b> |
@@ -92,7 +95,7 @@ catch (PDOException $e) {
                 echo "
                     <tr>
                         <td>" . ($Index + 1) . "</td>
-                        <td>" . $userClass->display_name($Score['user_id'], 1, 0, 0, 1) . "</td>
+                        <td>" . $Score['user_name'] . "</td>
                         <td>" . Format($Score['score']) . "</td>
                         <td>" . $Score['level'] . "</td>
                         <td>" . date("i\m s\s", $Score['game_time']) . "</td>
@@ -108,15 +111,27 @@ catch (PDOException $e) {
             if ($placed === false) {
                 try {
                     if ($list == 'nightmare') {
-                        $SelectQuery = $PDO->prepare("SELECT * FROM `xquest_games` WHERE `user_id`=? AND `mod_nightmare`=1 ORDER BY score DESC LIMIT 1");
+                        $SelectQuery = $PDO->prepare("
+                            SELECT `xquest_games`.*, (SELECT `username` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
+                            FROM `xquest_games` WHERE `user_id`=? AND `mod_nightmare`=1 ORDER BY score DESC LIMIT 1
+                        ");
                     }
                     else if ($list == 'incline') {
-                        $SelectQuery = $PDO->prepare("SELECT * FROM `xquest_games` WHERE `user_id`=? AND `mod_incline`=1 ORDER BY score DESC LIMIT 1");
+                        $SelectQuery = $PDO->prepare("
+                            SELECT `xquest_games`.*, (SELECT `username` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
+                            FROM `xquest_games` WHERE `user_id`=? AND `mod_incline`=1 ORDER BY score DESC LIMIT 1
+                        ");
                     }
                     else {
-                        $SelectQuery = $PDO->prepare("SELECT * FROM `xquest_games` WHERE `user_id`=? ORDER BY score DESC LIMIT 1");
+                        $SelectQuery = $PDO->prepare("
+                            SELECT `xquest_games`.*, (SELECT `username` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
+                            FROM `xquest_games` WHERE `user_id`=? ORDER BY score DESC LIMIT 1
+                        ");
                     }
-                    $SelectQuery->execute([ $user['user_id'] ]);
+                    $SelectQuery->execute([
+                        $user_id,
+                        $user_id
+                    ]);
                     $SelectQuery->setFetchMode(PDO::FETCH_ASSOC);
                     $Score = $SelectQuery->fetch();
                 }
@@ -124,29 +139,16 @@ catch (PDOException $e) {
                     handleError($e);
                 }
 
-                echo '<tr> <td></td> <td colspan="5">...</td> </tr>';
-
                 if (isSet($Score['score'])) {
+                    echo '<tr> <td></td> <td colspan="5">...</td> </tr>';
                     echo "
                         <tr>
                             <td></td>
-                            <td>" . $userClass->display_name($Score['user_id'], 1, 0, 0, 1) . "</td>
+                            <td>" . $Score['user_name'] . "</td>
                             <td>" . Format($Score['score']) . "</td>
                             <td>" . $Score['level'] . "</td>
                             <td>" . date("i\m s\s", $Score['game_time']) . "</td>
                             <td>" . date("m/d/y", $Score['end_timestamp']) . "</td>
-                        </tr>
-                    ";
-                }
-                else {
-                    echo "
-                        <tr>
-                            <td></td>
-                            <td>" . $userClass->display_name($user['user_id'], 1, 0, 0, 1) . "</td>
-                            <td>" . Format(0) . "</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
                         </tr>
                     ";
                 }

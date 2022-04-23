@@ -24,6 +24,10 @@ export class State {
     gameId: number;
     loading: boolean = true;
 
+    username: string;
+    userId: string;
+    offline: boolean;
+
     constructor(
         private game: XQuest,
         private requests: Requests
@@ -53,6 +57,8 @@ export class State {
         this.requests.loadGame().then((result: Savefile) => {
             this.game.layout.updateVolume(result.volume);
             this.highScore = result.high_score;
+            this.userId = result.user_id;
+            this.username = result.user_name;
 
             this.game.layout.updateModifier('Nightmare', result.mod_nightmare == 1);
             this.game.layout.updateModifier('Incline', result.mod_incline == 1);
@@ -61,7 +67,7 @@ export class State {
             this.game.layout.updateModifier('Survivor', result.mod_survivor == 1);
             this.game.layout.updateModifier('Barebones', result.mod_barebones == 1);
 
-            this.game.layout.loadModifiers();
+            this.game.layout.loadOptions();
             this.loading = false;
         }).catch((error: Error) => {
             this.game.handleError(error);

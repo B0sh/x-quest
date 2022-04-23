@@ -1,4 +1,7 @@
 export interface Savefile {
+    user_id: string;
+    user_name: string;
+    offline: boolean;
     volume: number;
     high_score: number;
     mod_nightmare: number;

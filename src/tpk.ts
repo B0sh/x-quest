@@ -1,5 +1,6 @@
 import { XQuest } from "./game";
 import { Savefile } from "./models/game-save";
+import { GameStatistics } from "./models/game-statistics";
 import { Requests } from "./requests";
 import { State } from "./state";
 
@@ -135,7 +136,7 @@ export default class TPKRequest extends Requests {
         });
     }
 
-    loadStatistics() {
+    loadStatistics(state: State): Promise<GameStatistics> {
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('GET', '/x-quest/statistics.php');

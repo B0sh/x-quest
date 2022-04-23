@@ -15,7 +15,8 @@
   "license": "ISC",
   "dependencies": {
     "howler": "^2.2.3",
-    "rot-js": "^2.2.0"
+    "rot-js": "^2.2.0",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/howler": "^2.2.7",

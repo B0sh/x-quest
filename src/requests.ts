@@ -1,4 +1,5 @@
 import { Savefile } from "./models/game-save";
+import { GameStatistics } from "./models/game-statistics";
 import { State } from "./state";
 
 export class Requests {
@@ -8,5 +9,5 @@ export class Requests {
     finishGame(state: State, death: string): Promise<any> { return null; }
     gameStateSync(state: State, xcheck: string): Promise<any> { return null; }
     loadHighScores(scoreList: string): Promise<any> { return null; }
-    loadStatistics(): Promise<any> { return null; }
+    loadStatistics(state: State): Promise<GameStatistics> { return null; }
 }
