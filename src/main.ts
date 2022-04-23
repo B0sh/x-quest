@@ -1,10 +1,9 @@
 import Utility from "./utility";
 import { XQuest } from "./game";
 import { InputUtility } from "./input-utility";
-import { Spaceship } from "./entities/spaceship";
-import { Carrier } from "./entities/carrier";
 
-let Game = new XQuest();
+
+let Game = new XQuest('ww');
 (window as any).Game = Game;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -28,9 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 Game.fireBullet();
                 event.preventDefault();
                 break;
-            case 'KeyE': case 'KeyO': case 'Numpad0':
+            case 'KeyE': case 'KeyO': case 'ArrowDown':
                 Game.usePowerup();
                 event.preventDefault();
+                break;
+            case 'KeyY': 
+                Game.startIntro();
+                break;
+            case 'KeyU':
+                Game.intro.stop();
                 break;
             case 'Space':
                 if (!Game.Active) {
@@ -46,12 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
             default: return true;
         }
     });
-
-    if (Utility.isiPad()) {
-        document.querySelectorAll('.no_display_iPad').forEach((element: any) => {
-            element.style.display ='none';
-        });
-    }
 
     Game.state.load();
 

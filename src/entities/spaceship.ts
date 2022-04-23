@@ -16,9 +16,17 @@ export class Spaceship implements ColliderEntity {
     bullets: SpaceshipBullet[] = [];
 
     constructor (
-        private game: XQuest
+        private game: XQuest,
+        private forIntro: any = null
     ) {
         this.type = EntityType.Spaceship;
+        if (forIntro) {
+            this.movementDirection = forIntro.movementDirection; 
+            this.position = forIntro.position;
+            this.linesActive = 0;
+            return;
+        }
+
         this.isWinking = Utility.getRandomInt(1, 36) == 1 && this.game.state.level > 4;
         this.linesActive = 0;
 
@@ -81,6 +89,10 @@ export class Spaceship implements ColliderEntity {
             }
 
             this.position.x += this.movementDirection;
+        }
+
+        if (this.forIntro) {
+            return;
         }
 
         if (this.bullets.length == 0 && !flyAway && isInMiddle && Utility.getRandomInt(1, 4) == 1) {

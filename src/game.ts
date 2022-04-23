@@ -10,13 +10,14 @@ import { ColliderEntity, Entity, EntityType } from './entities/entity';
 import { Spaceship } from './entities/spaceship';
 import { PlayerBullet } from './entities/player-bullet';
 import { PelletText } from './entities/pellet-text';
-import { Howler } from 'howler';
 import { Timer } from './timer';
 import { RoadBullet } from './entities/road-bullet';
 import { Carrier } from './entities/carrier';
 import { Layout, Tab } from './layout';
-import { Menu } from './menu';
 import TPKRequest from './tpk';
+import WWRequest from './ww';
+import { Requests } from './requests';
+import { IntroCutscene } from './intro';
 
 var roadChar = '|';
 
@@ -26,13 +27,14 @@ export class XQuest {
     static readonly onTPK: boolean = true;
     static readonly onWW: boolean = false;
 
+    requests: Requests;
     display: Display;
     state: State;
     renderEngine: RenderEngine;
     board: Board;
     timer: Timer;
     layout: Layout;
-    menu: Menu;
+    intro: IntroCutscene;
 
     options: DisplayOptions = {
         width: 30,
@@ -68,13 +70,19 @@ export class XQuest {
     LineEntered: any[] = [];
 
 
-    constructor() {
+    constructor(platform: string) {
+        if (platform == 'ww') {
+            this.requests = new WWRequest();
+        }
+        else if (platform == 'tpk') {
+            this.requests = new TPKRequest();
+        }
         this.display = new Display(this.options);
-        this.state = new State(this);
+        this.state = new State(this, this.requests);
         this.renderEngine = new RenderEngine(this);
         this.board = new Board(this);
-        this.layout = new Layout(this);
-        this.menu = new Menu(this);
+        this.layout = new Layout(this, this.requests);
+        this.intro = new IntroCutscene(this);
     }
 
     init() {
@@ -82,13 +90,29 @@ export class XQuest {
         this.layout.initTabEvents();
         this.layout.updateInstructions(1);
         this.renderLoop();
+
+        Utility.isAudioEnabled().then((result) => {
+            console.log("X-Quest can play audio:", result)
+            if (result === true) {
+                this.layout.toggleTab(1);
+            }
+            else {
+                this.layout.toggleTab(0);
+            }
+        });
+
     }
 
     frameCount: number = 0;
+    times: any[] = [];
+    fps: number = 0;
     renderLoop() {
         this.frameCount++;
-        if (this.isUpdating) {
-            // alert("CURRENTLY UPDATING" + this.frameCount);
+        if (this.intro.running) {
+            this.intro.render();
+        }
+        else if (this.isUpdating) {
+            // console.log("CURRENTLY UPDATING" + this.frameCount);
         }
         else {
             this.renderEngine.render();
@@ -96,7 +120,14 @@ export class XQuest {
 
         const self = this;
         window.requestAnimationFrame(() => {
+            // const now = performance.now();
+            // while (self.times.length > 0 && self.times[0] <= now - 1000) {
+            //   self.times.shift();
+            // }
+            // self.times.push(now);
+            // self.fps = self.times.length;
             self.renderLoop();
+            // console.log(self.fps);
         });
     }
 
@@ -188,7 +219,7 @@ export class XQuest {
             this.state.lives = 3;
         }
 
-        TPKRequest.startGame(this.state).then((result: any) => {
+        this.requests.startGame(this.state).then((result: any) => {
             this.state.gameId = result.game_id;
         }).catch((error) => {
             this.handleError(error);
@@ -335,6 +366,10 @@ export class XQuest {
         }
     }
 
+    startIntro() {
+        this.intro.start();
+    }
+
     usePowerup() {
         if (this.Active && !this.Paused && !this.Restarting) {
             switch (this.state.power) {
@@ -384,6 +419,7 @@ export class XQuest {
     stopGameLoop() {
         this.isUpdating = false;
         this.timer.stop();
+        
     }
 
     gameLoop() {
@@ -542,7 +578,7 @@ export class XQuest {
     checkForGameSync() {
         if (performance.now() > this.syncNextAt) {
             this.syncNextAt = performance.now() + 20000;
-            TPKRequest.gameStateSync(this.state, this.xcheck).then((result: any) => {
+            this.requests.gameStateSync(this.state, this.xcheck).then((result: any) => {
                 this.xcheck = result.xcheck;
             }).catch((error: Error) => {
                 this.handleError(error);
@@ -565,7 +601,7 @@ export class XQuest {
             this.gameOverDelayUntil = performance.now() + 4000;
 
             this.layout.loadGameOverStatistics(this.state, death, null, null);
-            TPKRequest.finishGame(this.state, death).then((result: any) => {
+            this.requests.finishGame(this.state, death).then((result: any) => {
                 this.layout.loadGameOverStatistics(this.state, death, result.minigame_points, result.event_currency);
             }).catch((error: Error) => {
                 this.handleError(error);

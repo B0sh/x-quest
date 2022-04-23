@@ -184,12 +184,14 @@ export class RenderEngine {
         }
 
         if (!this.game.state.loading && !this.game.Finished && !this.game.Active && !this.game.Crashed) {
-            const overlayText: OverlayText[] = [
-                { centered: true, y: 15, text: "Press Space" },
-                { centered: true, y: 16, text: "to start." },
-            ];
+            if (Math.floor(performance.now() / 1000) % 3 === 1 || Math.floor(performance.now() / 1000) % 3 === 2) {
+                const overlayText: OverlayText[] = [
+                    { centered: true, y: 15, text: "Press Space" },
+                    { centered: true, y: 16, text: "to start." },
+                ];
 
-            this.renderTextOverlay(overlayText);
+                this.renderTextOverlay(overlayText);
+            }
             return;
         }
 

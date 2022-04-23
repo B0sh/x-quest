@@ -1,107 +1,160 @@
-<script type="module" src='./src/main.ts'></script>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>X-Quest</title>
+        <link rel="shortcut icon" type="image/x-icon" href="xquest-favicon.png" />
+        <script type="module" src='./src/main.ts'></script>
 
-<style>
-    .c1, .c2, .c3, .c4, .c5, .c6, .c7, .c8, .c9,
-    .d1, .d2, .d3, .d4, .d5, .d6, .d7, .d8, .d9, .header {
-        font-weight: bold;
-    }
+        <style>
+            html {
+                font-family: monospace;
+                background: black;
+            }
 
-    .c1 { color: #2196f3; }
-    .c2 { color: #40bfb5; }
-    .c3 { color: #40bf6f; }
-    .c4 { color: #98bf40; }
-    .c5 { color: #bf8e40; }
-    .c6 { color: #bf4040; }
-    .c7 { color: #bf408a; }
-    .c8 { color: #6140bf; }
-    .c9 { color: #ea4a3e; }
+            .c1, .c2, .c3, .c4, .c5, .c6, .c7, .c8, .c9,
+            .d1, .d2, .d3, .d4, .d5, .d6, .d7, .d8, .d9, .header {
+                font-weight: bold;
+            }
 
-    .d1 { color: #eeff25; }
-    .d2 { color: #bf404a; }
-    .d3 { color: #c5b84c; }
-    .d4 { color: #3a47b3; }
-    .d5 { color: #4071bf; }
-    .d6 { color: #40bfbf; }
-    .d7 { color: #40bf75; }
-    .d8 { color: #9ebf40; }
-    .d9 { color: #15b5c1; }
+            .c1 { color: #2196f3; }
+            .c2 { color: #40bfb5; }
+            .c3 { color: #40bf6f; }
+            .c4 { color: #98bf40; }
+            .c5 { color: #bf8e40; }
+            .c6 { color: #bf4040; }
+            .c7 { color: #bf408a; }
+            .c8 { color: #6140bf; }
+            .c9 { color: #ea4a3e; }
 
-    .x-quest {
-        border: 1px solid black;
-        font-family: monospace;
-        font-size: 14px;
-        margin: 0px;
-        background-color: black;
-        color: white;
-        width: 1000px;
-        height: 600px;
-        padding: 16px !important;
-    }
+            .d1 { color: #eeff25; }
+            .d2 { color: #bf404a; }
+            .d3 { color: #c5b84c; }
+            .d4 { color: #3a47b3; }
+            .d5 { color: #4071bf; }
+            .d6 { color: #40bfbf; }
+            .d7 { color: #40bf75; }
+            .d8 { color: #9ebf40; }
+            .d9 { color: #15b5c1; }
 
-    .tab-content {
-        display: none;
-        width: 480px;
-    }
+            .x-quest {
+                border: 1px solid black;
+                font-family: monospace;
+                font-size: 14px;
+                margin: 0px;
+                background-color: black;
+                color: white;
+                width: 1000px;
+                height: 600px;
+                padding: 16px !important;
+                position: relative;
+                display: inline-block;
+            }
 
-    .window {
-        float: left;
-        min-height: 400px;
-    }
+            .tab-content {
+                display: none;
+                width: 480px;
+            }
 
-    .header {
-        font-size: 20px;
-    }
+            .window {
+                float: left;
+                min-height: 400px;
+            }
 
-    .GameWindow {
-        line-height: 1;
-        font-size: 20px;
-    }
+            .header {
+                font-size: 20px;
+            }
 
-    .x-quest a {
-        color: #3366BB !important;
-        font-weight: bold !important;
-        text-decoration: underline;
-    }
+            .GameWindow {
+                line-height: 1;
+                font-size: 20px;
+            }
 
-    .Xbox {
-        font-size: 20px;
-    }
+            .x-quest a {
+                color: #3366BB !important;
+                font-weight: bold !important;
+                text-decoration: underline;
+            }
 
-    .volume-input {
-        vertical-align: middle;
-    }
+            .Xbox {
+                font-size: 20px;
+            }
 
-    #Changelog {
-        overflow:scroll;
-        overflow-x:hidden;
-        height: 600px;
-        width: 468px;
-    }
+            .volume-input {
+                vertical-align: middle;
+            }
 
-    .no_display_level_1,
-    .no_display_level_2,
-    .no_display_level_3,
-    .no_display_level_4,
-    .no_display_level_5,
-    .no_display_level_6,
-    .no_display_level_7,
-    .no_display_level_8,
-    .no_display_level_9 {
-        display: none;
-    }
+            #Changelog {
+                overflow:scroll;
+                overflow-x:hidden;
+                height: 600px;
+                width: 468px;
+            }
 
-    .test {
-        width: 20px;
-        height: 20px;
-        margin: 8px;
-        float: left;
-    }
-</style>
+            .no_display_level_1,
+            .no_display_level_2,
+            .no_display_level_3,
+            .no_display_level_4,
+            .no_display_level_5,
+            .no_display_level_6,
+            .no_display_level_7,
+            .no_display_level_8,
+            .no_display_level_9 {
+                display: none;
+            }
 
-<audio id="Sound" style="display:none;"></audio>
+            .checkbox {
+                width: 20px;
+                height: 20px;
+                margin: 8px;
+                float: left;
+            }
 
+            .x-quest {
+                padding: 500px;
+                width: 900px;
+            }
+
+            div.tab-container {
+                position: relative;
+                width: 800px;
+                margin: 0 auto;
+                margin-top: 10px;
+                padding: 0;
+            }
+
+            div.tab-container > div.tab {
+                float: left;
+                padding: 5px 10px;
+                width: 176px;
+                box-sizing: border-box;
+                border-radius: 6px;
+                background: black; 
+                color: white;
+                font-size: 20px;
+                font-weight: bold;
+                cursor: pointer;
+                user-select: none;
+            }
+
+            div.tab-container > div.active-tab {
+                background: white; 
+                color: black;
+                /* text-shadow: 0 1px 1px #000; */
+            }
+
+            div.tab-container > div.tab:first-child {
+                margin-left: 14px;
+            }
+
+        </style>
+    </head>
+<body>
+    
 <div class="tab-container" style="width: 900px;">
-    <div class="tab active-tab" id="tab_1">
+    <div class="tab" id="tab_1">
         X-Quest
     </div>
     <div class="tab" id="tab_2">
@@ -117,27 +170,28 @@
         Changelog
     </div>
 
-    <div class="x-quest" id="optionspage" style="width: 900px; background: black;">
+    <div class="x-quest">
         <div class="window" style="width: 390px; padding-right: 20px;">
-            <div class="x-quest-board"></div>
+            <div class="x-quest-board" style="display: none"></div>
         </div>
 
         <div class="window" style="text-align: left; width: 450px;">
             <div class="tab-content" tab="0">
-                Easter Egg?
+                X-Quest uses autoplaying game sounds in the browser. Please click a menu option above to start the game.
             </div>
-            <div class="tab-content" style="display:inline;" tab="1">
+            <div class="tab-content" tab="1">
                 <span style="font-size: 22px;">You are an <span class="Xbox">X</span> that goes on a quest.</span><br>
 
                 &nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br>
+                <br>
 
                 <b style="font-size: 18px;">Controls:</b><br>
-                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;"><span class="no_display_iPad">Left/Right,
-                    </span>A/D</span>: Move<br>
-                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;"><span class="no_display_iPad">Up, </span>W</span>:
+                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">← →, A D</span>: Move<br>
+                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">↑, W</span>:
                 Shoot<br>
-                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">E</span>: Use Powerup<br>
-                <br>
+                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">↓, E</span>: Use Powerup<br>
+                &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">Space</span>: Pause<br>
+                <br><br>
 
                 <b style="font-size: 18px;">Collect:</b><br>
                 &nbsp;&nbsp;&nbsp;<span class="Xbox">$</span>: Score<br>
@@ -151,14 +205,15 @@
                     &nbsp;&nbsp;&nbsp;<span class="Xbox">W</span>: Warp across the abyss<br>
                 </span>
                 <br>
+                <br>
 
                 <b style="font-size: 18px;">Watch out:</b><br>
                 &nbsp;&nbsp;&nbsp;<span class="Xbox"><_> </span>: spaceship<br>
                 &nbsp;&nbsp;&nbsp;<span class="Xbox">v</span>: its bullets<br>
                 &nbsp;&nbsp;&nbsp;<span style="font-size:20px;">&nbsp;</span>: The Abyss<br>
-                <br>
+                <br><br>
 
-                X-Quest v1.4 by <a href="https://waldens.world/games">B0sh</a> &copy; 2014-2021
+                X-Quest v1.4 by <a href="https://waldens.world/games">Walden's World Games</a> &copy; 2014-2022
             </div>
 
             <div class="tab-content" tab="6">
@@ -166,34 +221,39 @@
 
                 &nbsp;&nbsp;&nbsp;Oh, and the quest is to stay on the road.<br><br>
 
-                <div style="margin: 0 auto; width: 70%; font-weight: bold;">
-                    <div style="text-align: center; font-size: 18px; width: 100%">Game Over</div><br />
+                <b style="font-size: 18px;">Game Over</b><br />
 
-                    Score: <span class="game-over-score"></span> &nbsp;&nbsp;&nbsp;&nbsp;
-                    <img src="https://sprites.tpkrpg.net/misc/MinigamePoint.png" style="width:24px;height:24px;vertical-align:middle">
+                <div style="margin-left: 26px;">
+                    <br>
+                    <span style="font-size: 18px;">Score: <span class="game-over-score"></span></span> 
+
+                    <!-- <img src="https://sprites.tpkrpg.net/misc/MinigamePoint.png" style="width:24px;height:24px;vertical-align:middle">
                     <span class="game-over-minigame-points"></span> &nbsp;&nbsp;&nbsp;&nbsp;
-                    <span class="game-over-event-currency"></span><br /><br />
+                    <span class="game-over-event-currency"></span><br /><br /> -->
+                </div>
 
-                    <div style="text-align: center; font-size: 18px; width: 100%;">
-                        Your Statistics
-                    </div><br />
+                <br><br>
 
-                    Game Time: <span class="game-over-game-time"></span><br />
-                    Level: <span class="game-over-level"></span><br />
-                    Powerups Used: <span class="game-over-powerups-used"></span><br />
-                    Spaceship Hits: <span class="game-over-spaceship-hits"></span><br />
-                    Bullet Hits: <span class="game-over-bullet-hits"></span><br /><br />
+
+                
+
+                <b style="font-size: 18px;">Game Statistics:</b><br>
+
+                <div style="margin-left: 26px;">
+                    <span style="font-weight:bold;">Game Time</span>: <span class="game-over-game-time"></span><br />
+                    <span style="font-weight:bold;">Level</span>: <span class="game-over-level"></span><br />
+                    <span style="font-weight:bold;">Powerups Activated</span>: <span class="game-over-powerups-used"></span><br />
+                    <span style="font-weight:bold;">Spaceship Hits</span>: <span class="game-over-spaceship-hits"></span><br />
+                    <span style="font-weight:bold;">Bullet Hits</span>: <span class="game-over-bullet-hits"></span><br /><br />
                     <span class="game-over-cause-of-death"></span>
+                </div>
 
-                    <br /><br />
+                <br /><br />
 
-                    <div class="game-over-modifier-header" style="display: none; text-align: center; font-size: 18px; width: 100%;">
-                        Your Modifiers
-                    </div><br />
+                <b class="game-over-modifier-header" style="display: none;font-size: 18px;">Modifiers:</b>
 
-                    <div class="game-over-modifiers">
+                <div class="game-over-modifiers" style="margin-left: 26px;">
 
-                    </div>
                 </div>
             </div>
             <div class="tab-content" tab="2">
@@ -223,6 +283,12 @@
             <div class="tab-content" tab="7" id="Error">
 
             </div>
+            <div class="tab-content" tab="8">
+                Easter Egg?
+            </div>
         </div>
     </div>
 </div>
+
+</body>
+</html>

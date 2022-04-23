@@ -2,12 +2,13 @@ import { Howler } from "howler";
 import { Changelog } from "./changelog";
 import { XQuest } from "./game";
 import { Modifier, MODIFIERS } from "./modifier";
+import { Requests } from "./requests";
 import { State } from "./state";
 import TPKRequest from "./tpk";
 import Utility from "./utility";
 
 export const enum Tab {
-    EasterEgg = 0,
+    AudioLockout = 0,
     Instructions = 1,
     Options = 2,
     HighScore = 3,
@@ -15,6 +16,7 @@ export const enum Tab {
     Changelog = 5,
     GameOverStatistics = 6,
     FatalError = 7,
+    EasterEgg = 8,
 }
 
 export class Layout {
@@ -22,7 +24,8 @@ export class Layout {
     selectedModifiers: Modifier[] = [];
 
     constructor(
-        private game: XQuest
+        private game: XQuest,
+        private requests: Requests
     ) {
 
     }
@@ -37,6 +40,10 @@ export class Layout {
     }
 
     toggleTab(tab: number) {
+        const board = document.querySelector('.x-quest-board') as HTMLElement;
+        if (board && tab != Tab.AudioLockout) 
+            board.style.display = null;
+
         if (this.game.Crashed) {
             tab = Tab.FatalError;
         }
@@ -85,7 +92,7 @@ export class Layout {
     loadHighScores(scoreList: string = 'overall') {
         const element = document.querySelector('#HighScores');
         element.innerHTML = 'Loading...';
-        TPKRequest.loadHighScores(scoreList).then((content: any) => {
+        this.requests.loadHighScores(scoreList).then((content: any) => {
             element.innerHTML = content;
         }).catch((error) => {
             this.game.handleError(error);
@@ -95,7 +102,7 @@ export class Layout {
     loadStatistics() {
         const element = document.querySelector('#Statistics');
         element.innerHTML = 'Loading...';
-        TPKRequest.loadStatistics().then((content: any) => {
+        this.requests.loadStatistics().then((content: any) => {
             element.innerHTML = content;
         }).catch((error) => {
             this.game.handleError(error);
@@ -108,7 +115,7 @@ export class Layout {
         MODIFIERS.forEach((modifier) => {
             const checked: string = this.selectedModifiers.findIndex((sel) => sel.name == modifier.name) == -1 ? '' : 'checked';
             element.innerHTML += `<div style="clear: both;">
-                <input type="checkbox" class="test" onchange="Game.layout.updateModifier('${modifier.name}', this.checked); Game.state.save();" ${checked} />
+                <input type="checkbox" class="checkbox" onchange="Game.layout.updateModifier('${modifier.name}', this.checked); Game.state.save();" ${checked} />
                 <span class="d1">${modifier.name}</span> &mdash; <span class="d1">+${modifier.scoreMultiplier * 100}%</span> &mdash; ${modifier.description}
             </div>`
         });
@@ -119,15 +126,17 @@ export class Layout {
 
         document.querySelector('.game-over-score').innerHTML = Utility.format(state.stats.Score);
 
-        if (minigamePoints != null) {
-            document.querySelector('.game-over-minigame-points').innerHTML = '+' + Utility.format(minigamePoints);
+        const mgEl = document.querySelector('.game-over-minigame-points');
+        if (mgEl && minigamePoints != null) {
+            mgEl.innerHTML = '+' + Utility.format(minigamePoints);
         }
-        else {
-            document.querySelector('.game-over-minigame-points').innerHTML = 'Loading...';
+        else if (mgEl) {
+            mgEl.innerHTML = 'Loading...';
         }
 
-        if (eventCurrency != null) {
-          document.querySelector('.game-over-event-currency').innerHTML = '<img src="https://sprites.tpkrpg.net/items/439.png" style="width:24px;height:24px;vertical-align:middle">&nbsp; +' + Utility.format(eventCurrency);
+        const eventEl = document.querySelector('.game-over-event-currency');
+        if (eventEl && eventCurrency != null) {
+            eventEl.innerHTML = '<img src="https://sprites.tpkrpg.net/items/439.png" style="width:24px;height:24px;vertical-align:middle">&nbsp; +' + Utility.format(eventCurrency);
         }
 
         const seconds = Utility.padStart(Math.floor(state.stats.Time) % 60, 2, '0');
@@ -158,6 +167,7 @@ export class Layout {
         else {
             element.style.display = 'none';
         }
+
         element = document.querySelector('.game-over-modifiers');
         element.innerHTML = "";
         MODIFIERS.forEach((modifier) => {

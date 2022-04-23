@@ -1,6 +1,8 @@
 import { XQuest } from "./game";
+import { Savefile } from "./models/game-save";
 import { QuestStatistics } from "./models/quest-statistics";
 import { Modifier } from "./modifier";
+import { Requests } from "./requests";
 import TPKRequest from "./tpk";
 
 export class State {
@@ -22,7 +24,10 @@ export class State {
     gameId: number;
     loading: boolean = true;
 
-    constructor(private game: XQuest) { }
+    constructor(
+        private game: XQuest,
+        private requests: Requests
+    ) { }
 
     hasModifier(modifier: string): boolean {
         return this.modifiers.indexOf(modifier) !== -1; 
@@ -37,7 +42,7 @@ export class State {
     }
 
     save() {
-        TPKRequest.saveGame(this).then(() => {
+        this.requests.saveGame(this).then(() => {
             console.log("Finished saving");
         }).catch((error: Error) => {
             this.game.handleError(error);
@@ -45,7 +50,7 @@ export class State {
     }
 
     load() {
-        TPKRequest.loadGame().then((result: any) => {
+        this.requests.loadGame().then((result: Savefile) => {
             this.game.layout.updateVolume(result.volume);
             this.highScore = result.high_score;
 

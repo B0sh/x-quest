@@ -1,8 +1,10 @@
 import { XQuest } from "./game";
+import { Savefile } from "./models/game-save";
+import { Requests } from "./requests";
 import { State } from "./state";
 
-export default class TPKRequest {
-    static loadGame() {
+export default class TPKRequest extends Requests {
+    loadGame(): Promise<Savefile> {
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('GET', '/x-quest/load-game.php', true);
@@ -14,7 +16,7 @@ export default class TPKRequest {
         });
     }
 
-    static saveGame(state: State) {
+    saveGame(state: State) {
         const data = new FormData();
         data.append('volume', state.volume.toString());
         data.append('mod_nightmare', state.hasSelectedModifier('Nightmare').toString());
@@ -35,7 +37,7 @@ export default class TPKRequest {
         });
     }
 
-    static startGame(state: State) {
+    startGame(state: State) {
         const data = new FormData();
         data.append('version', XQuest.version);
         data.append('mod_nightmare', state.hasModifier('Nightmare').toString());
@@ -56,7 +58,7 @@ export default class TPKRequest {
         });
     }
 
-    static finishGame(state: State, death: string) {
+    finishGame(state: State, death: string) {
         const data = new FormData();
         data.append('cause_of_death', death);
         data.append('game_id', state.gameId.toString());
@@ -88,7 +90,7 @@ export default class TPKRequest {
         });
     }
 
-    static gameStateSync(state: State, xcheck: string) {
+    gameStateSync(state: State, xcheck: string) {
         const data = new FormData();
         data.append('game_id', state.gameId.toString());
         data.append('score', state.stats.Score.toString());
@@ -120,7 +122,7 @@ export default class TPKRequest {
         });
     }
 
-    static loadHighScores(scoreList: string) {
+    loadHighScores(scoreList: string) {
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('GET', `/x-quest/high-scores.php?list=${scoreList}`);
@@ -133,7 +135,7 @@ export default class TPKRequest {
         });
     }
 
-    static loadStatistics() {
+    loadStatistics() {
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('GET', '/x-quest/statistics.php');

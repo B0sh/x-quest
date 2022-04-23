@@ -18,8 +18,7 @@ export class Carrier implements ColliderEntity {
     shields: CarrierShield[] = [];
 
     textSprite: string[] = [];
-    // ░▒▓█
-    // ╳
+
     text: string = 
 "  _______,--------.___,-._@@@@@_.-'    " + '\n' + 
 ",'____,'   O  O  O    \\`-._`-'/'       " + '\n' + 
@@ -31,22 +30,23 @@ export class Carrier implements ColliderEntity {
 "                                   `--'";
 
     constructor (
-        private game: XQuest
+        private game: XQuest,
+        private forIntro: boolean = false
     ) {
         this.type = EntityType.Carrier;
         this.linesActive = 0;
 
-        if (Utility.getRandomInt(0, 1) == 0) {
-            this.movementDirection = 1;
+        if (Utility.getRandomInt(0, 1) == 0 || this.forIntro) {
+            this.movementDirection = -1;
             this.position = new BoundingBox(
-                -38,
+                this.game.width + 4,
                 1
             );
         }
         else {
-            this.movementDirection = -1;
+            this.movementDirection = 1;
             this.position = new BoundingBox(
-                this.game.width + 4,
+                -38,
                 1
             );
         }
@@ -56,7 +56,9 @@ export class Carrier implements ColliderEntity {
         this.position.width = this.textSprite[0].length;
         this.position.height = this.textSprite.length;
 
-        SFX.CarrierEngine.play();
+        if (!forIntro) {
+            SFX.CarrierEngine.play();
+        }
     }
 
     spawnShields() {
@@ -153,7 +155,7 @@ export class Carrier implements ColliderEntity {
             return;
         }
 
-        if (this.movementDirection == -1 && this.position.x < 0 - this.position.width) {
+        if (this.movementDirection == -1 && this.position.x < -2 - this.position.width) {
             this.game.deleteEntity(this);
             return;
         }

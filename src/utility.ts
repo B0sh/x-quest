@@ -45,4 +45,23 @@ export default class Utility {
     static isiPad() {
         return navigator.userAgent.match(/iPad/i) != null;
     }
+    static isAudioEnabled = () => {
+        return new Promise(resolve => {
+            const checkHTML5Audio = async () => {
+                const audio = new Audio();
+                try {
+                    audio.play();
+                    resolve(true);
+                } catch (err) {
+                    resolve(false);
+                }
+            };
+            try {
+                const context = Howler.ctx;
+                resolve(context.state !== 'suspended');
+            } catch (e) {
+                checkHTML5Audio();
+            }
+        });
+    };
 }
