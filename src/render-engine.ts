@@ -80,7 +80,7 @@ export class RenderEngine {
             this.game.display.draw(this.game.options.width - 1, y, "\\", "#FFFFFF", null);
         }
 
-        this.drawCenteredText(0, 'X-Quest v' + XQuest.version);
+        this.drawCenteredText(0, 'X-Quest v' + XQuest.version, "#FFF");
 
         const score = this.game.state.stats?.Score;
         const currentRecord = this.game.state.highScore;
@@ -149,12 +149,12 @@ export class RenderEngine {
         this.game.display.draw(pX, pY, 'X', color, null);
         if (this.game.state.invincible > 0) {
             if (Math.floor((this.game.state.invincible - 1) / 5) % 2 == 1) {
-                this.game.display.draw(pX + 2, pY, '/', '#444', null);
-                this.game.display.draw(pX - 2, pY, '/', '#444', null);
+                this.game.display.draw(pX + 2, pY, '/', color, null);
+                this.game.display.draw(pX - 2, pY, '/', color, null);
             }
             else {
-                this.game.display.draw(pX + 2, pY, '\\', '#444', null);
-                this.game.display.draw(pX - 2, pY, '\\', '#444', null);
+                this.game.display.draw(pX + 2, pY, '\\', color, null);
+                this.game.display.draw(pX - 2, pY, '\\', color, null);
             }
         }
     }
@@ -176,6 +176,13 @@ export class RenderEngine {
             if (this.game.gameOverDelayUntil && this.game.gameOverDelayUntil < performance.now()) {
                 overlayText.push({ y: 17, centered: true, text: "Press Space", color: 'white' });
                 overlayText.push({ y: 18, centered: true, text: "to restart.", color: 'white' });
+            }
+
+            if (this.game.gameOverHighScore) {
+                const rainbowColor = this.roadColors[Math.floor(performance.now() / 500) % 9];
+                overlayText.push({ y: 21, centered: true, text: "High Score", color: rainbowColor });
+                const score = this.game.state.stats.Score.toString();
+                overlayText.push({ y: 22, centered: true, text: " " + score.padStart(8, ".") + " ", color: 'white' })
             }
 
             this.renderTextOverlay(overlayText);

@@ -18,14 +18,15 @@ import TPKRequest from './tpk';
 import WWRequest from './ww';
 import { Requests } from './requests';
 import { IntroCutscene } from './intro';
+import { TPK_MODIFIERS, WW_MODIFIERS } from './modifier';
 
 var roadChar = '|';
 
 export class XQuest {
     static readonly version: string = '1.5';
     static readonly powerUps: string[] = [ '$', 'P', 'W', 'M', 'I', 'D', 'R' ];
-    static readonly onTPK: boolean = true;
-    static readonly onWW: boolean = false;
+    onTPK: boolean = false;
+    onWW: boolean = false;
 
     requests: Requests;
     display: Display;
@@ -33,6 +34,7 @@ export class XQuest {
     renderEngine: RenderEngine;
     board: Board;
     timer: Timer;
+    introActivationTimer: Timer;
     layout: Layout;
     intro: IntroCutscene;
 
@@ -58,24 +60,25 @@ export class XQuest {
 
     playerPosition: BoundingBox;
     gameClockMs: number;
-    BaseLine: string;
     gameOverDelayUntil: number = null;
+    gameOverHighScore: boolean = false;
     frameTime: number = 0;
     nextGameSyncTime: number = 0;
     isUpdating: boolean = false;
 
     entities: Entity[] = [];
 
-    // TO REPLACE
     LineEntered: any[] = [];
 
 
     constructor(platform: string) {
         if (platform == 'ww') {
             this.requests = new WWRequest();
+            this.onWW = true;
         }
         else if (platform == 'tpk') {
             this.requests = new TPKRequest();
+            this.onTPK = true;
         }
         this.display = new Display(this.options);
         this.state = new State(this, this.requests);
@@ -91,15 +94,19 @@ export class XQuest {
         this.layout.updateLevelColors(1);
         this.renderLoop();
 
+        this.layout.toggleTab(Tab.Instructions);
         Utility.isAudioEnabled().then((result) => {
             console.log("X-Quest can play audio:", result)
-            if (result === true) {
-                this.layout.toggleTab(1);
-            }
-            else {
-                this.layout.toggleTab(0);
-            }
+            // if (result === true) {
+            //     this.layout.toggleTab(Tab.Instructions);
+            // }
+            // else {
+            //     this.layout.toggleTab(Tab.AudioLockout);
+            // }
         });
+
+        this.introActivationTimer = new Timer(this.activateIntro.bind(this), 75000);
+        this.introActivationTimer.start();
 
     }
 
@@ -151,6 +158,10 @@ export class XQuest {
     }
 
     start() {
+        if (this.intro.running) {
+            this.intro.stop();
+        }
+
         if (this.Active == true) {
             if (this.state.levelLines > this.board.getLevelLines(this.state.level) - this.height) {
                 this.nextLevel();
@@ -162,9 +173,9 @@ export class XQuest {
             return;
         }
 
-        if (this.layout.currentTab == Tab.GameOverStatistics) {
-            this.layout.toggleTab(Tab.Instructions);
-        }
+        // if (this.layout.currentTab == Tab.GameOverStatistics) {
+        this.layout.toggleTab(Tab.Instructions);
+        // }
 
         this.unloadEntities();
         this.state.modifiers = this.layout.selectedModifiers.map(m => m.name);
@@ -186,6 +197,7 @@ export class XQuest {
         this.map = [];
         this.LineEntered = [];
         this.gameOverDelayUntil = null;
+        this.gameOverHighScore = false;
         this.state.stats = {
             Score: 0,
             ShipsDestroyed: 0,
@@ -194,9 +206,6 @@ export class XQuest {
             Moves: 0,
             ShotsFired: 0,
             Time: 0,
-            DeathAbyss: 0,
-            DeathWall: 0,
-            DeathShot: 0,
         };
 
         const mid = Math.floor((this.width - 1) / 2);
@@ -218,12 +227,14 @@ export class XQuest {
         else {
             this.state.lives = 3;
         }
-
-        this.requests.startGame(this.state).then((result: any) => {
-            this.state.gameId = result.game_id;
-        }).catch((error) => {
-            this.handleError(error);
-        });
+    
+        if (!this.state.offline) {
+            this.requests.startGame(this.state).then((result: any) => {
+                this.state.gameId = result.game_id;
+            }).catch((error) => {
+                this.handleError(error);
+            });
+        }
 
         /* Lets get this party started */
         this.startGameLoop(this.gameClockMs);
@@ -367,7 +378,21 @@ export class XQuest {
     }
 
     startIntro() {
+        this.introActivationTimer.stop();
         this.intro.start();
+    }
+
+    stopIntro() {
+        this.introActivationTimer.start();
+    }
+
+    activateIntro() {
+        const active = document.hidden;
+        Utility.isAudioEnabled().then((audio) => {
+            if (audio && !active) {
+                this.startIntro();
+            }
+        });
     }
 
     usePowerup() {
@@ -404,6 +429,8 @@ export class XQuest {
     }
 
     startGameLoop(speed: number) {
+        this.introActivationTimer.stop();
+
         if (this.timer && this.timer.interval == speed) {
             this.timer.start();
         } else if (this.timer) {
@@ -419,7 +446,10 @@ export class XQuest {
     stopGameLoop() {
         this.isUpdating = false;
         this.timer.stop();
-        
+
+        if (!this.Active) {
+            this.introActivationTimer.start(); 
+        }
     }
 
     gameLoop() {
@@ -576,7 +606,7 @@ export class XQuest {
     xcheck: string = "";
     syncNextAt: number = 0;
     checkForGameSync() {
-        if (performance.now() > this.syncNextAt) {
+        if (!this.state.offline && performance.now() > this.syncNextAt) {
             this.syncNextAt = performance.now() + 20000;
             this.requests.gameStateSync(this.state, this.xcheck).then((result: any) => {
                 this.xcheck = result.xcheck;
@@ -600,6 +630,18 @@ export class XQuest {
 
             this.gameOverDelayUntil = performance.now() + 4000;
 
+            document.querySelector<HTMLElement>('.game-over-high-score-submitted').style.display = "none";
+            document.querySelector<HTMLElement>('.game-over-high-score').style.display = "none";
+            if (this.state.highScore < this.state.stats.Score) {
+                this.state.highScore = this.state.stats.Score;
+                this.gameOverHighScore = true;
+
+                if (this.onWW && !this.state.offline) {
+                    document.querySelector<HTMLElement>('.game-over-high-score').style.display = "unset";
+                    document.querySelector<HTMLInputElement>('.game-over-username-input').value = this.state.username;
+                }
+            }
+
             this.layout.loadGameOverStatistics(this.state, death, null, null);
             this.requests.finishGame(this.state, death).then((result: any) => {
                 this.layout.loadGameOverStatistics(this.state, death, result.minigame_points, result.event_currency);
@@ -618,6 +660,16 @@ export class XQuest {
                 this.Paused = false;
                 this.startGameLoop(this.gameClockMs);
             }
+        }
+    }
+
+    getModifiers() {
+        if (this.onTPK) {
+            return TPK_MODIFIERS;
+        }
+
+        if (this.onWW) {
+            return WW_MODIFIERS;
         }
     }
 

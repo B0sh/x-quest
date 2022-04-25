@@ -12,7 +12,7 @@ export default class TPKRequest extends Requests {
             req.onload = () => {
                 return TPKRequest.onSuccess(req, resolve, reject);
             };
-            req.onerror = (e) => reject(TPKRequest.onError(`Network Error: ${e}`));
+            req.onerror = (e) => reject(TPKRequest.onError());
             req.send();
         });
     }
@@ -33,7 +33,7 @@ export default class TPKRequest extends Requests {
             req.onload = () => {
                 return TPKRequest.onSuccess(req, resolve, reject);
             };
-            req.onerror = (e) => reject(TPKRequest.onError(`Network Error: ${e}`));
+            req.onerror = (e) => reject(TPKRequest.onError());
             req.send(data);
         });
     }
@@ -54,7 +54,7 @@ export default class TPKRequest extends Requests {
             req.onload = () => {
                 return TPKRequest.onSuccess(req, resolve, reject);
             };
-            req.onerror = (e) => reject(TPKRequest.onError(`Network Error: ${e}`));
+            req.onerror = (e) => reject(TPKRequest.onError());
             req.send(data);
         });
     }
@@ -83,7 +83,7 @@ export default class TPKRequest extends Requests {
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('POST', '/x-quest/finish-game.php');
-            req.onerror = (e) => reject(TPKRequest.onError(`Network Error: ${e}`));
+            req.onerror = (e) => reject(TPKRequest.onError());
             req.onload = () => {
                 return TPKRequest.onSuccess(req, resolve, reject);
             };
@@ -115,7 +115,7 @@ export default class TPKRequest extends Requests {
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('POST', '/x-quest/update-game.php');
-            req.onerror = (e) => reject(TPKRequest.onError(`Network Error: ${e}`));
+            req.onerror = (e) => reject(TPKRequest.onError());
             req.onload = () => {
                 return TPKRequest.onSuccess(req, resolve, reject);
             };
@@ -123,11 +123,15 @@ export default class TPKRequest extends Requests {
         });
     }
 
+    submitHighScore(state: State, username: string) {
+        return Promise.resolve({});
+    }
+
     loadHighScores(state: State, scoreList: string) {
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('GET', `/x-quest/high-scores.php?list=${scoreList}`);
-            req.onerror = (e) => reject(TPKRequest.onError(`Network Error: ${e}`));
+            req.onerror = (e) => reject(TPKRequest.onError());
             req.onload = () => {
                 TPKRequest.checkHeaders(req);
                 return req.status === 200 ? resolve(req.response) : reject(Error(req.statusText))
@@ -140,7 +144,7 @@ export default class TPKRequest extends Requests {
         return new Promise((resolve, reject) => {
             const req = new XMLHttpRequest();
             req.open('GET', '/x-quest/statistics.php');
-            req.onerror = (e) => reject(TPKRequest.onError(`Network Error: ${e}`));
+            req.onerror = (e) => reject(TPKRequest.onError());
             req.onload = () => {
                 TPKRequest.checkHeaders(req);
                 return req.status === 200 ? resolve(req.response) : reject(TPKRequest.onError(req.statusText))
@@ -165,7 +169,10 @@ export default class TPKRequest extends Requests {
         }
     }
 
-    static onError(message: string) {
+    static onError(message: string = "") {
+        if (message == "") {
+            return Error("<br>X-Quest failed to connect to the server.");
+        }
         return Error(message);
     }
 

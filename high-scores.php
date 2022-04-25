@@ -4,12 +4,14 @@ require_once 'xquest.php';
 $user_id = isSet($_GET['user_id']) ? Text($_GET['user_id'])->in() : '-';
 $list = Text($_GET['list'])->in();
 
+$list = "";
+
 try {
     if ($list == 'nightmare') {
         $Fetch_Scores = $PDO->prepare("
             SELECT `user_id`, max(score) as highscore
             FROM `xquest_games`
-            WHERE `mod_nightmare`=1
+            WHERE `mod_nightmare`=1 AND `submitted`=1
             GROUP BY `user_id`
             ORDER BY highscore DESC LIMIT 10
         ");
@@ -18,7 +20,7 @@ try {
         $Fetch_Scores = $PDO->prepare("
             SELECT `user_id`, max(score) as highscore
             FROM `xquest_games`
-            WHERE `mod_incline`=1
+            WHERE `mod_incline`=1 AND `submitted`=1
             GROUP BY `user_id`
             ORDER BY highscore DESC LIMIT 10
         ");
@@ -27,6 +29,7 @@ try {
         $Fetch_Scores = $PDO->prepare("
             SELECT `user_id`, max(score) as highscore
             FROM `xquest_games`
+            WHERE `submitted`=1
             GROUP BY `user_id`
             ORDER BY highscore DESC LIMIT 10
         ");
@@ -40,7 +43,7 @@ catch (PDOException $e) {
 }
 ?>
 
-
+<!--
 <?php if ($list == 'overall') { ?>
 <b class="level-class">Overall</b> |
 <?php } else { ?>
@@ -56,6 +59,7 @@ catch (PDOException $e) {
 <?php } else { ?>
 <a href="" onclick="Game.layout.loadHighScores('incline'); return false;">Incline</a>
 <?php } ?><br /><br />
+-->
 
 <table>
     <thead>
@@ -76,24 +80,20 @@ catch (PDOException $e) {
                 try {
                     if ($list == 'nightmare') {
                         $SelectQuery = $PDO->prepare("
-                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
-                            FROM `xquest_games` WHERE `user_id`=? AND `mod_nightmare`=1 ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1
+                            SELECT * FROM `xquest_games` WHERE `user_id`=? AND `submitted`=1 AND `mod_nightmare`=1 ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1
                         ");
                     }
                     else if ($list == 'incline') {
                         $SelectQuery = $PDO->prepare("
-                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
-                            FROM `xquest_games` WHERE `user_id`=? AND `mod_incline`=1 ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1
+                            SELECT * FROM `xquest_games` WHERE `user_id`=? AND `submitted`=1 AND `mod_incline`=1 ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1
                         ");
                     }
                     else {
                         $SelectQuery = $PDO->prepare("
-                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
-                            FROM `xquest_games` WHERE `user_id`=? ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1
+                            SELECT * FROM `xquest_games` WHERE `user_id`=? AND `submitted`=1 ORDER BY `score` DESC, `end_timestamp` DESC LIMIT 1
                         ");
                     }
                     $SelectQuery->execute([
-                        $Score['user_id'],
                         $Score['user_id'],
                     ]);
                     $SelectQuery->setFetchMode(PDO::FETCH_ASSOC);
@@ -122,25 +122,21 @@ catch (PDOException $e) {
                 try {
                     if ($list == 'nightmare') {
                         $SelectQuery = $PDO->prepare("
-                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
-                            FROM `xquest_games` WHERE `user_id`=? AND `mod_nightmare`=1 ORDER BY score DESC LIMIT 1
+                            SELECT * FROM `xquest_games` WHERE `user_id`=? AND `mod_nightmare`=1 ORDER BY score DESC LIMIT 1
                         ");
                     }
                     else if ($list == 'incline') {
                         $SelectQuery = $PDO->prepare("
-                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
-                            FROM `xquest_games` WHERE `user_id`=? AND `mod_incline`=1 ORDER BY score DESC LIMIT 1
+                            SELECT * FROM `xquest_games` WHERE `user_id`=? AND `mod_incline`=1 ORDER BY score DESC LIMIT 1
                         ");
                     }
                     else {
                         $SelectQuery = $PDO->prepare("
-                            SELECT `xquest_games`.*, (SELECT `user_name` FROM `xquest_state` WHERE `user_id`=?) as `user_name`
-                            FROM `xquest_games` WHERE `user_id`=? ORDER BY score DESC LIMIT 1
+                            SELECT * FROM `xquest_games` WHERE `user_id`=? ORDER BY score DESC LIMIT 1
                         ");
                     }
                     $SelectQuery->execute([
                         $user_id,
-                        $user_id
                     ]);
                     $SelectQuery->setFetchMode(PDO::FETCH_ASSOC);
                     $Score = $SelectQuery->fetch();

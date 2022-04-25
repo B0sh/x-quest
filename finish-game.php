@@ -2,6 +2,7 @@
 require_once 'xquest.php';
 
 if (isSet($_POST['user_id']) && strlen($_POST['user_id']) == 36 && (
+    isSet($_POST['user_name']) ||
     isSet($_POST['game_id']) ||
     isSet($_POST['score']) ||
     isSet($_POST['level']) ||
@@ -23,6 +24,7 @@ if (isSet($_POST['user_id']) && strlen($_POST['user_id']) == 36 && (
     isSet($_POST['timestamp']))) {
 
     $user_id = isSet($_POST['user_id']) ? Text($_POST['user_id'])->in() : '-';
+    $user_name = substr(Text($_POST['user_name'])->in(), 0, 12);
     $score = Text($_POST['score'])->num();
     $game_id = Text($_POST['game_id'])->num();
     $level = Text($_POST['level'])->num();
@@ -90,30 +92,32 @@ if (isSet($_POST['user_id']) && strlen($_POST['user_id']) == 36 && (
     try {
         $Update = $PDO->prepare("
             UPDATE `xquest_games` SET
-               `score`=?,
-               `minigame_points`=?,
-               `level`=?,
-               `lines`=?,
-               `ships_destroyed`=?,
-               `powerups_used`=?,
-               `moves`=?,
-               `game_time`=?,
-               `shots_fired`=?,
-               `shots_destroyed`=?,
-               `death`=?,
-               `mod_nightmare`=?,
-               `mod_incline`=?,
-               `mod_invasion`=?,
-               `mod_matrix`=?,
-               `mod_barebones`=?,
-               `mod_survivor`=?,
-               `end_timestamp`=?,
-               `version`=?,
-               `flags`=?,
-               `ip`=?
+                `user_name`=?,
+                `score`=?,
+                `minigame_points`=?,
+                `level`=?,
+                `lines`=?,
+                `ships_destroyed`=?,
+                `powerups_used`=?,
+                `moves`=?,
+                `game_time`=?,
+                `shots_fired`=?,
+                `shots_destroyed`=?,
+                `death`=?,
+                `mod_nightmare`=?,
+                `mod_incline`=?,
+                `mod_invasion`=?,
+                `mod_matrix`=?,
+                `mod_barebones`=?,
+                `mod_survivor`=?,
+                `end_timestamp`=?,
+                `version`=?,
+                `flags`=?,
+                `ip`=?
             WHERE `id`=? LIMIT 1
         ");
         $Update->execute([
+            $user_name,
             $score,
             $minigame_points,
             $level,
@@ -134,8 +138,8 @@ if (isSet($_POST['user_id']) && strlen($_POST['user_id']) == 36 && (
             time(),
             $version,
             $errors,
-            $game_id,
-            Text($_SERVER['REMOTE_ADDR'])->in()
+            Text($_SERVER['REMOTE_ADDR'])->in(),
+            $game_id
         ]);
     } catch (PDOException $e) {
         handleError($e);

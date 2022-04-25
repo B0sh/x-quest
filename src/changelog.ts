@@ -2,10 +2,10 @@ export class Changelog {
     static readonly versionHistory: string[][] = [
         [
             'v1.5 Walden\'s World Edition',
-            'April 13th 2022',
-            'Updated for Walden\'s World',
-            'Offline play & local save data',
-            'Created the X-Quest Intro Cutscene'
+            'April 25th 2022',
+            'Updated layout for Walden\'s World',
+            'Offline play with local save data',
+            'X-Quest Intro Cutscene',
         ],
         [
             'v1.4 TPK Edition',

@@ -20,7 +20,8 @@ export class PlayerIntro implements Entity {
 
     draw() {
         if (this.position.y < 26) {
-            this.game.renderEngine.drawColoredText(this.position.x, this.position.y, "X", this.game.renderEngine.objectColors[0], null);
+            const color = this.game.renderEngine.objectColors[(this.game.state.level - 1) % 9];
+            this.game.renderEngine.drawColoredText(this.position.x, this.position.y, "X", color, null);
         }
     }
 

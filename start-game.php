@@ -3,6 +3,7 @@ require_once 'xquest.php';
 
 
 if (isSet($_POST['user_id']) && strlen($_POST['user_id']) == 36 && (
+    isSet($_POST['user_name']) ||
     isSet($_POST['mod_nightmare']) ||
     isSet($_POST['mod_incline']) ||
     isSet($_POST['mod_invasion']) ||
@@ -12,6 +13,7 @@ if (isSet($_POST['user_id']) && strlen($_POST['user_id']) == 36 && (
     isSet($_POST['version']))) {
 
     $user_id = isSet($_POST['user_id']) ? Text($_POST['user_id'])->in() : '-';
+    $user_name = substr(Text($_POST['user_name'])->in(), 0, 12);
     $mod_nightmare = $_POST['mod_nightmare'] == 'true' ? 1 : 0;
     $mod_incline = $_POST['mod_incline'] == 'true' ? 1 : 0;
     $mod_invasion = $_POST['mod_invasion'] == 'true' ? 1 : 0;
@@ -24,6 +26,7 @@ if (isSet($_POST['user_id']) && strlen($_POST['user_id']) == 36 && (
         $Insert = $PDO->prepare("
             INSERT INTO `xquest_games` (
                 `user_id`,
+                `user_name`,
                 `mod_nightmare`,
                 `mod_incline`,
                 `mod_invasion`,
@@ -33,10 +36,11 @@ if (isSet($_POST['user_id']) && strlen($_POST['user_id']) == 36 && (
                 `version`,
                 `start_timestamp`,
                 `ip`)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $Insert->execute([
             $user_id,
+            $user_name,
             $mod_nightmare,
             $mod_incline,
             $mod_invasion,

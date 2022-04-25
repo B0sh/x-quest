@@ -57,9 +57,9 @@ export class State {
         this.requests.loadGame().then((result: Savefile) => {
             this.game.layout.updateVolume(result.volume);
             this.game.layout.updateOffline(result.offline);
+            this.game.layout.updateUsername(result.user_name);
             this.highScore = result.high_score;
             this.userId = result.user_id;
-            this.username = result.user_name;
 
             this.game.layout.updateModifier('Nightmare', result.mod_nightmare == 1);
             this.game.layout.updateModifier('Incline', result.mod_incline == 1);

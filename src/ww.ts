@@ -9,7 +9,6 @@ export default class WWRequest extends Requests {
     apiUrl: string = 'http://localhost/x-quest';
 
     private generateUserId(): string {
-        console.log(uuidv4())
         return uuidv4();
     }
 
@@ -34,12 +33,15 @@ export default class WWRequest extends Requests {
             localStorage.setItem("x-quest-save", JSON.stringify(newSave));
             return Promise.resolve(newSave);
         }
+        save.high_score = Number(save.game_log.reduce((a,b) => Number(a.score) > Number(b.score) ? a : b).score);
+        save.high_score = 0;
         return Promise.resolve(save);
     }
 
     saveGame(state: State) {
         const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
         save.volume = state.volume,
+        save.user_name = state.username;
         save.offline = state.offline;
         save.mod_barebones = state.hasSelectedModifier('Barebones') ? 1 : 0,
         save.mod_incline = state.hasSelectedModifier('Incline') ? 1 : 0,
@@ -54,6 +56,7 @@ export default class WWRequest extends Requests {
     startGame(state: State) {
         const data = {
             user_id: state.userId,
+            user_name: state.username,
 
             version: XQuest.version,
             mod_nightmare: state.hasModifier('Nightmare').toString(),
@@ -73,7 +76,7 @@ export default class WWRequest extends Requests {
             req.onload = () => {
                 return WWRequest.onSuccess(req, resolve, reject);
             };
-            req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
+            req.onerror = (e) => reject(WWRequest.onError());
             req.send(this.postData(data));
         });
     }
@@ -81,6 +84,7 @@ export default class WWRequest extends Requests {
     finishGame(state: State, death: string) {
         const data = {
             user_id: state.userId,
+            user_name: state.username,
 
             cause_of_death: death,
             game_id: state.gameId.toString(),
@@ -108,21 +112,26 @@ export default class WWRequest extends Requests {
         save.game_log.push(data);
         localStorage.setItem("x-quest-save", JSON.stringify(save));
 
-        return new Promise((resolve, reject) => {
-            const req = new XMLHttpRequest();
-            req.open('POST', `${this.apiUrl}/finish-game`);
-            req.withCredentials = true;
-            req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
-            req.onload = () => {
-                return WWRequest.onSuccess(req, resolve, reject);
-            };
-            req.send(this.postData(data));
-        });
+        if (state.offline) {
+            return Promise.resolve({ });
+        } else {
+            return new Promise((resolve, reject) => {
+                const req = new XMLHttpRequest();
+                req.open('POST', `${this.apiUrl}/finish-game`);
+                req.withCredentials = true;
+                req.onerror = (e) => reject(WWRequest.onError());
+                req.onload = () => {
+                    return WWRequest.onSuccess(req, resolve, reject);
+                };
+                req.send(this.postData(data));
+            });
+        }
     }
 
     gameStateSync(state: State, xcheck: string) {
         const data = {
             user_id: state.userId.toString(),
+            user_name: state.username,
 
             game_id: state.gameId.toString(),
             score: state.stats.Score.toString(),
@@ -148,7 +157,7 @@ export default class WWRequest extends Requests {
             const req = new XMLHttpRequest();
             req.open('POST', `${this.apiUrl}/update-game`);
             req.withCredentials = true;
-            req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
+            req.onerror = (e) => reject(WWRequest.onError());
             req.onload = () => {
                 return WWRequest.onSuccess(req, resolve, reject);
             };
@@ -165,12 +174,32 @@ export default class WWRequest extends Requests {
             const req = new XMLHttpRequest();
             req.open('GET', `${this.apiUrl}/high-scores?user_id=${userId}&list=${scoreList}`);
             req.withCredentials = true;
-            req.onerror = (e) => reject(WWRequest.onError(`Network Error: ${e}`));
+            req.onerror = (e) => reject(WWRequest.onError());
             req.onload = () => {
                 WWRequest.checkHeaders(req);
                 return req.status === 200 ? resolve(req.response) : reject(Error(req.statusText))
             };
             req.send();
+        });
+    }
+
+    submitHighScore(state: State, username: string) {
+        const data = {
+            user_id: state.userId.toString(),
+            user_name: username,
+            game_id: state.gameId.toString(),
+            version: XQuest.version,
+        };
+        return new Promise((resolve, reject) => {
+            const req = new XMLHttpRequest();
+            req.open('POST', `${this.apiUrl}/submit-highscore`);
+            req.withCredentials = true;
+            req.onerror = (e) => reject(WWRequest.onError());
+            req.onload = () => {
+                WWRequest.checkHeaders(req);
+                return req.status === 200 ? resolve(req.response) : reject(Error(req.statusText))
+            };
+            req.send(this.postData(data));
         });
     }
 
@@ -217,7 +246,7 @@ export default class WWRequest extends Requests {
                 req.open('GET', `${this.apiUrl}/statistics?user_id=${userId}`);
                 req.withCredentials = true;
                 req.onerror = (e: any) => { 
-                    reject(WWRequest.onError(`Network Error: ${e}`));
+                    reject(WWRequest.onError());
                 };
                 req.onload = () => {
                     return WWRequest.onSuccess(req, resolve, reject);
@@ -251,7 +280,10 @@ export default class WWRequest extends Requests {
         return formData;
     }
 
-    static onError(message: string) {
+    static onError(message: string = "") {
+        if (message == "") {
+            return Error("<br>X-Quest could not connect to the server.<br><br>Offline mode can be enabled in options if problems persist.");
+        }
         return Error(message);
     }
 

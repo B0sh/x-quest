@@ -2,7 +2,7 @@ import { Howler } from "howler";
 import { Changelog } from "./changelog";
 import { XQuest } from "./game";
 import { GameStatistics } from "./models/game-statistics";
-import { Modifier, MODIFIERS } from "./modifier";
+import { Modifier } from "./modifier";
 import { Requests } from "./requests";
 import { State } from "./state";
 import Utility from "./utility";
@@ -28,12 +28,18 @@ export class Layout {
         private game: XQuest,
         private requests: Requests
     ) {
-
+        const sheet = document.styleSheets[0];
+        if (this.game.onTPK) {
+            sheet.insertRule('.hidden-tpk { display: none; }');
+        }
+        if (this.game.onWW) {
+            sheet.insertRule('.hidden-ww { display: none; }');
+        }
     }
 
     initTabEvents() {
         document.querySelectorAll('.tab').forEach((element: Element) => {
-            const id = element.getAttribute('id').replace('tab_', '');
+            const id = element.getAttribute('tab-header');
             element.addEventListener('click', () => {
                 this.toggleTab(Number(id));
             });
@@ -53,7 +59,7 @@ export class Layout {
             const contentElement = document.querySelector(`[tab="${i}"]`) as HTMLElement;
             if (contentElement)
                 contentElement.style.display = 'none';
-            const tabElement = document.querySelector(`[id="tab_${i}"]`);
+            const tabElement = document.querySelector(`[tab-header="${i}"]`);
             if (tabElement)
                 tabElement.classList.remove('active-tab');
         }
@@ -63,9 +69,15 @@ export class Layout {
         if (element)
             element.style.display = 'inline-block';
 
-        element = document.querySelector(`[id="tab_${tab}"]`);
+        element = document.querySelector(`[tab-header="${tab}"]`);
         if (element)
             element.classList.add('active-tab');
+
+        if (tab == Tab.GameOverStatistics) {
+            element = document.querySelector(`[tab-header="${Tab.Instructions}"]`);
+            if (element)
+                element.classList.add('active-tab');
+        }
 
         if (tab == Tab.EasterEgg) {
         	this.killScreenEasterEgg();
@@ -124,19 +136,36 @@ export class Layout {
     }
 
     loadOptions() {
+        this.loadModifiers();
+
+        // document.querySelector('.userid-input').innerHTML = this.game.state.userId;
+        document.querySelector('.username-input').innerHTML = this.game.state.username;
+    }
+
+    private loadModifiers() {
         const element = document.querySelector('.modifier-list');
         element.innerHTML = "";
-        MODIFIERS.forEach((modifier) => {
+
+        this.game.getModifiers().forEach((modifier) => {
             const checked: string = this.selectedModifiers.findIndex((sel) => sel.name == modifier.name) == -1 ? '' : 'checked';
+            const disabled: string = this.selectedModifiers.find((sel) =>
+                sel.invalidComboModifiers?.find((x) => x == modifier.name)
+            ) ? 'disabled' : '';
+
+            let modifierElement = '';
+            if (modifier.scoreMultiplier) {
+                modifierElement = `&mdash; <span class="level-class">+${modifier.scoreMultiplier * 100}%</span>`;
+            }
+
             element.innerHTML += `<div style="clear: both;">
-                <input type="checkbox" class="checkbox" onchange="Game.layout.updateModifier('${modifier.name}', this.checked); Game.state.save();" ${checked} />
-                <span class="level-class">${modifier.name}</span> &mdash; <span class="level-class">+${modifier.scoreMultiplier * 100}%</span> &mdash; ${modifier.description}
-            </div>`
+                <input type="checkbox"
+                       class="checkbox"
+                       onchange="Game.layout.updateModifier('${modifier.name}', this.checked); Game.state.save();"
+                       ${disabled}
+                       ${checked} />
+                <span class="level-class">${modifier.name}</span> ${modifierElement} &mdash; ${modifier.description}
+            </div>`;
         });
-
-        document.querySelector('.userid-input').innerHTML = this.game.state.userId;
-        document.querySelector('.username-input').innerHTML = this.game.state.username;
-
         this.updateLevelColors();
     }
 
@@ -189,10 +218,15 @@ export class Layout {
 
         element = document.querySelector('.game-over-modifiers');
         element.innerHTML = "";
-        MODIFIERS.forEach((modifier) => {
+        this.game.getModifiers().forEach((modifier) => {
             if (state.hasModifier(modifier.name)) {
+                let modifierElement = '';
+                if (modifier.scoreMultiplier) {
+                    modifierElement = `&mdash; <span class="level-class">+${modifier.scoreMultiplier * 100}%</span>`;
+                }
+
                 element.innerHTML += `<div>
-                    <span class="level-class">${modifier.name}</span> &mdash; <span class="level-class">+${modifier.scoreMultiplier * 100}%</span> &mdash; ${modifier.description}
+                    <span class="level-class">${modifier.name}</span> ${modifierElement} &mdash; ${modifier.description}
                 </div>`
             }
         });
@@ -201,9 +235,13 @@ export class Layout {
     }
 
     updateModifier(modifierName: string, state: boolean) {
+        const modifier = this.game.getModifiers().find((modifier) => modifier.name == modifierName);
+        if (modifier == null) {
+            return;
+        }
+
         const index = this.selectedModifiers.findIndex((modifier) => modifier.name == modifierName);
         if (state && index == -1) {
-            const modifier = MODIFIERS.find((modifier) => modifier.name == modifierName);
 
             let valid: boolean = true;
             if (modifier.invalidComboModifiers) {
@@ -227,19 +265,24 @@ export class Layout {
         else if (!state && index > -1) {
             this.selectedModifiers.splice(index, 1)
         }
+
+        this.loadModifiers();
     }
 
     updateVolume(volume: number) {
         Howler.volume(volume / 100);
         this.game.state.volume = volume;
-        //@ts-ignore
-        document.querySelector('.volume-input').value = volume;
+        document.querySelector<HTMLInputElement>('.volume-input').value = volume.toString();
     }
 
     updateOffline(offline: boolean) {
-        console.log(offline);
         this.game.state.offline = offline;
         document.querySelector<HTMLInputElement>('.offline-input').checked = offline;
+    }
+
+    updateUsername(username: string) {
+        this.game.state.username = username;
+        document.querySelector<HTMLInputElement>('.username-input').value = username;
     }
 
     updateLevelColors(level?: number) {
@@ -273,6 +316,17 @@ export class Layout {
         }
     }
 
+    submitHighScore() {
+        const username = document.querySelector<HTMLInputElement>('.game-over-username-input').value;
+        if (username.length > 0) {
+            this.updateUsername(username);
+            this.requests.submitHighScore(this.game.state, username).then(() => {
+                document.querySelector<HTMLElement>('.game-over-high-score').style.display = "none";
+                document.querySelector<HTMLElement>('.game-over-high-score-submitted').style.display = "unset";
+            });
+        }
+    }
+
     onError(error: Error) {
         this.toggleTab(Tab.FatalError);
 
@@ -281,6 +335,8 @@ export class Layout {
         </div>
         &nbsp;&nbsp;&nbsp;&nbsp;Oh, and you must refresh to continue.<br /><br />`;
         text += error.message;
+
+        console.error(error);
 
         (document.querySelector(`[tab="7"]`) as HTMLElement).innerHTML = text;
     }

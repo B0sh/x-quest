@@ -52,10 +52,6 @@ export class IntroCutscene {
                 time: 400,
                 lagging: 2,
                 interval: 70,
-                // update: (() => {
-                //     this.entities.push(new PlayerIntro(this.game))
-                // }).bind(this),
-
             },
             {
                 time: 700,
@@ -304,10 +300,11 @@ export class IntroCutscene {
     stop() {
         SFX.Intro.stop();
         this.running = false;
-        const t = performance.now() - this.tStart;
-        console.log(t, this.frame)
+        // const t = performance.now() - this.tStart;
+        // console.log(t, this.frame)
 
         this.timer.stop();
+        this.game.stopIntro();
     }
 
     setFrame(frame: number) {
@@ -325,7 +322,7 @@ export class IntroCutscene {
         const nextStage = this.stages[this.stage + 1];
         const t = performance.now() - this.tStart;
         if (nextStage && nextStage.time <= t) {
-            console.log(nextStage);
+            // console.log(nextStage);
             if (nextStage.interval) {
                 this.timer.interval = nextStage.interval;
             }
@@ -346,7 +343,7 @@ export class IntroCutscene {
         })
 
         this.frame += 1;
-        console.log("Frame:", this.frame, t);
+        // console.log("Frame:", this.frame, t);
     }
 
     render() {

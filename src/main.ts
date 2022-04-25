@@ -31,12 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 Game.usePowerup();
                 event.preventDefault();
                 break;
-            case 'KeyY': 
-                Game.startIntro();
-                break;
-            case 'KeyU':
-                Game.intro.stop();
-                break;
+            // case 'KeyY': 
+            //     Game.startIntro();
+            //     break;
+            // case 'KeyU':
+            //     Game.intro.stop();
+            //     break;
             case 'Space':
                 if (!Game.Active) {
                     Game.start();

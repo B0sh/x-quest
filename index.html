@@ -108,8 +108,27 @@
             .checkbox {
                 width: 20px;
                 height: 20px;
-                margin: 8px;
+                margin: 9px;
                 float: left;
+            }
+
+            input[type=text] {
+                font-family: monospace;
+                background: black;
+                color: white;
+                font-size: 20px;
+            }
+
+            input[type=submit] {
+                font-family: monospace;
+                background: black;
+                color: white;
+                font-size: 16px;
+                cursor: pointer;
+                padding: 3px 8px;
+            }
+            input[type=submit]:hover {
+                border: 2px outset #CCC; 
             }
 
             .x-quest {
@@ -154,19 +173,19 @@
 <body>
     
 <div class="tab-container" style="width: 900px;">
-    <div class="tab" id="tab_1">
+    <div class="tab" tab-header="1">
         X-Quest
     </div>
-    <div class="tab" id="tab_2">
+    <div class="tab" tab-header="2">
         Options
     </div>
-    <div class="tab" id="tab_3">
+    <div class="tab" tab-header="3">
         High Scores
     </div>
-    <div class="tab" id="tab_4">
+    <div class="tab" tab-header="4">
         Statistics
     </div>
-    <div class="tab" id="tab_5">
+    <div class="tab" tab-header="5">
         Changelog
     </div>
 
@@ -230,15 +249,31 @@
                     <br>
                     <span style="font-size: 18px;">Score: <span class="game-over-score"></span></span> 
 
+                    <div class="hidden-tpk game-over-high-score">
+                        <br>
+                        <br>
+                        <form onsubmit="Game.layout.submitHighScore(); return false;">
+                            <span style="font-size: 18px;">Username:</span> 
+                            <input autocomplete="off" type="text" class="game-over-username-input" 
+                                maxlength="12"
+                                size="10"
+                                placeholder="Username" />
+                            <input type="submit" value="Submit Score" />
+                        </form>
+                        <div style="font-style: italic; margin-top: 8px;">You must submit your score to appear on the<br>Walden's World High Score list.</div>
+                    </div>
+                    <div class="hidden-tpk game-over-high-score-submitted">
+                        <br>
+                        <br>
+                        High score submitted!
+                    </div>
+
                     <!-- <img src="https://sprites.tpkrpg.net/misc/MinigamePoint.png" style="width:24px;height:24px;vertical-align:middle">
                     <span class="game-over-minigame-points"></span> &nbsp;&nbsp;&nbsp;&nbsp;
                     <span class="game-over-event-currency"></span><br /><br /> -->
                 </div>
 
                 <br><br>
-
-
-                
 
                 <b style="font-size: 18px;">Game Statistics:</b><br>
 
@@ -261,9 +296,14 @@
             </div>
             <div class="tab-content" tab="2">
                 / / / &nbsp; X-Quest Modifiers &nbsp; \ \ \<br /><br />
+                
+                <div class="hidden-tpk">
+                    Add modifiers to increase the difficulty!<br /><br />
+                </div>
+                <div class="hidden-ww">
+                    Increase your minigame point rate with modifiers!<br /><br />
+                </div>
 
-                Increase your minigame point rate with modifiers!<br /><br />
-**FIX NIGHTMARE INCLINE SELECTION**
                 <div class="modifier-list">
 
                 </div><br /><br />
@@ -274,19 +314,25 @@
                     onchange="Game.layout.updateVolume(this.value); Game.state.save();" />
                 <br><br>
 
-                <input type="checkbox" class="checkbox offline-input" onchange="Game.layout.updateOffline(this.checked); Game.state.save();" />
-                <b>Offline Play</b> &mdash; In offline mode your game data and high scores will not be submitted to Walden's World.<br><br>
+                <div class="hidden-tpk">
+                    <input type="checkbox" class="checkbox offline-input" onchange="Game.layout.updateOffline(this.checked); Game.state.save();" />
+                    <b>Offline Play</b> &mdash; In offline mode your game data and high scores will not be submitted to Walden's World.<br><br>
 
-                <b>Username:</b>
-                <div name="username" class="username-input"></div>
+                    <b>Username:</b>
+                    <input autocomplete="off" type="text" class="username-input" 
+                        maxlength="12"
+                        size="10"
+                        placeholder="Username"
+                        onchange="Game.layout.updateUsername(this.value); Game.state.save();"/><br><br>
 
-                <b>UserID:</b>
-                <div name="user-id" class="userid-input" ></div><br><br>
+                    <!-- <b>UserID:</b>
+                    <div name="user-id" class="userid-input" ></div><br><br> -->
+                </div>
             </div>
             <div class="tab-content" id="HighScores" tab="3">
                 / / / &nbsp; X-Quest High Scores &nbsp; \ \ \<br /><br />
 
-                Join the Discord to discuss the game!<br><br>
+                Join the <a href="https://discord.gg/2ZjMk8Aqmp">Discord</a> to discuss X-Quest!<br><br>
 
                 <div class="highscore-content"></div>
             </div>
@@ -302,7 +348,7 @@
                             <td class="level-class">Score:</td>
                             <td stat="t_score"></td>
                         </tr>
-                        <tr>
+                        <tr class="hidden-ww">
                             <td class="level-class">Minigame Points:</td>
                             <td stat="t_minigame_points"></td>
                         </tr>

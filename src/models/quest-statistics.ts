@@ -1,5 +1,4 @@
 export interface QuestStatistics {
-    GamesPlayed?: number;
     Score: number;
     ShipsDestroyed: number;
     PowerupsUsed: number;
@@ -7,7 +6,4 @@ export interface QuestStatistics {
     Time: number;
     ShotsFired: number;
     ShotsDestroyed: number;
-    DeathAbyss: number;
-    DeathShot: number;
-    DeathWall: number;
 };
