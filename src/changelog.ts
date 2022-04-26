@@ -8,7 +8,7 @@ export class Changelog {
             'X-Quest Intro Cutscene',
         ],
         [
-            'v1.4 TPK Edition',
+            'v1.4 <a href="https://tpkrpg.net/">TPK</a> Edition',
             'Feburary 22nd 2021',
             'All new X-Engine with rendering',
             'New spaceships, levels, powerups, and sound effects',
@@ -16,7 +16,7 @@ export class Changelog {
             'Earn minigame points and set high scores with your TPK account',
         ],
         [
-            'v1.3',
+            '<a href="https://waldens.world/projects/x-quest/v1/x-quest.v1.3.php">v1.3</a>',
             'December 20th 2017',
             'New Powerup: Multi-shot',
             'Support for iPad & some older browsers',
@@ -50,7 +50,7 @@ export class Changelog {
             'Fixed sound effects'
         ],
         [
-            '<a href="https://waldens.world/projects/x-quest/x-quest.v0.95.php">v0.95</a>',
+            '<a href="https://waldens.world/projects/x-quest/v1/x-quest.v0.95.php">v0.95</a>',
             'August 3rd 2016',
             'Added a high score list.'
         ],

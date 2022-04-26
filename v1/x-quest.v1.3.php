@@ -955,6 +955,7 @@ Game.UpdateFont = function (font) {
   switch (font) {
     case 'comic_sans': font = '"Comic Sans MS", cursive, sans-serif'; break;
     case 'courier': font = '"Courier New", Courier, monospace'; break;
+    case 'monospace': font = 'monospace'; break;
   }
 
   $('body').css('font-family', font);
@@ -1397,7 +1398,7 @@ Game.CalculateStuff = function() {
 		.d9 { color: #15b5c1; }
 
 		body{
-			font-family:monospace;
+			font-family: Courier;
 			font-size:14px;
 			margin:0px;
 			background-color: black;
@@ -1581,9 +1582,9 @@ Game.CalculateStuff = function() {
 	</select><br><br>
 
   <b>Font:</b> <select id="font_select" onchange="Game.UpdateFont($('#font_select').val());">
-    <option value="monospace">Monospace</option>
     <option value="courier">Courier</option>
     <option value="comic_sans">Comic Sans MS</option>
+    <option value="monospace">Monospace</option>
   </select><br><br>
 
 	<b>Game Speed:</b> <input type="text" value="120" size="2" id="speed" onchange="Game.UpdateSpeed($('#speed').val());" /> (ms)
