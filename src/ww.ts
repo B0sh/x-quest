@@ -6,7 +6,18 @@ import { v4 as uuidv4 } from 'uuid';
 import { GameStatistics } from "./models/game-statistics";
 
 export default class WWRequest extends Requests {
-    apiUrl: string = 'http://localhost/x-quest';
+    apiUrl: string;
+    constructor() {
+        super();
+
+        //@ts-ignore parcel imports process automatically
+        if (process.env.NODE_ENV !== 'production') {
+            this.apiUrl = 'http://localhost/x-quest';
+        }
+        else {
+            this.apiUrl = '/projects/x-quest';
+        }
+    }
 
     private generateUserId(): string {
         return uuidv4();
@@ -33,8 +44,14 @@ export default class WWRequest extends Requests {
             localStorage.setItem("x-quest-save", JSON.stringify(newSave));
             return Promise.resolve(newSave);
         }
-        save.high_score = Number(save.game_log.reduce((a,b) => Number(a.score) > Number(b.score) ? a : b).score);
-        save.high_score = 0;
+
+        if (save.game_log.length > 0) {
+            save.high_score = Number(save.game_log.reduce((a,b) => Number(a.score) > Number(b.score) ? a : b).score);
+        }
+        else {
+            save.high_score = 0;
+        }
+
         return Promise.resolve(save);
     }
 

@@ -3,7 +3,8 @@ import Utility from './utility';
 
 export class SFX {
     static readonly Intro: Howl = new Howl({ 
-        src: [ new URL("../static/intro.mp3", import.meta.url).href ]
+        src: [ new URL("../static/intro.mp3", import.meta.url).href ],
+        volume: 0.5
     });
 
 	static readonly Noscore: Howl = new Howl({

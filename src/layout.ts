@@ -320,6 +320,7 @@ export class Layout {
         const username = document.querySelector<HTMLInputElement>('.game-over-username-input').value;
         if (username.length > 0) {
             this.updateUsername(username);
+            this.game.state.save();
             this.requests.submitHighScore(this.game.state, username).then(() => {
                 document.querySelector<HTMLElement>('.game-over-high-score').style.display = "none";
                 document.querySelector<HTMLElement>('.game-over-high-score-submitted').style.display = "unset";

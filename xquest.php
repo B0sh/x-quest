@@ -1,6 +1,6 @@
 <?php
 $Page = "124";
-require '../require/header.top.php';
+require $_SERVER['DOCUMENT_ROOT'] . '/require/header.top.php';
 
 if (LOCAL) 
 {
@@ -9,8 +9,8 @@ if (LOCAL)
     header('Access-Control-Max-Age: 1000');
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Headers: Origin, Content-Type, Accept, Authorization, X-Request-With, Set-Cookie, Cookie, Bearer');
-
 }
+
 session_start();
 
 function Format($i) {
