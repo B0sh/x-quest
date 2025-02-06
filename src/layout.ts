@@ -49,7 +49,7 @@ export class Layout {
     toggleTab(tab: number) {
         const board = document.querySelector('.x-quest-board') as HTMLElement;
         if (board && tab != Tab.AudioLockout) 
-            board.style.display = null;
+            board.style.display = '';
 
         if (this.game.Crashed) {
             tab = Tab.FatalError;
@@ -96,14 +96,14 @@ export class Layout {
         }
 
         if (tab == Tab.Changelog) {
-            document.querySelector("#Changelog").innerHTML = Changelog.createChangelog();
+            document.querySelector('#Changelog')!.innerHTML = Changelog.createChangelog();
         }
 
         this.currentTab = tab;
     }
 
     loadHighScores(scoreList: string = 'overall') {
-        const element = document.querySelector('.highscore-content');
+        const element = document.querySelector('.highscore-content') as HTMLElement;
         element.innerHTML = '';
         this.requests.loadHighScores(this.game.state, scoreList).then((content: any) => {
             element.innerHTML = content;
@@ -139,11 +139,11 @@ export class Layout {
         this.loadModifiers();
 
         // document.querySelector('.userid-input').innerHTML = this.game.state.userId;
-        document.querySelector('.username-input').innerHTML = this.game.state.username;
+        document.querySelector('.username-input')!.innerHTML = this.game.state.username;
     }
 
     private loadModifiers() {
-        const element = document.querySelector('.modifier-list');
+        const element = document.querySelector('.modifier-list') as HTMLElement;
         element.innerHTML = "";
 
         this.game.getModifiers().forEach((modifier) => {
@@ -169,10 +169,10 @@ export class Layout {
         this.updateLevelColors();
     }
 
-    loadGameOverStatistics(state: State, death: string, minigamePoints: number, eventCurrency: number) {
+    loadGameOverStatistics(state: State, death: string, minigamePoints: number | null, eventCurrency: number | null) {
         this.toggleTab(Tab.GameOverStatistics);
 
-        document.querySelector('.game-over-score').innerHTML = Utility.format(state.stats.Score);
+        document.querySelector('.game-over-score')!.innerHTML = Utility.format(state.stats.Score);
 
         const mgEl = document.querySelector('.game-over-minigame-points');
         if (mgEl && minigamePoints != null) {
@@ -189,26 +189,26 @@ export class Layout {
 
         const seconds = Utility.padStart(Math.floor(state.stats.Time) % 60, 2, '0');
         const minutes = Utility.padStart(Math.floor((state.stats.Time - state.stats.Time % 60) / 60), 2, '0');
-        document.querySelector('.game-over-game-time').innerHTML = minutes + ':' + seconds;
-        document.querySelector('.game-over-level').innerHTML = Utility.format(state.level);
-        document.querySelector('.game-over-powerups-used').innerHTML = Utility.format(state.stats.PowerupsUsed);
-        document.querySelector('.game-over-spaceship-hits').innerHTML = Utility.format(state.stats.ShipsDestroyed);
-        document.querySelector('.game-over-bullet-hits').innerHTML = Utility.format(state.stats.ShotsDestroyed);
+        document.querySelector('.game-over-game-time')!.innerHTML = minutes + ':' + seconds;
+        document.querySelector('.game-over-level')!.innerHTML = Utility.format(state.level);
+        document.querySelector('.game-over-powerups-used')!.innerHTML = Utility.format(state.stats.PowerupsUsed);
+        document.querySelector('.game-over-spaceship-hits')!.innerHTML = Utility.format(state.stats.ShipsDestroyed);
+        document.querySelector('.game-over-bullet-hits')!.innerHTML = Utility.format(state.stats.ShotsDestroyed);
 
         if (death == 'Abyss') {
-            document.querySelector('.game-over-cause-of-death').innerHTML = 'Death by Abyss';
+            document.querySelector('.game-over-cause-of-death')!.innerHTML = 'Death by Abyss';
         }
         if (death == 'Wall') {
-            document.querySelector('.game-over-cause-of-death').innerHTML = 'Death by Wall';
+            document.querySelector('.game-over-cause-of-death')!.innerHTML = 'Death by Wall';
         }
         if (death == 'Spaceship') {
-            document.querySelector('.game-over-cause-of-death').innerHTML = 'Death by Spaceship';
+            document.querySelector('.game-over-cause-of-death')!.innerHTML = 'Death by Spaceship';
         }
         if (death == 'Carrier') {
-            document.querySelector('.game-over-cause-of-death').innerHTML = 'Death by Carrier';
+            document.querySelector('.game-over-cause-of-death')!.innerHTML = 'Death by Carrier';
         }
 
-        let element: HTMLElement = document.querySelector('.game-over-modifier-header');
+        let element: HTMLElement = document.querySelector('.game-over-modifier-header') as HTMLElement;
         if (state.modifiers.length > 0) {
             element.style.display = 'block';
         }
@@ -216,7 +216,7 @@ export class Layout {
             element.style.display = 'none';
         }
 
-        element = document.querySelector('.game-over-modifiers');
+        element = document.querySelector('.game-over-modifiers') as HTMLElement;
         element.innerHTML = "";
         this.game.getModifiers().forEach((modifier) => {
             if (state.hasModifier(modifier.name)) {
@@ -242,24 +242,24 @@ export class Layout {
 
         const index = this.selectedModifiers.findIndex((modifier) => modifier.name == modifierName);
         if (state && index == -1) {
-
-            let valid: boolean = true;
             if (modifier.invalidComboModifiers) {
-                this.selectedModifiers.forEach((selected) => {
-                    modifier.invalidComboModifiers.forEach((invalidName) => {
+                let valid: boolean = true;
+
+                modifier.invalidComboModifiers.forEach((invalidName) => {
+                    this.selectedModifiers.forEach((selected) => {
                         if (selected.name == invalidName) {
                             valid = false;
                         }
                     });
                 });
-            }
 
-            if (valid) {
-                this.selectedModifiers.push(modifier);
-            }
-            else {
-                alert("Modifier cannot be paired with " + modifier.invalidComboModifiers.join(' '));
-                return;
+                if (valid) {
+                    this.selectedModifiers.push(modifier);
+                }
+                else {
+                    alert("Modifier cannot be paired with " + modifier.invalidComboModifiers.join(' '));
+                    return;
+                }
             }
         }
         else if (!state && index > -1) {
@@ -272,21 +272,21 @@ export class Layout {
     updateVolume(volume: number) {
         Howler.volume(volume / 100);
         this.game.state.volume = volume;
-        document.querySelector<HTMLInputElement>('.volume-input').value = volume.toString();
+        document.querySelector<HTMLInputElement>('.volume-input')!.value = volume.toString();
     }
 
     updateOffline(offline: boolean) {
         this.game.state.offline = offline;
-        document.querySelector<HTMLInputElement>('.offline-input').checked = offline;
+        document.querySelector<HTMLInputElement>('.offline-input')!.checked = offline;
     }
 
     updateUsername(username: string) {
         this.game.state.username = username;
-        document.querySelector<HTMLInputElement>('.username-input').value = username;
+        document.querySelector<HTMLInputElement>('.username-input')!.value = username;
     }
 
-    updateLevelColors(level?: number) {
-        level = this.game.state.level ? this.game.state.level : 1;
+    updateLevelColors() {
+        let level: number = this.game.state.level ? this.game.state.level : 1;
         let levelClass: number = level % 9;
         if (levelClass == 0)
             levelClass = 9;
@@ -317,13 +317,13 @@ export class Layout {
     }
 
     submitHighScore() {
-        const username = document.querySelector<HTMLInputElement>('.game-over-username-input').value;
+        const username = document.querySelector<HTMLInputElement>('.game-over-username-input')!.value;
         if (username.length > 0) {
             this.updateUsername(username);
             this.game.state.save();
             this.requests.submitHighScore(this.game.state, username).then(() => {
-                document.querySelector<HTMLElement>('.game-over-high-score').style.display = "none";
-                document.querySelector<HTMLElement>('.game-over-high-score-submitted').style.display = "unset";
+                document.querySelector<HTMLElement>('.game-over-high-score')!.style.display = "none";
+                document.querySelector<HTMLElement>('.game-over-high-score-submitted')!.style.display = "unset";
             });
         }
     }

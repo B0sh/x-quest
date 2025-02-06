@@ -178,7 +178,7 @@ export default class TPKRequest extends Requests {
 
     static checkHeaders(request: XMLHttpRequest) {
         if (request.getResponseHeader('AJAX_REDIRECT') !== null) {
-            window.location.href = request.getResponseHeader('AJAX_REDIRECT');
+            window.location.href = request.getResponseHeader('AJAX_REDIRECT') ?? '';
         }
     }
 }

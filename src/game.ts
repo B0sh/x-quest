@@ -43,7 +43,7 @@ export class XQuest {
         height: 30,
         fontSize: 20,
         fontStyle: 'bold',
-        fontFamily: 'courier new',
+        fontFamily: 'Courier New',
     } as DisplayOptions;
 
     width: number = 24;
@@ -60,7 +60,7 @@ export class XQuest {
 
     playerPosition: BoundingBox;
     gameClockMs: number;
-    gameOverDelayUntil: number = null;
+    gameOverDelayUntil: number | null = null;
     gameOverHighScore: boolean = false;
     frameTime: number = 0;
     nextGameSyncTime: number = 0;
@@ -89,9 +89,10 @@ export class XQuest {
     }
 
     init() {
-        document.getElementsByClassName('x-quest-board')[0].prepend(this.display.getContainer())
+        document.getElementsByClassName('x-quest-board')[0].prepend(this.display.getContainer() ?? '');
         this.layout.initTabEvents();
-        this.layout.updateLevelColors(1);
+        // this.layout.updateLevelColors(1);
+        this.layout.updateLevelColors();
         this.renderLoop();
 
         this.layout.toggleTab(Tab.Instructions);
@@ -218,7 +219,7 @@ export class XQuest {
         this.playerPosition = new BoundingBox(mid, this.height - 1);
 
         this.board.generateStartingLines();
-        this.layout.updateLevelColors(this.state.level);
+        this.layout.updateLevelColors();
 
         if (this.state.hasModifier('Nightmare')) {
             this.gameClockMs = 60;
@@ -260,7 +261,7 @@ export class XQuest {
         }
 
         this.board.onNextLevel();
-        this.layout.updateLevelColors(this.state.level);
+        this.layout.updateLevelColors();
 
         if (this.state.isKillScreen()) {
             SFX.Killscreen.play();
@@ -636,15 +637,15 @@ export class XQuest {
 
             this.gameOverDelayUntil = performance.now() + 4000;
 
-            document.querySelector<HTMLElement>('.game-over-high-score-submitted').style.display = "none";
-            document.querySelector<HTMLElement>('.game-over-high-score').style.display = "none";
+            document.querySelector<HTMLElement>('.game-over-high-score-submitted')!.style.display = "none";
+            document.querySelector<HTMLElement>('.game-over-high-score')!.style.display = "none";
             if (this.state.highScore < this.state.stats.Score) {
                 this.state.highScore = this.state.stats.Score;
                 this.gameOverHighScore = true;
 
                 if (this.onWW && !this.state.offline) {
-                    document.querySelector<HTMLElement>('.game-over-high-score').style.display = "unset";
-                    document.querySelector<HTMLInputElement>('.game-over-username-input').value = this.state.username;
+                    document.querySelector<HTMLElement>('.game-over-high-score')!.style.display = "unset";
+                    document.querySelector<HTMLInputElement>('.game-over-username-input')!.value = this.state.username;
                 }
             }
 
@@ -677,6 +678,8 @@ export class XQuest {
         if (this.onWW) {
             return WW_MODIFIERS;
         }
+
+        return [];
     }
 
     handleError(error: Error) {
@@ -692,7 +695,7 @@ export class XQuest {
     }
 
     nextLine() {
-        var newMap = [];
+        let newMap: string[] = [];
         for (let y = 1; y <= this.height; y++) {
             newMap[y-1] = this.map[y];
         }

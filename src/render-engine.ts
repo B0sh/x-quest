@@ -55,12 +55,12 @@ export class RenderEngine {
         this.renderText();
     }
 
-    drawCenteredText(y: number, text: string, fg: string = null, bg: string = null) {
+    drawCenteredText(y: number, text: string, fg: string | null = null, bg: string | null = null) {
         const x = Math.floor(this.game.options.width / 2 - text?.length / 2);
         this.drawColoredText(x, y, text, fg, bg);
     }
 
-    drawColoredText(x: number, y: number, text: string, fg: string, bg: string) {
+    drawColoredText(x: number, y: number, text: string, fg: string | null, bg: string | null) {
         for (let i = 0; i < text.length; i++) {
             this.game.display.draw(x + i, y, text[i], fg, bg);
         }
@@ -164,7 +164,7 @@ export class RenderEngine {
 
         if (this.game.Finished) {
 
-            let percentDone: number = Math.min(1 - Math.floor(this.game.gameOverDelayUntil - performance.now()) / 4000, 1);
+            let percentDone: number = Math.min(1 - Math.floor((this.game.gameOverDelayUntil ?? 0) - performance.now()) / 4000, 1);
             let dashTimer: string = "-".repeat(percentDone * this.game.width);
 
             const overlayText: OverlayText[] = [
@@ -237,7 +237,7 @@ export class RenderEngine {
             this.drawCenteredText(this.game.options.height - 1, this.selectedPhrase, color, null);
         }
         else {
-            this.selectedPhrase = null;
+            this.selectedPhrase = '';
         }
 
         let powerUpTextY = this.game.options.height - 1;

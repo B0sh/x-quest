@@ -1,7 +1,7 @@
 import Utility from "./utility";
 
 export class InputUtility {
-    private static processInputCallback: (event: KeyboardEvent) => any;
+    private static processInputCallback?: (event: KeyboardEvent) => any;
     private static resolve: (value?: any) => void;
     static heldKeys: any = {};
 
@@ -10,7 +10,7 @@ export class InputUtility {
     static initListeners(handleInput: (event: KeyboardEvent) => boolean) {
         window.addEventListener('keydown', (event: KeyboardEvent) => {
             // if you are active on a text area, don't process game characters.
-            if (document.activeElement.nodeName == 'TEXTAREA' || document.activeElement.nodeName == 'INPUT')
+            if (document.activeElement?.nodeName == 'TEXTAREA' || document.activeElement?.nodeName == 'INPUT')
                 return true;
 
             if (this.heldKeys[event.code] == null || Utility.isiPad()) {
@@ -48,7 +48,9 @@ export class InputUtility {
     }
 
     private static stopProcessing(): void {
-        window.removeEventListener("keydown", InputUtility.processInputCallback);
+        if (InputUtility.processInputCallback !== undefined) {
+            window.removeEventListener("keydown", InputUtility.processInputCallback);
+        }
         InputUtility.processInputCallback = undefined;
         InputUtility.resolve();
     }

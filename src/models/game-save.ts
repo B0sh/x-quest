@@ -12,7 +12,7 @@ export interface Savefile {
     mod_survivor: number;
 
     // TPK Exclusive
-    current_minigame_points: number;
+    current_minigame_points?: number;
 
     game_log: any[];
 }

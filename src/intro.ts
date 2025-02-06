@@ -287,9 +287,9 @@ export class IntroCutscene {
 
         const stageOne = this.stages[0];
         this.stage = 0;
-        this.frame = stageOne.lagging;
-        this.lagging = stageOne.lagging;
-        this.timer.interval = stageOne.interval;
+        this.frame = stageOne.lagging ?? 0;
+        this.lagging = stageOne.lagging ?? 0;
+        this.timer.interval = stageOne.interval ?? 0;
         this.showEndingText = false;
         this.renderX = false;
         this.killScreenFrame = 0;

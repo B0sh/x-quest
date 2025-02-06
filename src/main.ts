@@ -50,6 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             default: return true;
         }
+
+        return false;
     });
 
     Game.state.load();
