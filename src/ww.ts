@@ -11,22 +11,24 @@ export default class WWRequest extends Requests {
         super();
 
         //@ts-ignore parcel imports process automatically
-        if (process.env.NODE_ENV !== 'production') {
-            this.apiUrl = 'http://localhost/x-quest';
-        }
-        else {
+        // if (process.env.NODE_ENV !== 'production') {
+        //     this.apiUrl = 'http://localhost/x-quest';
+        // }
+        // else {
             this.apiUrl = '/projects/x-quest';
-        }
+        // }
     }
 
     private generateUserId(): string {
         return uuidv4();
     }
 
-    loadGame(): Promise<Savefile> {
-        const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
-        if (!save) {
-            const newSave: Savefile = {
+    private parse(): Savefile {
+        let save: Savefile;
+        try {
+            save = JSON.parse(localStorage.getItem('x-quest-save') ?? '');
+        } catch (error) {
+            save = {
                 user_id: this.generateUserId(),
                 user_name: "",
                 offline: false,
@@ -38,12 +40,16 @@ export default class WWRequest extends Requests {
                 mod_matrix: 0,
                 mod_nightmare: 0,
                 mod_survivor: 0,
-                current_minigame_points: null,
                 game_log: [],
             };
-            localStorage.setItem("x-quest-save", JSON.stringify(newSave));
-            return Promise.resolve(newSave);
+            localStorage.setItem('x-quest-save', JSON.stringify(save));
         }
+
+        return save;
+    }
+
+    loadGame(): Promise<Savefile> {
+        const save: Savefile = this.parse();
 
         if (save.game_log.length > 0) {
             save.high_score = Number(save.game_log.reduce((a,b) => Number(a.score) > Number(b.score) ? a : b).score);
@@ -56,7 +62,8 @@ export default class WWRequest extends Requests {
     }
 
     saveGame(state: State) {
-        const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
+        const save = this.parse();
+
         save.volume = state.volume,
         save.user_name = state.username;
         save.offline = state.offline;
@@ -66,7 +73,7 @@ export default class WWRequest extends Requests {
         save.mod_matrix = state.hasSelectedModifier('Matrix') ? 1 : 0,
         save.mod_nightmare = state.hasSelectedModifier('Nightmare') ? 1 : 0,
         save.mod_survivor = state.hasSelectedModifier('Survivor') ? 1 : 0,
-        localStorage.setItem("x-quest-save", JSON.stringify(save));
+        localStorage.setItem('x-quest-save', JSON.stringify(save));
         return Promise.resolve(true);
     }
 
@@ -125,9 +132,9 @@ export default class WWRequest extends Requests {
             timestamp: Math.floor(new Date().getTime() / 1000),
         };
 
-        const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
+        const save: Savefile = this.parse();
         save.game_log.push(data);
-        localStorage.setItem("x-quest-save", JSON.stringify(save));
+        localStorage.setItem('x-quest-save', JSON.stringify(save));
 
         if (state.offline) {
             return Promise.resolve({ });
@@ -221,7 +228,8 @@ export default class WWRequest extends Requests {
     }
 
     loadStatistics(state: State): Promise<GameStatistics> {
-        const save: Savefile = JSON.parse(localStorage.getItem("x-quest-save"));
+        const save = this.parse();
+
         const userId = save.user_id;
         if (state.offline) {
             const stats: GameStatistics = {
@@ -251,9 +259,9 @@ export default class WWRequest extends Requests {
                 stats.t_shots_fired += Number(game.shots_fired);
                 stats.t_powerups_used += Number(game.powerups_used);
                 stats.t_moves += Number(game.moves);
-                stats.t_death_abyss += game.cause_of_death == "Abyss" ? 1 : 0;
-                stats.t_death_spaceship += game.cause_of_death == "Spaceship" ? 1 : 0;
-                stats.t_death_wall += game.cause_of_death == "Wall" ? 1 : 0;
+                stats.t_death_abyss += game.cause_of_death == 'Abyss' ? 1 : 0;
+                stats.t_death_spaceship += game.cause_of_death == 'Spaceship' ? 1 : 0;
+                stats.t_death_wall += game.cause_of_death == 'Wall' ? 1 : 0;
             });
             return Promise.resolve(stats);
         }
@@ -297,9 +305,9 @@ export default class WWRequest extends Requests {
         return formData;
     }
 
-    static onError(message: string = "") {
-        if (message == "") {
-            return Error("<br>X-Quest could not connect to the server.<br><br>Offline mode can be enabled in options if problems persist.");
+    static onError(message: string = '') {
+        if (message == '') {
+            return Error('<br>X-Quest could not connect to the server.<br><br>Offline mode can be enabled in options if problems persist.');
         }
         return Error(message);
     }
