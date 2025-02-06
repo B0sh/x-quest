@@ -9,23 +9,23 @@
   "scripts": {
     "clean": "rimraf dist",
     "start": "npm run clean && parcel index.html",
-    "watch": "npm run clean && parcel index.html --public-url /x-quest/dist",
+    "watch": "npm run clean && parcel index.html --public-url /projects/x-quest/dist",
     "build": "npm run clean && parcel build index.html",
     "ww": "npm run clean && parcel build index.html --no-source-maps --public-url /projects/x-quest/dist"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "howler": "^2.2.3",
-    "rot-js": "^2.2.0",
-    "uuid": "^8.3.2"
+    "howler": "^2.2.4",
+    "rot-js": "^2.2.1",
+    "uuid": "^11.0.5"
   },
   "devDependencies": {
-    "@types/howler": "^2.2.7",
-    "parcel": "^2.4.1",
-    "parcel-reporter-static-files-copy": "^1.3.4",
+    "@types/howler": "^2.2.12",
+    "parcel": "^2.8.3",
+    "parcel-reporter-static-files-copy": "^1.5.0",
     "process": "^0.11.10",
     "rimraf": "^3.0.2",
-    "typescript": "^4.0.5"
+    "typescript": "^5.7.3"
   }
 }
