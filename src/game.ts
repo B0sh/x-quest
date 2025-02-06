@@ -105,8 +105,14 @@ export class XQuest {
             // }
         });
 
+        // setup intro activation timer, but don't start it right away
         this.introActivationTimer = new Timer(this.activateIntro.bind(this), 75000);
-        this.introActivationTimer.start();
+
+        setTimeout(() => {
+            if (!this.Active) {
+                this.activateIntro();
+            }
+        }, 4500);
 
     }
 
@@ -447,7 +453,7 @@ export class XQuest {
         this.isUpdating = false;
         this.timer.stop();
 
-        if (!this.Active) {
+        if (!this.Active && !this.Paused) {
             this.introActivationTimer.start(); 
         }
     }

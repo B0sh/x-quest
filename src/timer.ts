@@ -24,15 +24,11 @@ export class Timer {
     }
 
     step(): void {
-        const drift = performance.now() - this.expected;
-        // if (drift > this.interval) {
-             // You could have some default stuff here too...
-        //     if (errorFunc) errorFunc();
-        // }
-        this.onTick();
-        this.expected += this.interval;
-
         if (this.running) {
+            const drift = performance.now() - this.expected;
+            this.expected += this.interval;
+
+            this.onTick();
             this.timeout = setTimeout(this.step.bind(this), Math.max(0, this.interval - drift));
         }
     }
