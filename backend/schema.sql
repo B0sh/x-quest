@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS games (
     user_id TEXT NOT NULL,
     user_name TEXT NOT NULL DEFAULT '',
     score INTEGER NOT NULL DEFAULT 0,
-    minigame_points INTEGER NOT NULL DEFAULT 0,
     level INTEGER NOT NULL DEFAULT 0,
     lines INTEGER NOT NULL DEFAULT 0,
     ships_destroyed INTEGER NOT NULL DEFAULT 0,

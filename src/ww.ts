@@ -38,7 +38,9 @@ export default class WWRequest extends Requests {
 
     constructor() {
         super();
-        this.apiUrl = "/api";
+        const assetUrl = new URL(import.meta.url);
+        const basePath = assetUrl.pathname.replace(/\/[^/]*$/, "");
+        this.apiUrl = `${basePath}/api`;
     }
 
     private generateUserId(): string {
