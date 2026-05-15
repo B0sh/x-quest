@@ -1,7 +1,7 @@
 export interface Modifier {
     name: string;
     description: string;
-    scoreMultiplier?: number; 
+    scoreMultiplier?: number;
     invalidComboModifiers?: string[];
 }
 
@@ -18,6 +18,10 @@ export const WW_MODIFIERS: Modifier[] = [
         name: 'Matrix',
         description: 'Spaceships armed with MultiShot',
     },
+    {
+        name: 'Survivor',
+        description: 'Start with one life.',
+    }
 ];
 
 export const TPK_MODIFIERS: Modifier[] = [

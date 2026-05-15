@@ -321,9 +321,13 @@ export class Layout {
         if (username.length > 0) {
             this.updateUsername(username);
             this.game.state.save();
-            this.requests.submitHighScore(this.game.state, username).then(() => {
+            this.requests.submitHighScore(this.game.state, username).then((result: any) => {
                 document.querySelector<HTMLElement>('.game-over-high-score')!.style.display = "none";
-                document.querySelector<HTMLElement>('.game-over-high-score-submitted')!.style.display = "unset";
+                const submittedElement = document.querySelector<HTMLElement>('.game-over-high-score-submitted')!;
+                submittedElement.innerHTML = result.submitted
+                    ? 'High score submitted!'
+                    : 'Server unavailable. Score saved locally only.';
+                submittedElement.style.display = "unset";
             });
         }
     }

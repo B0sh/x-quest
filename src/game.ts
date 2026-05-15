@@ -238,8 +238,7 @@ export class XQuest {
         if (!this.state.offline) {
             this.requests.startGame(this.state).then((result: any) => {
                 this.state.gameId = result.game_id;
-            }).catch((error) => {
-                this.handleError(error);
+                this.xcheck = result.xcheck ?? "";
             });
         }
 
@@ -643,7 +642,7 @@ export class XQuest {
                 this.state.highScore = this.state.stats.Score;
                 this.gameOverHighScore = true;
 
-                if (this.onWW && !this.state.offline) {
+                if (this.onWW && !this.state.offline && this.state.gameId !== 0) {
                     document.querySelector<HTMLElement>('.game-over-high-score')!.style.display = "unset";
                     document.querySelector<HTMLInputElement>('.game-over-username-input')!.value = this.state.username;
                 }
@@ -652,8 +651,6 @@ export class XQuest {
             this.layout.loadGameOverStatistics(this.state, death, null, null);
             this.requests.finishGame(this.state, death).then((result: any) => {
                 this.layout.loadGameOverStatistics(this.state, death, result.minigame_points, result.event_currency);
-            }).catch((error: Error) => {
-                this.handleError(error);
             });
         }
     }

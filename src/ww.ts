@@ -2,31 +2,53 @@ import { XQuest } from "./game";
 import { Savefile } from "./models/game-save";
 import { Requests } from "./requests";
 import { State } from "./state";
-import { v4 as uuidv4 } from 'uuid';
 import { GameStatistics } from "./models/game-statistics";
+
+type FinishedGameRecord = {
+    user_id: string;
+    user_name: string;
+    cause_of_death: string;
+    game_id: string;
+    score: string;
+    level: string;
+    lines: string;
+    shots_fired: string;
+    ships_destroyed: string;
+    shots_destroyed: string;
+    powerups_used: string;
+    moves: string;
+    game_time: string;
+    version: string;
+    mod_nightmare: string;
+    mod_incline: string;
+    mod_invasion: string;
+    mod_matrix: string;
+    mod_barebones: string;
+    mod_survivor: string;
+    timestamp: number;
+};
+
+type GameStartResponse = {
+    game_id: number;
+    xcheck: string;
+};
 
 export default class WWRequest extends Requests {
     apiUrl: string;
+
     constructor() {
         super();
-
-        //@ts-ignore parcel imports process automatically
-        // if (process.env.NODE_ENV !== 'production') {
-        //     this.apiUrl = 'http://localhost/x-quest';
-        // }
-        // else {
-            this.apiUrl = '/projects/x-quest';
-        // }
+        this.apiUrl = "/api";
     }
 
     private generateUserId(): string {
-        return uuidv4();
+        return crypto.randomUUID();
     }
 
     private parse(): Savefile {
         let save: Savefile;
         try {
-            save = JSON.parse(localStorage.getItem('x-quest-save') ?? '');
+            save = JSON.parse(localStorage.getItem("x-quest-save") ?? "");
         } catch (error) {
             save = {
                 user_id: this.generateUserId(),
@@ -42,19 +64,198 @@ export default class WWRequest extends Requests {
                 mod_survivor: 0,
                 game_log: [],
             };
-            localStorage.setItem('x-quest-save', JSON.stringify(save));
+            localStorage.setItem("x-quest-save", JSON.stringify(save));
         }
 
         return save;
     }
 
+    private saveLocal(save: Savefile) {
+        localStorage.setItem("x-quest-save", JSON.stringify(save));
+    }
+
+    private postBody(object: Record<string, string>) {
+        return new URLSearchParams(object);
+    }
+
+    private async requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+        const response = await fetch(`${this.apiUrl}${path}`, {
+            ...init,
+            credentials: "same-origin",
+        });
+
+        if (!response.ok) {
+            throw new Error(await this.readError(response));
+        }
+
+        return response.json();
+    }
+
+    private async requestText(path: string): Promise<string> {
+        const response = await fetch(`${this.apiUrl}${path}`, {
+            credentials: "same-origin",
+        });
+
+        if (!response.ok) {
+            throw new Error(await this.readError(response));
+        }
+
+        return response.text();
+    }
+
+    private async readError(response: Response): Promise<string> {
+        const text = await response.text();
+        return text || `Request failed with status ${response.status}`;
+    }
+
+    private calculateMinigamePoints(state: State): number {
+        const level = Math.max(state.level, 30);
+        const levelSum = (level * (level + 1)) / 3;
+        const modifiers = (state.hasModifier("Barebones") ? 0.3 : 0)
+            + (state.hasModifier("Incline") ? 0.5 : 0)
+            + (state.hasModifier("Invasion") ? 0.5 : 0)
+            + (state.hasModifier("Matrix") ? 0.5 : 0)
+            + (state.hasModifier("Nightmare") ? 2 : 0)
+            + (state.hasModifier("Survivor") ? 1 : 0);
+
+        return Math.floor(levelSum * state.stats.Score * (modifiers + 1));
+    }
+
+    private buildOfflineStats(save: Savefile): GameStatistics {
+        const stats: GameStatistics = {
+            t_games: 0,
+            t_score: 0,
+            t_level: 0,
+            t_lines: 0,
+            t_game_time: 0,
+            t_minigame_points: 0,
+            t_ships_destroyed: 0,
+            t_shots_destroyed: 0,
+            t_shots_fired: 0,
+            t_powerups_used: 0,
+            t_moves: 0,
+            t_death_abyss: 0,
+            t_death_spaceship: 0,
+            t_death_wall: 0
+        };
+
+        save.game_log.forEach((game: FinishedGameRecord) => {
+            const score = Number(game.score);
+            const level = Number(game.level);
+            stats.t_games += 1;
+            stats.t_score += score;
+            stats.t_level += level;
+            stats.t_lines += Number(game.lines);
+            stats.t_game_time += Number(game.game_time);
+            stats.t_minigame_points += this.calculateOfflineRecordMinigamePoints(game);
+            stats.t_ships_destroyed += Number(game.ships_destroyed);
+            stats.t_shots_destroyed += Number(game.shots_destroyed);
+            stats.t_shots_fired += Number(game.shots_fired);
+            stats.t_powerups_used += Number(game.powerups_used);
+            stats.t_moves += Number(game.moves);
+            stats.t_death_abyss += game.cause_of_death == "Abyss" ? 1 : 0;
+            stats.t_death_spaceship += game.cause_of_death == "Spaceship" ? 1 : 0;
+            stats.t_death_wall += game.cause_of_death == "Wall" ? 1 : 0;
+        });
+
+        return stats;
+    }
+
+    private calculateOfflineRecordMinigamePoints(game: FinishedGameRecord): number {
+        const level = Math.max(Number(game.level), 30);
+        const levelSum = (level * (level + 1)) / 3;
+        const modifiers = (game.mod_barebones === "true" ? 0.3 : 0)
+            + (game.mod_incline === "true" ? 0.5 : 0)
+            + (game.mod_invasion === "true" ? 0.5 : 0)
+            + (game.mod_matrix === "true" ? 0.5 : 0)
+            + (game.mod_nightmare === "true" ? 2 : 0)
+            + (game.mod_survivor === "true" ? 1 : 0);
+
+        return Math.floor(levelSum * Number(game.score) * (modifiers + 1));
+    }
+
+    private buildOfflineHighScores(save: Savefile, scoreList: string): string {
+        const filteredGames = (save.game_log as FinishedGameRecord[])
+            .filter((game) => this.matchesScoreList(game, scoreList))
+            .sort((a, b) => {
+                const scoreDiff = Number(b.score) - Number(a.score);
+                if (scoreDiff !== 0) {
+                    return scoreDiff;
+                }
+
+                return Number(b.timestamp) - Number(a.timestamp);
+            })
+            .slice(0, 10);
+
+        if (filteredGames.length === 0) {
+            return `<div>No local high scores yet. Start a run to populate offline results.</div>`;
+        }
+
+        const rows = filteredGames.map((game, index) => {
+            const date = new Date(Number(game.timestamp) * 1000);
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${this.escapeHtml(game.user_name || "Anonymous")}</td>
+                    <td>${Number(game.score).toLocaleString()}</td>
+                    <td>${Number(game.level)}</td>
+                    <td>${this.formatGameTime(Number(game.game_time))}</td>
+                    <td>${date.toLocaleDateString()}</td>
+                </tr>
+            `;
+        }).join("");
+
+        return `
+            <div style="margin-bottom: 12px;">Offline leaderboard from this browser.</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th class="level-class" style="width: 20px;"></th>
+                        <th class="level-class" style="min-width: 120px;">Name</th>
+                        <th class="level-class" style="width: 50px;">Score</th>
+                        <th class="level-class" style="width: 50px;">Level</th>
+                        <th class="level-class" style="width: 100px;">Game Time</th>
+                        <th class="level-class" style="width: 100px;">Date Of</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+    }
+
+    private matchesScoreList(game: FinishedGameRecord, scoreList: string): boolean {
+        if (scoreList === "nightmare") {
+            return game.mod_nightmare === "true";
+        }
+
+        if (scoreList === "incline") {
+            return game.mod_incline === "true";
+        }
+
+        return true;
+    }
+
+    private escapeHtml(value: string): string {
+        return value
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll("\"", "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+
+    private formatGameTime(seconds: number): string {
+        const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
+        const remainingSeconds = (seconds % 60).toString().padStart(2, "0");
+        return `${minutes}m ${remainingSeconds}s`;
+    }
+
     loadGame(): Promise<Savefile> {
-        const save: Savefile = this.parse();
+        const save = this.parse();
 
         if (save.game_log.length > 0) {
-            save.high_score = Number(save.game_log.reduce((a,b) => Number(a.score) > Number(b.score) ? a : b).score);
-        }
-        else {
+            save.high_score = Number(save.game_log.reduce((a, b) => Number(a.score) > Number(b.score) ? a : b).score);
+        } else {
             save.high_score = 0;
         }
 
@@ -64,52 +265,51 @@ export default class WWRequest extends Requests {
     saveGame(state: State) {
         const save = this.parse();
 
-        save.volume = state.volume,
+        save.volume = state.volume;
         save.user_name = state.username;
         save.offline = state.offline;
-        save.mod_barebones = state.hasSelectedModifier('Barebones') ? 1 : 0,
-        save.mod_incline = state.hasSelectedModifier('Incline') ? 1 : 0,
-        save.mod_invasion = state.hasSelectedModifier('Invasion') ? 1 : 0,
-        save.mod_matrix = state.hasSelectedModifier('Matrix') ? 1 : 0,
-        save.mod_nightmare = state.hasSelectedModifier('Nightmare') ? 1 : 0,
-        save.mod_survivor = state.hasSelectedModifier('Survivor') ? 1 : 0,
-        localStorage.setItem('x-quest-save', JSON.stringify(save));
+        save.mod_barebones = state.hasSelectedModifier("Barebones") ? 1 : 0;
+        save.mod_incline = state.hasSelectedModifier("Incline") ? 1 : 0;
+        save.mod_invasion = state.hasSelectedModifier("Invasion") ? 1 : 0;
+        save.mod_matrix = state.hasSelectedModifier("Matrix") ? 1 : 0;
+        save.mod_nightmare = state.hasSelectedModifier("Nightmare") ? 1 : 0;
+        save.mod_survivor = state.hasSelectedModifier("Survivor") ? 1 : 0;
+        this.saveLocal(save);
         return Promise.resolve(true);
     }
 
-    startGame(state: State) {
-        const data = {
-            user_id: state.userId,
-            user_name: state.username,
+    async startGame(state: State): Promise<GameStartResponse> {
+        if (state.offline) {
+            return { game_id: 0, xcheck: "" };
+        }
 
-            version: XQuest.version,
-            mod_nightmare: state.hasModifier('Nightmare').toString(),
-            mod_incline: state.hasModifier('Incline').toString(),
-            mod_invasion: state.hasModifier('Invasion').toString(),
-            mod_matrix: state.hasModifier('Matrix').toString(),
-            mod_barebones: state.hasModifier('Barebones').toString(),
-            mod_survivor: state.hasModifier('Survivor').toString(),
-            
-            date: new Date(),
-        };
-
-        return new Promise((resolve, reject) => {
-            const req = new XMLHttpRequest();
-            req.open('POST', `${this.apiUrl}/start-game`, true);
-            req.withCredentials = true;
-            req.onload = () => {
-                return WWRequest.onSuccess(req, resolve, reject);
-            };
-            req.onerror = (e) => reject(WWRequest.onError());
-            req.send(this.postData(data));
-        });
+        try {
+            return await this.requestJson<GameStartResponse>("/start-game", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                },
+                body: this.postBody({
+                    user_id: state.userId,
+                    user_name: state.username,
+                    version: XQuest.version,
+                    mod_nightmare: state.hasModifier("Nightmare").toString(),
+                    mod_incline: state.hasModifier("Incline").toString(),
+                    mod_invasion: state.hasModifier("Invasion").toString(),
+                    mod_matrix: state.hasModifier("Matrix").toString(),
+                    mod_barebones: state.hasModifier("Barebones").toString(),
+                    mod_survivor: state.hasModifier("Survivor").toString(),
+                }),
+            });
+        } catch (error) {
+            return { game_id: 0, xcheck: "" };
+        }
     }
 
-    finishGame(state: State, death: string) {
-        const data = {
+    async finishGame(state: State, death: string) {
+        const data: FinishedGameRecord = {
             user_id: state.userId,
             user_name: state.username,
-
             cause_of_death: death,
             game_id: state.gameId.toString(),
             score: state.stats.Score.toString(),
@@ -122,199 +322,150 @@ export default class WWRequest extends Requests {
             moves: state.stats.Moves.toString(),
             game_time: Math.floor(state.stats.Time).toString(),
             version: XQuest.version,
-            mod_nightmare: state.hasModifier('Nightmare').toString(),
-            mod_incline: state.hasModifier('Incline').toString(),
-            mod_invasion: state.hasModifier('Invasion').toString(),
-            mod_matrix: state.hasModifier('Matrix').toString(),
-            mod_barebones: state.hasModifier('Barebones').toString(),
-            mod_survivor: state.hasModifier('Survivor').toString(),
-            
-            timestamp: Math.floor(new Date().getTime() / 1000),
+            mod_nightmare: state.hasModifier("Nightmare").toString(),
+            mod_incline: state.hasModifier("Incline").toString(),
+            mod_invasion: state.hasModifier("Invasion").toString(),
+            mod_matrix: state.hasModifier("Matrix").toString(),
+            mod_barebones: state.hasModifier("Barebones").toString(),
+            mod_survivor: state.hasModifier("Survivor").toString(),
+            timestamp: Math.floor(Date.now() / 1000),
         };
 
-        const save: Savefile = this.parse();
+        const save = this.parse();
         save.game_log.push(data);
-        localStorage.setItem('x-quest-save', JSON.stringify(save));
+        this.saveLocal(save);
 
-        if (state.offline) {
-            return Promise.resolve({ });
-        } else {
-            return new Promise((resolve, reject) => {
-                const req = new XMLHttpRequest();
-                req.open('POST', `${this.apiUrl}/finish-game`);
-                req.withCredentials = true;
-                req.onerror = (e) => reject(WWRequest.onError());
-                req.onload = () => {
-                    return WWRequest.onSuccess(req, resolve, reject);
-                };
-                req.send(this.postData(data));
+        const offlineResponse = {
+            minigame_points: this.calculateMinigamePoints(state),
+            server_available: false,
+        };
+
+        if (state.offline || state.gameId === 0) {
+            return offlineResponse;
+        }
+
+        try {
+            return await this.requestJson("/finish-game", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                },
+                body: this.postBody({
+                    user_id: state.userId,
+                    user_name: state.username,
+                    cause_of_death: death,
+                    game_id: state.gameId.toString(),
+                    score: state.stats.Score.toString(),
+                    level: state.level.toString(),
+                    lines: state.lines.toString(),
+                    shots_fired: state.stats.ShotsFired.toString(),
+                    ships_destroyed: state.stats.ShipsDestroyed.toString(),
+                    shots_destroyed: state.stats.ShotsDestroyed.toString(),
+                    powerups_used: state.stats.PowerupsUsed.toString(),
+                    moves: state.stats.Moves.toString(),
+                    game_time: Math.floor(state.stats.Time).toString(),
+                    version: XQuest.version,
+                    mod_nightmare: state.hasModifier("Nightmare").toString(),
+                    mod_incline: state.hasModifier("Incline").toString(),
+                    mod_invasion: state.hasModifier("Invasion").toString(),
+                    mod_matrix: state.hasModifier("Matrix").toString(),
+                    mod_barebones: state.hasModifier("Barebones").toString(),
+                    mod_survivor: state.hasModifier("Survivor").toString(),
+                    timestamp: Math.floor(Date.now() / 1000).toString(),
+                }),
             });
+        } catch (error) {
+            return offlineResponse;
         }
     }
 
-    gameStateSync(state: State, xcheck: string) {
-        const data = {
-            user_id: state.userId.toString(),
-            user_name: state.username,
-
-            game_id: state.gameId.toString(),
-            score: state.stats.Score.toString(),
-            level: state.level.toString(),
-            lines: state.lines.toString(),
-            shots_fired: state.stats.ShotsFired.toString(),
-            ships_destroyed: state.stats.ShipsDestroyed.toString(),
-            shots_destroyed: state.stats.ShotsDestroyed.toString(),
-            powerups_used: state.stats.PowerupsUsed.toString(),
-            moves: state.stats.Moves.toString(),
-            game_time: Math.floor(state.stats.Time).toString(),
-            xcheck: xcheck,
-            version: XQuest.version,
-            mod_nightmare: state.hasModifier('Nightmare').toString(),
-            mod_incline: state.hasModifier('Incline').toString(),
-            mod_invasion: state.hasModifier('Invasion').toString(),
-            mod_matrix: state.hasModifier('Matrix').toString(),
-            mod_barebones: state.hasModifier('Barebones').toString(),
-            mod_survivor: state.hasModifier('Survivor').toString(),
-        };
-
-        return new Promise((resolve, reject) => {
-            const req = new XMLHttpRequest();
-            req.open('POST', `${this.apiUrl}/update-game`);
-            req.withCredentials = true;
-            req.onerror = (e) => reject(WWRequest.onError());
-            req.onload = () => {
-                return WWRequest.onSuccess(req, resolve, reject);
-            };
-            req.send(this.postData(data));
-        });
-    }
-
-    loadHighScores(state: State, scoreList: string) {
-        let userId = '';
-        if (!state.offline) {
-            userId = state.userId;    
+    async gameStateSync(state: State, xcheck: string) {
+        if (state.offline || state.gameId === 0) {
+            return { xcheck };
         }
-        return new Promise((resolve, reject) => {
-            const req = new XMLHttpRequest();
-            req.open('GET', `${this.apiUrl}/high-scores?user_id=${userId}&list=${scoreList}`);
-            req.withCredentials = true;
-            req.onerror = (e) => reject(WWRequest.onError());
-            req.onload = () => {
-                WWRequest.checkHeaders(req);
-                return req.status === 200 ? resolve(req.response) : reject(Error(req.statusText))
-            };
-            req.send();
-        });
+
+        try {
+            return await this.requestJson("/update-game", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                },
+                body: this.postBody({
+                    user_id: state.userId,
+                    user_name: state.username,
+                    game_id: state.gameId.toString(),
+                    score: state.stats.Score.toString(),
+                    level: state.level.toString(),
+                    lines: state.lines.toString(),
+                    shots_fired: state.stats.ShotsFired.toString(),
+                    ships_destroyed: state.stats.ShipsDestroyed.toString(),
+                    shots_destroyed: state.stats.ShotsDestroyed.toString(),
+                    powerups_used: state.stats.PowerupsUsed.toString(),
+                    moves: state.stats.Moves.toString(),
+                    game_time: Math.floor(state.stats.Time).toString(),
+                    xcheck,
+                    version: XQuest.version,
+                    mod_nightmare: state.hasModifier("Nightmare").toString(),
+                    mod_incline: state.hasModifier("Incline").toString(),
+                    mod_invasion: state.hasModifier("Invasion").toString(),
+                    mod_matrix: state.hasModifier("Matrix").toString(),
+                    mod_barebones: state.hasModifier("Barebones").toString(),
+                    mod_survivor: state.hasModifier("Survivor").toString(),
+                }),
+            });
+        } catch (error) {
+            return { xcheck };
+        }
     }
 
-    submitHighScore(state: State, username: string) {
-        const data = {
-            user_id: state.userId.toString(),
-            user_name: username,
-            game_id: state.gameId.toString(),
-            version: XQuest.version,
-        };
-        return new Promise((resolve, reject) => {
-            const req = new XMLHttpRequest();
-            req.open('POST', `${this.apiUrl}/submit-highscore`);
-            req.withCredentials = true;
-            req.onerror = (e) => reject(WWRequest.onError());
-            req.onload = () => {
-                WWRequest.checkHeaders(req);
-                return req.status === 200 ? resolve(req.response) : reject(Error(req.statusText))
-            };
-            req.send(this.postData(data));
-        });
+    async loadHighScores(state: State, scoreList: string) {
+        const save = this.parse();
+        if (state.offline) {
+            return this.buildOfflineHighScores(save, scoreList);
+        }
+
+        try {
+            const userId = state.userId || "";
+            return await this.requestText(`/high-scores?user_id=${encodeURIComponent(userId)}&list=${encodeURIComponent(scoreList)}`);
+        } catch (error) {
+            return this.buildOfflineHighScores(save, scoreList);
+        }
     }
 
-    loadStatistics(state: State): Promise<GameStatistics> {
+    async submitHighScore(state: State, username: string) {
+        if (state.offline || state.gameId === 0) {
+            return { submitted: false, server_available: false };
+        }
+
+        try {
+            return await this.requestJson("/submit-highscore", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                },
+                body: this.postBody({
+                    user_id: state.userId,
+                    user_name: username,
+                    game_id: state.gameId.toString(),
+                    version: XQuest.version,
+                }),
+            });
+        } catch (error) {
+            return { submitted: false, server_available: false };
+        }
+    }
+
+    async loadStatistics(state: State): Promise<GameStatistics> {
         const save = this.parse();
 
-        const userId = save.user_id;
         if (state.offline) {
-            const stats: GameStatistics = {
-                t_games: 0,
-                t_score: 0,
-                t_level: 0,
-                t_lines: 0,
-                t_game_time: 0,
-                t_minigame_points: 0,
-                t_ships_destroyed: 0,
-                t_shots_destroyed: 0,
-                t_shots_fired: 0,
-                t_powerups_used: 0,
-                t_moves: 0,
-                t_death_abyss: 0,
-                t_death_spaceship: 0,
-                t_death_wall: 0
-            };
-            save.game_log.forEach((game) => {
-                stats.t_games += 1;
-                stats.t_score += Number(game.score);
-                stats.t_level += Number(game.level);
-                stats.t_lines += Number(game.lines);
-                stats.t_game_time += Number(game.game_time);
-                stats.t_ships_destroyed += Number(game.ships_destroyed);
-                stats.t_shots_destroyed += Number(game.shots_destroyed);
-                stats.t_shots_fired += Number(game.shots_fired);
-                stats.t_powerups_used += Number(game.powerups_used);
-                stats.t_moves += Number(game.moves);
-                stats.t_death_abyss += game.cause_of_death == 'Abyss' ? 1 : 0;
-                stats.t_death_spaceship += game.cause_of_death == 'Spaceship' ? 1 : 0;
-                stats.t_death_wall += game.cause_of_death == 'Wall' ? 1 : 0;
-            });
-            return Promise.resolve(stats);
+            return this.buildOfflineStats(save);
         }
-        else {
-            return new Promise((resolve, reject) => {
-                const req = new XMLHttpRequest();
-                req.open('GET', `${this.apiUrl}/statistics?user_id=${userId}`);
-                req.withCredentials = true;
-                req.onerror = (e: any) => { 
-                    reject(WWRequest.onError());
-                };
-                req.onload = () => {
-                    return WWRequest.onSuccess(req, resolve, reject);
-                };
-                req.send();
-            });
-        }
-    }
 
-    static onSuccess(req: any, resolve: any, reject: any) {
-        WWRequest.checkHeaders(req);
-        if (req.status !== 200) {
-            return reject(WWRequest.onError(req.statusText));
+        try {
+            return await this.requestJson<GameStatistics>(`/statistics?user_id=${encodeURIComponent(save.user_id)}`);
+        } catch (error) {
+            return this.buildOfflineStats(save);
         }
-        else {
-            try {
-                const obj = JSON.parse(req.response);
-                return resolve(obj);
-            }
-            catch (e) {
-                return reject(WWRequest.onError(req.response));
-            }
-        }
-    }
-
-    private postData(object: any): FormData {
-        const formData: FormData = new FormData();
-        for (let property in object) {
-            formData.append(property, object[property]);
-        }
-        return formData;
-    }
-
-    static onError(message: string = '') {
-        if (message == '') {
-            return Error('<br>X-Quest could not connect to the server.<br><br>Offline mode can be enabled in options if problems persist.');
-        }
-        return Error(message);
-    }
-
-    static checkHeaders(request: XMLHttpRequest) {
-        // if (request.getResponseHeader('AJAX_REDIRECT') !== null) {
-        //     window.location.href = request.getResponseHeader('AJAX_REDIRECT');
-        // }
     }
 }
