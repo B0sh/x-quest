@@ -39,6 +39,30 @@ const distDir = path.resolve(projectRoot, "dist");
 const schemaPath = path.resolve(projectRoot, "backend", "schema.sql");
 const sqlitePath = process.env.SQLITE_PATH ?? path.resolve(projectRoot, "backend", "data", "xquest.sqlite");
 
+function normalizeBaseUrl(value: string | undefined): string {
+    const trimmed = value?.trim() ?? "";
+    if (!trimmed || trimmed === "/") {
+        return "/";
+    }
+
+    const prefixed = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+    return prefixed.endsWith("/") ? prefixed.slice(0, -1) : prefixed;
+}
+
+function withBaseUrl(baseUrl: string, route: string): string {
+    if (baseUrl === "/") {
+        return route;
+    }
+
+    return `${baseUrl}${route}`;
+}
+
+function escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const baseUrl = normalizeBaseUrl(process.env.BASE_URL);
+
 fs.mkdirSync(path.dirname(sqlitePath), { recursive: true });
 
 const db = new Database(sqlitePath);
@@ -199,7 +223,7 @@ function renderHighScores(userId: string, list: string) {
     `;
 }
 
-app.post("/api/start-game", (request: Request, response: Response) => {
+app.post(withBaseUrl(baseUrl, "/api/start-game"), (request: Request, response: Response) => {
     if (!validUserId(request.body.user_id)) {
         response.status(400).json({ error: "Invalid user id." });
         return;
@@ -245,7 +269,7 @@ app.post("/api/start-game", (request: Request, response: Response) => {
     });
 });
 
-app.post("/api/update-game", (request: Request, response: Response) => {
+app.post(withBaseUrl(baseUrl, "/api/update-game"), (request: Request, response: Response) => {
     if (!validUserId(request.body.user_id)) {
         response.status(400).json({ error: "Invalid user id." });
         return;
@@ -300,7 +324,7 @@ app.post("/api/update-game", (request: Request, response: Response) => {
     response.json({ xcheck: nextXCheck });
 });
 
-app.post("/api/finish-game", (request: Request, response: Response) => {
+app.post(withBaseUrl(baseUrl, "/api/finish-game"), (request: Request, response: Response) => {
     if (!validUserId(request.body.user_id)) {
         response.status(400).json({ error: "Invalid user id." });
         return;
@@ -374,13 +398,13 @@ app.post("/api/finish-game", (request: Request, response: Response) => {
     response.json();
 });
 
-app.get("/api/high-scores", (request: Request, response: Response) => {
+app.get(withBaseUrl(baseUrl, "/api/high-scores"), (request: Request, response: Response) => {
     const userId = validUserId(request.query.user_id) ? request.query.user_id : "";
     const list = sanitizeText(request.query.list, 24);
     response.type("html").send(renderHighScores(userId, list));
 });
 
-app.post("/api/submit-highscore", (request: Request, response: Response) => {
+app.post(withBaseUrl(baseUrl, "/api/submit-highscore"), (request: Request, response: Response) => {
     if (!validUserId(request.body.user_id)) {
         response.status(400).json({ error: "Invalid user id." });
         return;
@@ -412,7 +436,7 @@ app.post("/api/submit-highscore", (request: Request, response: Response) => {
     response.json({ submitted: true });
 });
 
-app.get("/api/statistics", (request: Request, response: Response) => {
+app.get(withBaseUrl(baseUrl, "/api/statistics"), (request: Request, response: Response) => {
     if (!validUserId(request.query.user_id)) {
         response.status(400).json({ error: "Invalid user id." });
         return;
@@ -441,10 +465,21 @@ app.get("/api/statistics", (request: Request, response: Response) => {
 });
 
 if (fs.existsSync(distDir)) {
-    app.use(express.static(distDir));
+    if (baseUrl !== "/") {
+        app.get(new RegExp(`^${escapeRegex(baseUrl)}$`), (_request: Request, response: Response) => {
+            response.redirect(308, `${baseUrl}/`);
+        });
+    }
+
+    app.use(baseUrl, express.static(distDir));
 }
 
-app.get(/^(?!\/api(?:\/|$)).*/, (_request: Request, response: Response) => {
+app.get(withBaseUrl(baseUrl, "/{*path}"), (request: Request, response: Response) => {
+    if (request.path.startsWith(withBaseUrl(baseUrl, "/api/")) || request.path === withBaseUrl(baseUrl, "/api")) {
+        response.status(404).json({ error: "Not found." });
+        return;
+    }
+
     const indexPath = path.resolve(distDir, "index.html");
     if (fs.existsSync(indexPath)) {
         response.sendFile(indexPath);
@@ -456,5 +491,6 @@ app.get(/^(?!\/api(?:\/|$)).*/, (_request: Request, response: Response) => {
 
 app.listen(port, () => {
     console.log(`X-Quest server listening on port ${port}`);
+    console.log(`Base URL: ${baseUrl}`);
     console.log(`SQLite database: ${sqlitePath}`);
 });
