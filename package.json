@@ -1,31 +1,39 @@
 {
   "name": "x-quest",
   "version": "1.5.0",
-  "description": "",
+  "description": "You are an X that goes on a quest.",
   "repository": {
     "type": "git",
     "url": "https://github.com/B0sh/x-quest"
   },
   "scripts": {
-    "clean": "rimraf dist",
-    "start": "npm run clean && parcel index.html",
-    "watch": "npm run clean && parcel index.html --public-url /projects/x-quest/dist",
-    "build": "npm run clean && parcel build index.html",
-    "ww": "npm run clean && parcel build index.html --no-source-maps --public-url /projects/x-quest/dist"
+    "clean": "rimraf dist backend/dist",
+    "dev": "concurrently \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:client": "parcel index.html",
+    "dev:server": "tsx watch backend/src/server.ts",
+    "build:client": "parcel build index.html --public-url ${BASE_URL-/}",
+    "build:server": "tsc -p backend/tsconfig.json",
+    "build": "npm run clean && npm run build:client && npm run build:server",
+    "start": "node backend/dist/server.js"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Walden Perry",
   "dependencies": {
+    "better-sqlite3": "^12.10.0",
+    "express": "^5.2.1",
     "howler": "^2.2.4",
     "rot-js": "^2.2.1",
-    "uuid": "^11.0.5"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.3",
     "@types/howler": "^2.2.12",
-    "parcel": "^2.13.3",
+    "concurrently": "^9.2.1",
+    "parcel": "^2.16.4",
     "parcel-reporter-static-files-copy": "^1.5.3",
     "process": "^0.11.10",
-    "rimraf": "^3.0.2",
-    "typescript": "^5.7.3"
+    "rimraf": "^6.0.3",
+    "tsx": "^4.22.0",
+    "typescript": "^6.0.3"
   }
 }

@@ -1,7 +1,8 @@
+.git
 node_modules
 dist
 .parcel-cache
-.DS_Store
 backend/dist
 backend/data/*.sqlite
 backend/data/*.sqlite-*
+npm-debug.log*
