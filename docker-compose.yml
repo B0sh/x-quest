@@ -3,11 +3,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BASE_URL: ${BASE_URL:-/}
     ports:
       - "${PORT:-3000}:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
+      BASE_URL: ${BASE_URL:-/}
       SQLITE_PATH: /app/backend/data/xquest.sqlite
     volumes:
       - xquest_data:/app/backend/data
