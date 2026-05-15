@@ -38,9 +38,27 @@ export default class WWRequest extends Requests {
 
     constructor() {
         super();
-        const assetUrl = new URL(import.meta.url);
-        const basePath = assetUrl.pathname.replace(/\/[^/]*$/, "");
-        this.apiUrl = `${basePath}/api`;
+        this.apiUrl = `${this.resolveBasePath()}/api`;
+    }
+
+    private resolveBasePath(): string {
+        const moduleScript = document.querySelector<HTMLScriptElement>('script[type="module"][src]');
+        const scriptPath = moduleScript?.src ? new URL(moduleScript.src, window.location.href).pathname : "";
+        if (scriptPath) {
+            const assetBasePath = scriptPath.replace(/\/[^/]*$/, "");
+            const normalizedAssetBasePath = assetBasePath.endsWith("/src")
+                ? assetBasePath.slice(0, -4) || "/"
+                : assetBasePath || "/";
+            return normalizedAssetBasePath === "/" ? "" : normalizedAssetBasePath;
+        }
+
+        const pathname = window.location.pathname;
+        if (pathname === "/") {
+            return "";
+        }
+
+        const withoutTrailingSlash = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+        return withoutTrailingSlash || "";
     }
 
     private generateUserId(): string {
